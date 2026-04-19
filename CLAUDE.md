@@ -178,7 +178,7 @@ FASE 4 (Alertas):         ☐ Pendiente
 FASE 5 (Sync):            ☐ Pendiente
 ```
 
-**Último commit:**  `(ninguno aún)`
+**Último commit:**  `dc0a5a9` — feat: Phase 0 complete — Clean Architecture skeleton with Room + Hilt
 **Rama activa:**    `develop`
 **Próxima sesión:** Fase 1 — Supabase Auth
 
