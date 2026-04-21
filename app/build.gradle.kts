@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.navigation.compose)
+    implementation(libs.timber)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

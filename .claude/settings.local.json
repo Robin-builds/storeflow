@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew assembleDebug)"
+      "Bash(./gradlew assembleDebug)",
+      "Bash(adb devices *)",
+      "Bash(./gradlew installDebug)",
+      "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -c)",
+      "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -d)",
+      "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -d -v time)"
     ]
   }
 }

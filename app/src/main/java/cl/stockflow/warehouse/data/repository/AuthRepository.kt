@@ -12,6 +12,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,10 +26,12 @@ class AuthRepository @Inject constructor(
 
     suspend fun login(correo: String, contrasena: String): Result<SesionUsuario> {
         return try {
+            Timber.d("AUTH: iniciando login para $correo")
             supabaseClient.gotrue.loginWith(Email) {
                 email = correo.trim()
                 password = contrasena
             }
+            Timber.d("AUTH: loginWith OK")
 
             val session = supabaseClient.gotrue.currentSessionOrNull()
                 ?: return Result.failure(Exception("No se pudo obtener la sesión"))
@@ -64,6 +67,7 @@ class AuthRepository @Inject constructor(
                 )
             )
         } catch (e: Exception) {
+            Timber.e(e, "AUTH: error en login")
             Result.failure(Exception("Email o contraseña incorrecta"))
         }
     }
@@ -75,22 +79,26 @@ class AuthRepository @Inject constructor(
         contrasena: String
     ): Result<SesionUsuario> {
         return try {
+            Timber.d("AUTH: iniciando registro para $correo, empresa=$nombre_empresa")
             // 1. Crear usuario en Supabase Auth
             supabaseClient.gotrue.signUpWith(Email) {
                 email = correo.trim()
                 password = contrasena
             }
 
+            Timber.d("AUTH: signUpWith OK, haciendo login")
             // 2. Login para obtener token
             supabaseClient.gotrue.loginWith(Email) {
                 email = correo.trim()
                 password = contrasena
             }
+            Timber.d("AUTH: loginWith OK post-registro")
 
             val session = supabaseClient.gotrue.currentSessionOrNull()
                 ?: return Result.failure(Exception("Error al iniciar sesión tras registro"))
 
             val user = supabaseClient.gotrue.retrieveUserForCurrentSession(updateSession = true)
+            Timber.d("AUTH: user.id=${user.id}")
 
             // 3. Crear empresa y obtener su id
             val empresa = supabaseClient.postgrest["empresas"]
@@ -102,6 +110,7 @@ class AuthRepository @Inject constructor(
 
             val empresa_id = empresa["id"]?.jsonPrimitive?.content
                 ?: return Result.failure(Exception("Error al crear empresa"))
+            Timber.d("AUTH: empresa creada id=$empresa_id")
 
             // 4. Crear registro de usuario con rol ADMIN
             supabaseClient.postgrest["usuarios"].insert(
@@ -109,6 +118,7 @@ class AuthRepository @Inject constructor(
                     put("id", user.id)
                     put("empresa_id", empresa_id)
                     put("nombre", correo.trim().substringBefore("@"))
+                    put("email", correo.trim())
                     put("rol", "ADMIN")
                 }
             )
@@ -142,6 +152,7 @@ class AuthRepository @Inject constructor(
                 )
             )
         } catch (e: Exception) {
+            Timber.e(e, "AUTH: error en registro")
             val mensaje = when {
                 e.message?.contains("already registered") == true -> "Email ya registrado"
                 else -> "Error al registrar: ${e.message}"
