@@ -21,7 +21,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             AppDatabase.NOMBRE_DB
-        ).build()
+        )
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides fun provideEmpresaDao(db: AppDatabase) = db.empresaDao()
     @Provides fun provideUsuarioDao(db: AppDatabase) = db.usuarioDao()
@@ -30,4 +32,5 @@ object DatabaseModule {
     @Provides fun provideProductoDao(db: AppDatabase) = db.productoDao()
     @Provides fun provideMovimientoDao(db: AppDatabase) = db.movimientoDao()
     @Provides fun provideSyncDao(db: AppDatabase) = db.syncDao()
+    @Provides fun provideAuthSessionDao(db: AppDatabase) = db.authSessionDao()
 }
