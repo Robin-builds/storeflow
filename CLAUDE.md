@@ -7,13 +7,14 @@
 ## ⚙️ COMANDOS
 
 ```bash
-./gradlew assembleDebug                                          # build APK debug
-./gradlew installDebug                                           # instalar en dispositivo
-./gradlew test                                                   # unit tests
-./gradlew test --tests "cl.stockflow.warehouse.ExampleUnitTest"  # test específico
-./gradlew connectedAndroidTest                                   # tests instrumentados
-./gradlew lint                                                   # lint
-./gradlew clean                                                  # limpiar build
+# En Windows usar gradlew.bat (NO ./gradlew — es script Unix)
+gradlew.bat assembleDebug                                          # build APK debug
+gradlew.bat installDebug                                           # instalar en dispositivo
+gradlew.bat test                                                   # unit tests
+gradlew.bat test --tests "cl.stockflow.warehouse.ExampleUnitTest"  # test específico
+gradlew.bat connectedAndroidTest                                   # tests instrumentados
+gradlew.bat lint                                                   # lint
+gradlew.bat clean                                                  # limpiar build
 ```
 
 ---
@@ -22,7 +23,7 @@
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fase 0 completa. Room + Hilt operativos. Próximo: Fase 1 (Auth).
+**Estado:** Fase 1 completa y verificada end-to-end. Login y registro funcionando en dispositivo físico.
 
 ---
 
@@ -171,34 +172,27 @@ HUECOS_Y_SOLUCIONES.md        → Decisiones y problemas resueltos
 
 ```
 FASE 0 (Setup):           ✅ Completa
-FASE 1 (Auth):            ☐ Pendiente
+FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ☐ Pendiente
 FASE 3 (Movimientos):     ☐ Pendiente
 FASE 4 (Alertas):         ☐ Pendiente
 FASE 5 (Sync):            ☐ Pendiente
 ```
 
-**Último commit:**  `dc0a5a9` — feat: Phase 0 complete — Clean Architecture skeleton with Room + Hilt
+**Último commit:**  `bff7748` — debug: Add Timber logging to AuthRepository
 **Rama activa:**    `develop`
-**Próxima sesión:** Fase 1 — Supabase Auth
+**Próxima sesión:** Fase 2 — Productos CRUD
 
-**Lo construido en Fase 0:**
-- Package renombrado a `cl.stockflow.warehouse`, app name `StockFlow`
-- Clean Architecture folders: `data/local/`, `domain/`, `di/`, `utils/`
-- 7 entidades Room con FK en orden correcto + enums `TipoMovimiento`, `OperacionSync`
-- 7 DAOs con `Flow` + `suspend`; `MovimientoDao` solo INSERT (inmutabilidad)
-- `AppDatabase` v1, `DateConverters` (Date + enums), schema export a `app/schemas/`
-- `DatabaseModule` Hilt con providers para DB y todos los DAOs
-- `StockFlowApp` (@HiltAndroidApp) registrado en Manifest
-- `MainActivity` con `@AndroidEntryPoint`
-
-**Inicio Fase 1 — hacer primero:**
-1. Agregar deps Supabase BOM 1.4.6 + Ktor 2.3.7 al gradle
-2. Crear `AuthSessionEntity` + `AuthSessionDao` → agregar a `AppDatabase` (version 2 + migration)
-3. Crear `AuthRepository` → login, registro (empresa+usuario+bodega), logout, checkSession
-4. Crear `AuthViewModel` → expone `UiState`
-5. Pantallas Login y Registro en Compose
-6. Leer `03_DEFINITION_OF_DONE.md` para checklist completo de Fase 1
+**Lo construido en Fase 1:**
+- `AuthSessionEntity` + `AuthSessionDao` → `AppDatabase` v2 con migration
+- `SupabaseClient` con anon key JWT correcta
+- `AuthRepository`: login, logout, checkSession, registrar (con recuperación de huérfanos)
+- `AuthViewModel` expone `UiState` vía `StateFlow`
+- `LoginScreen`, `RegistroScreen`, `DashboardScreen` en Compose
+- `SesionUsuario` domain model
+- Función SQL `registrar_empresa` (SECURITY DEFINER) en Supabase — crea empresa + usuario + bodega atómicamente bypaseando RLS
+- RLS corregida: `get_empresa_id()` lee de tabla `usuarios` (no JWT claims)
+- Verificado end-to-end en dispositivo físico: login ✅ registro multi-empresa ✅
 
 ---
 

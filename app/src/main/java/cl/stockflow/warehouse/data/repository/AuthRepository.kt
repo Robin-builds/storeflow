@@ -7,6 +7,7 @@ import cl.stockflow.warehouse.domain.model.SesionUsuario
 import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -35,16 +36,22 @@ class AuthRepository @Inject constructor(
 
             val session = supabaseClient.gotrue.currentSessionOrNull()
                 ?: return Result.failure(Exception("No se pudo obtener la sesión"))
+            Timber.d("AUTH: session obtenida, accessToken=${session.accessToken.take(20)}...")
 
             val user = supabaseClient.gotrue.retrieveUserForCurrentSession(updateSession = true)
+            Timber.d("AUTH: user.id=${user.id}")
 
-            // Obtener empresa_id desde tabla usuarios (más confiable que JWT claims en MVP)
-            val fila = supabaseClient.postgrest["usuarios"]
-                .select { eq("id", user.id) }
-                .decodeSingle<JsonObject>()
+            Timber.d("AUTH: consultando tabla usuarios...")
+            val filas = supabaseClient.postgrest["usuarios"]
+                .select(filter = { eq("id", user.id) })
+                .decodeList<JsonObject>()
+            Timber.d("AUTH: filas encontradas: ${filas.size}")
+            val fila = filas.firstOrNull()
+                ?: return Result.failure(Exception("Usuario no tiene perfil en la base de datos. Contacte al administrador."))
 
             val empresa_id = fila["empresa_id"]?.jsonPrimitive?.content
                 ?: return Result.failure(Exception("Usuario sin empresa asignada"))
+            Timber.d("AUTH: empresa_id=$empresa_id")
 
             val expires_ms = session.expiresAt.toEpochMilliseconds()
             authSessionDao.guardarSesion(
@@ -56,6 +63,7 @@ class AuthRepository @Inject constructor(
                     expires_at = Date(expires_ms)
                 )
             )
+            Timber.d("AUTH: sesion guardada en Room OK")
 
             Result.success(
                 SesionUsuario(
@@ -67,8 +75,8 @@ class AuthRepository @Inject constructor(
                 )
             )
         } catch (e: Exception) {
-            Timber.e(e, "AUTH: error en login")
-            Result.failure(Exception("Email o contraseña incorrecta"))
+            Timber.e(e, "AUTH: error en login — ${e.javaClass.simpleName}: ${e.message}")
+            Result.failure(Exception("Error: ${e.message}"))
         }
     }
 
@@ -80,56 +88,63 @@ class AuthRepository @Inject constructor(
     ): Result<SesionUsuario> {
         return try {
             Timber.d("AUTH: iniciando registro para $correo, empresa=$nombre_empresa")
-            // 1. Crear usuario en Supabase Auth
-            supabaseClient.gotrue.signUpWith(Email) {
-                email = correo.trim()
-                password = contrasena
+
+            // 1. Crear usuario en Auth — si ya existe, podría ser un usuario huérfano
+            var esRecuperacion = false
+            try {
+                supabaseClient.gotrue.signUpWith(Email) {
+                    email = correo.trim()
+                    password = contrasena
+                }
+                Timber.d("AUTH: signUpWith OK")
+            } catch (e: Exception) {
+                if (e.message?.contains("already registered") == true ||
+                    e.message?.contains("User already registered") == true) {
+                    Timber.d("AUTH: usuario ya existe en Auth, verificando si es huérfano")
+                    esRecuperacion = true
+                } else {
+                    throw e
+                }
             }
 
-            Timber.d("AUTH: signUpWith OK, haciendo login")
             // 2. Login para obtener token
             supabaseClient.gotrue.loginWith(Email) {
                 email = correo.trim()
                 password = contrasena
             }
-            Timber.d("AUTH: loginWith OK post-registro")
+            Timber.d("AUTH: loginWith OK")
 
             val session = supabaseClient.gotrue.currentSessionOrNull()
-                ?: return Result.failure(Exception("Error al iniciar sesión tras registro"))
-
+                ?: return Result.failure(Exception("Error al iniciar sesión"))
             val user = supabaseClient.gotrue.retrieveUserForCurrentSession(updateSession = true)
             Timber.d("AUTH: user.id=${user.id}")
 
-            // 3. Crear empresa y obtener su id
-            val empresa = supabaseClient.postgrest["empresas"]
-                .insert(buildJsonObject {
-                    put("nombre", nombre_empresa)
-                    put("rubro", rubro)
-                })
-                .decodeSingle<JsonObject>()
+            // 3. Si es recuperación, verificar si ya tiene perfil completo
+            if (esRecuperacion) {
+                val perfilExistente = supabaseClient.postgrest["usuarios"]
+                    .select(filter = { eq("id", user.id) })
+                    .decodeList<JsonObject>()
+                    .firstOrNull()
+                if (perfilExistente != null) {
+                    Timber.d("AUTH: perfil existe, correo ya registrado")
+                    return Result.failure(Exception("Email ya registrado. Por favor inicia sesión."))
+                }
+                Timber.d("AUTH: usuario huérfano detectado, completando registro")
+            }
 
-            val empresa_id = empresa["id"]?.jsonPrimitive?.content
+            // 4. Crear empresa + usuario + bodega en una sola función atómica (SECURITY DEFINER bypasea RLS)
+            val rpcResult = supabaseClient.postgrest.rpc(
+                "registrar_empresa",
+                buildJsonObject {
+                    put("p_nombre", nombre_empresa)
+                    put("p_rubro", rubro)
+                    put("p_correo", correo.trim())
+                }
+            ).decodeAs<JsonObject>()
+
+            val empresa_id = rpcResult["empresa_id"]?.jsonPrimitive?.content
                 ?: return Result.failure(Exception("Error al crear empresa"))
             Timber.d("AUTH: empresa creada id=$empresa_id")
-
-            // 4. Crear registro de usuario con rol ADMIN
-            supabaseClient.postgrest["usuarios"].insert(
-                buildJsonObject {
-                    put("id", user.id)
-                    put("empresa_id", empresa_id)
-                    put("nombre", correo.trim().substringBefore("@"))
-                    put("email", correo.trim())
-                    put("rol", "ADMIN")
-                }
-            )
-
-            // 5. Crear bodega default
-            supabaseClient.postgrest["bodegas"].insert(
-                buildJsonObject {
-                    put("empresa_id", empresa_id)
-                    put("nombre", "Bodega Principal")
-                }
-            )
 
             val expires_ms = session.expiresAt.toEpochMilliseconds()
             authSessionDao.guardarSesion(
@@ -142,6 +157,7 @@ class AuthRepository @Inject constructor(
                 )
             )
 
+            Timber.d("AUTH: registro completo OK")
             Result.success(
                 SesionUsuario(
                     user_id = user.id,
@@ -154,7 +170,8 @@ class AuthRepository @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en registro")
             val mensaje = when {
-                e.message?.contains("already registered") == true -> "Email ya registrado"
+                e.message?.contains("Invalid login credentials") == true ->
+                    "Contraseña incorrecta. Si ya tienes cuenta, inicia sesión."
                 else -> "Error al registrar: ${e.message}"
             }
             Result.failure(Exception(mensaje))

@@ -6,7 +6,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 
 private const val SUPABASE_URL = "https://eygbgykglovbivthyqfb.supabase.co"
-private const val SUPABASE_ANON_KEY = "sb_publishable_Ugc72hl-1VJgPy03nnlD_Q_irJstp_0"
+private const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5Z2JneWtnbG92Yml2dGh5cWZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3Mzc3MTQsImV4cCI6MjA5MjMxMzcxNH0.gXf4q-i71IsPWuNddCumFcAIV2Lm0O1keVTE6bSoTJY"
 
 val supabaseClient = createSupabaseClient(
     supabaseUrl = SUPABASE_URL,
