@@ -18,6 +18,7 @@ import cl.stockflow.warehouse.ui.auth.AuthViewModel
 import cl.stockflow.warehouse.ui.auth.LoginScreen
 import cl.stockflow.warehouse.ui.auth.RegistroScreen
 import cl.stockflow.warehouse.ui.dashboard.DashboardScreen
+import cl.stockflow.warehouse.ui.productos.ProductosListScreen
 import cl.stockflow.warehouse.ui.theme.StockFlowTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -25,6 +26,7 @@ private object Rutas {
     const val LOGIN = "login"
     const val REGISTRO = "registro"
     const val DASHBOARD = "dashboard"
+    const val PRODUCTOS = "productos"
 }
 
 @AndroidEntryPoint
@@ -79,7 +81,15 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Rutas.DASHBOARD) {
-                            DashboardScreen(onLogout = authViewModel::logout)
+                            DashboardScreen(
+                                onLogout = authViewModel::logout,
+                                onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) }
+                            )
+                        }
+                        composable(Rutas.PRODUCTOS) {
+                            ProductosListScreen(
+                                onVolver = { navController.popBackStack() }
+                            )
                         }
                     }
                 }

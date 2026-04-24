@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026
+**Última actualización:** Abril 2026 — sesión Fase 2
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                                                  # limpiar bui
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fase 1 completa y verificada end-to-end. Login y registro funcionando en dispositivo físico.
+**Estado:** Fase 2 completa. Productos CRUD funcionando en dispositivo físico.
 
 ---
 
@@ -48,7 +48,7 @@ Hilt:           2.50
 Hilt Navigation Compose: 1.1.0
 ```
 
-**Dependencias pendientes (Fase 1+):**
+**Dependencias agregadas en Fase 1:**
 ```
 Navigation Compose: 2.7.6
 Supabase BOM:   1.4.6  (postgrest-kt, realtime-kt, auth-kt)
@@ -65,17 +65,21 @@ Gson:           2.10.1
 
 **Patrón:** Clean Architecture
 ```
-ui/          → Composables, ViewModels
-domain/      → UseCases, modelos de negocio
+ui/
+  auth/       → LoginScreen, RegistroScreen, AuthViewModel
+  dashboard/  → DashboardScreen
+  productos/  → ProductosListScreen, ProductoViewModel
+domain/
+  model/      → SesionUsuario, ProductoConStock
 data/
   local/
-    entity/  → 7 entidades Room
-    dao/     → 7 DAOs
-    AppDatabase.kt
+    entity/   → 8 entidades Room (incluye AuthSessionEntity)
+    dao/      → 8 DAOs
+    AppDatabase.kt  (versión 3)
     DateConverters.kt
-  remote/    → Supabase (Fase 1+)
-di/          → DatabaseModule (listo), AuthModule (Fase 1)
-utils/       → Extensiones, helpers
+  remote/     → SupabaseClient
+  repository/ → AuthRepository, ProductoRepository
+di/           → DatabaseModule
 ```
 
 **Multi-tenancy:** JWT custom claims (`empresa_id` en `app_metadata`)
@@ -83,12 +87,15 @@ utils/       → Extensiones, helpers
 → El código Kotlin NO filtra manualmente por empresa_id
 
 **Auth:** Supabase Auth (`auth-kt`) — email/password
-→ Token se guarda en Room (tabla: `auth_sessions`) — NO en memoria
-→ Al abrir app: si hay token válido → Dashboard, si no → Login
-→ JWT expirado (401) → limpiar token en Room → redirigir a Login
-→ Registro crea en secuencia: empresa → usuario (rol ADMIN) → bodega "Bodega Principal"
+→ Token + `empresa_id` + `bodega_id` se guardan en Room (`auth_sessions`) — NO en memoria
+→ Al abrir app: si hay sesión en Room → Dashboard, si no → Login
+→ Registro crea atómicamente via RPC `registrar_empresa` (SECURITY DEFINER): empresa + usuario (ADMIN) + bodega "Bodega Principal"
+→ El cliente Supabase NO persiste sesión entre reinicios — solo Room es fuente de verdad local
 
-**Pendiente agregar en Fase 1:** `AuthSessionEntity` + `AuthSessionDao` a AppDatabase
+**Decisión crítica — FK constraints en Room:**
+→ `PRAGMA foreign_keys = OFF` en `DatabaseModule.addCallback`
+→ Room es caché offline-first con datos parciales; integridad referencial la garantiza Supabase
+→ Sin esto: error 787 SQLITE_CONSTRAINT_FOREIGNKEY al insertar productos (empresas/bodegas vacías en Room local)
 
 ---
 
@@ -173,26 +180,36 @@ HUECOS_Y_SOLUCIONES.md        → Decisiones y problemas resueltos
 ```
 FASE 0 (Setup):           ✅ Completa
 FASE 1 (Auth):            ✅ Completa
-FASE 2 (Productos CRUD):  ☐ Pendiente
+FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ☐ Pendiente
 FASE 4 (Alertas):         ☐ Pendiente
 FASE 5 (Sync):            ☐ Pendiente
 ```
 
-**Último commit:**  `bff7748` — debug: Add Timber logging to AuthRepository
+**Último commit:**  `bfdc675` — fix: Resolve registration flow
 **Rama activa:**    `develop`
-**Próxima sesión:** Fase 2 — Productos CRUD
+**Próxima sesión:** Fase 3 — Movimientos (ENTRADA / SALIDA / AJUSTE)
 
 **Lo construido en Fase 1:**
-- `AuthSessionEntity` + `AuthSessionDao` → `AppDatabase` v2 con migration
-- `SupabaseClient` con anon key JWT correcta
-- `AuthRepository`: login, logout, checkSession, registrar (con recuperación de huérfanos)
-- `AuthViewModel` expone `UiState` vía `StateFlow`
+- `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
+- `SupabaseClient` con anon key JWT correcta (sin session storage — Room es fuente de verdad)
+- `AuthRepository`: login (guarda empresa_id + bodega_id), logout, checkSession, registrar con recuperación de huérfanos
+- `AuthViewModel` expone `AuthUiState` vía `StateFlow`
 - `LoginScreen`, `RegistroScreen`, `DashboardScreen` en Compose
 - `SesionUsuario` domain model
-- Función SQL `registrar_empresa` (SECURITY DEFINER) en Supabase — crea empresa + usuario + bodega atómicamente bypaseando RLS
-- RLS corregida: `get_empresa_id()` lee de tabla `usuarios` (no JWT claims)
-- Verificado end-to-end en dispositivo físico: login ✅ registro multi-empresa ✅
+- Función SQL `registrar_empresa` (SECURITY DEFINER) en Supabase
+- RLS corregida: `get_empresa_id()` lee de tabla `usuarios`
+- Verificado end-to-end en dispositivo físico: login ✅ registro ✅
+
+**Lo construido en Fase 2:**
+- `ProductoConStock` domain model (producto + stock calculado por JOIN)
+- `ProductoDao`: CRUD + `observarConStock()` (JOIN con movimientos) + `contarConNombre()` (validación duplicado)
+- `BodegaDao`: `obtenerPrimeraParaEmpresa()` agregado
+- `ProductoRepository`: CRUD, validación duplicado, stock inicial via `MovimientoEntity(ENTRADA)`
+- `ProductoViewModel`: `ProductosUiState` + `FormUiState(mensaje)`, búsqueda en memoria con `combine`
+- `ProductosListScreen`: lista con stock/alerta ⚠️, buscador, dialog crear/editar/eliminar, Snackbar
+- `DatabaseModule`: `PRAGMA foreign_keys = OFF` + migrations 1→2→3
+- Verificado en dispositivo: crear ✅ stock inicial ✅ editar ✅ eliminar ✅ buscar ✅ snackbar ✅ duplicado ✅
 
 ---
 

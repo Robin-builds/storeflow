@@ -8,7 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun DashboardScreen(onLogout: () -> Unit) {
+fun DashboardScreen(
+    onLogout: () -> Unit,
+    onIrAProductos: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -22,12 +25,19 @@ fun DashboardScreen(onLogout: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Dashboard — Fase 2 pendiente",
+            text = "Dashboard",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(32.dp))
-        OutlinedButton(onClick = onLogout) {
+        Button(
+            onClick = onIrAProductos,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Productos")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
             Text("Cerrar sesión")
         }
     }
