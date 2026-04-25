@@ -68,6 +68,9 @@ interface ProductoDao {
     """)
     fun observarBajoMinimo(bodegaId: String): Flow<List<ProductoConStock>>
 
+    @Query("UPDATE productos SET synced = 1, synced_at = :ahora WHERE id = :id")
+    suspend fun marcarSincronizado(id: String, ahora: Long)
+
     @Query("SELECT * FROM productos WHERE synced = 0")
     suspend fun obtenerNoSincronizados(): List<ProductoEntity>
 }

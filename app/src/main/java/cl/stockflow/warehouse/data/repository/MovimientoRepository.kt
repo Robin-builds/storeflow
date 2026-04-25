@@ -2,8 +2,10 @@ package cl.stockflow.warehouse.data.repository
 
 import cl.stockflow.warehouse.data.local.dao.MovimientoDao
 import cl.stockflow.warehouse.data.local.dao.ProductoDao
+import cl.stockflow.warehouse.data.local.dao.SyncDao
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
+import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.domain.model.ProductoConStock
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -12,7 +14,8 @@ import javax.inject.Singleton
 @Singleton
 class MovimientoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
-    private val productoDao: ProductoDao
+    private val productoDao: ProductoDao,
+    private val syncDao: SyncDao
 ) {
     fun observarProductoConStock(productoId: String): Flow<ProductoConStock?> =
         productoDao.observarProductoConStock(productoId)
@@ -24,14 +27,14 @@ class MovimientoRepository @Inject constructor(
         if (nota.isNullOrBlank()) return Result.failure(Exception("Debe indicar la razón de la entrada"))
         if (cantidad <= 0) return Result.failure(Exception("La cantidad debe ser mayor a cero"))
         return try {
-            movimientoDao.insertar(
-                MovimientoEntity(
-                    producto_id = productoId,
-                    tipo = TipoMovimiento.ENTRADA,
-                    cantidad = cantidad,
-                    nota = nota?.trim()?.ifBlank { null }
-                )
+            val movimiento = MovimientoEntity(
+                producto_id = productoId,
+                tipo = TipoMovimiento.ENTRADA,
+                cantidad = cantidad,
+                nota = nota.trim()
             )
+            movimientoDao.insertar(movimiento)
+            syncDao.encolar(movimiento.toSyncInsert())
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -45,14 +48,14 @@ class MovimientoRepository @Inject constructor(
         if (stockActual < cantidad)
             return Result.failure(Exception("Stock insuficiente. Disponible: $stockActual"))
         return try {
-            movimientoDao.insertar(
-                MovimientoEntity(
-                    producto_id = productoId,
-                    tipo = TipoMovimiento.SALIDA,
-                    cantidad = -cantidad,
-                    nota = nota?.trim()?.ifBlank { null }
-                )
+            val movimiento = MovimientoEntity(
+                producto_id = productoId,
+                tipo = TipoMovimiento.SALIDA,
+                cantidad = -cantidad,
+                nota = nota.trim()
             )
+            movimientoDao.insertar(movimiento)
+            syncDao.encolar(movimiento.toSyncInsert())
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -66,14 +69,14 @@ class MovimientoRepository @Inject constructor(
         val delta = stockObjetivo - stockActual
         if (delta == 0) return Result.failure(Exception("El stock ya es $stockActual, no hay cambio"))
         return try {
-            movimientoDao.insertar(
-                MovimientoEntity(
-                    producto_id = productoId,
-                    tipo = TipoMovimiento.AJUSTE,
-                    cantidad = delta,
-                    nota = nota?.trim()?.ifBlank { null }
-                )
+            val movimiento = MovimientoEntity(
+                producto_id = productoId,
+                tipo = TipoMovimiento.AJUSTE,
+                cantidad = delta,
+                nota = nota.trim()
             )
+            movimientoDao.insertar(movimiento)
+            syncDao.encolar(movimiento.toSyncInsert())
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

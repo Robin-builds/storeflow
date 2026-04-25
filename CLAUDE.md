@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026 — sesión Fase 4
+**Última actualización:** Abril 2026 — sesión Fase 5A
 
 ---
 
@@ -195,15 +195,16 @@ FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
-FASE 5 (Sync):            ☐ Pendiente — dividida en 5A (push) y 5B (pull)
+FASE 5A (Sync push):      ✅ Completa — cola + SyncWorker + refresco de token
+FASE 5B (Sync pull):      ☐ Pendiente — descarga desde Supabase a Room
 FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `97adf4d` — feat: Phase 4 - Alertas de stock minimo
+**Último commit:**  `(ver git log)` — feat: Phase 5A - Sync push offline-first
 **Rama activa:**    `develop`
-**Próxima sesión:** Fase 5 — Sync offline-first con Supabase
+**Próxima sesión:** Fase 5B — pull desde Supabase a Room (después de validación física 5A)
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -246,6 +247,18 @@ WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (
 **Fix entre Fase 3 y Fase 4:**
 - `AuthRepository.checkSession()`: valida `expires_at` antes de devolver sesión — si expiró limpia Room y retorna `null` → `AuthViewModel` redirige a LoginScreen en lugar de fallo silencioso
 - Refresh de token diferido a Fase 5 (Sync) — es donde vive la lógica completa
+
+**Lo construido en Fase 5A (Sync push):**
+- `gradle/libs.versions.toml` + `app/build.gradle.kts`: dependencias `work-runtime-ktx:2.9.1` y `hilt-work:1.2.0`
+- `SupabaseClient.kt`: constantes `SUPABASE_URL` y `SUPABASE_ANON_KEY` cambiadas de `private` a `internal` (visibles en `data/sync/`)
+- `ProductoDao.marcarSincronizado(id, ahora)` + `MovimientoDao.marcarSincronizado(id, ahora)`: actualizan `synced=1` y `synced_at` tras push exitoso
+- `SyncPayloads.kt`: extensiones `toSyncInsert/Update/Delete` para `ProductoEntity`; `toSyncInsert` para `MovimientoEntity`; serialización ISO 8601 UTC con `SimpleDateFormat`; excluye campos `synced/synced_at` del payload
+- `SyncWorker.kt` (`@HiltWorker`): lee sesión de Room, refresca token via Ktor si expirado, procesa cola FIFO, máx 3 reintentos (`MAX_REINTENTOS=3`), llama `marcarSincronizado` + `syncDao.eliminar` en éxito
+- `ProductoRepository.kt`: inyecta `SyncDao`; encola `toSyncInsert/Update/Delete` en `crear/actualizar/eliminar`
+- `MovimientoRepository.kt`: inyecta `SyncDao`; encola `toSyncInsert` en `registrarEntrada/Salida/Ajuste`
+- `StockFlowApp.kt`: implementa `Configuration.Provider` + inyecta `HiltWorkerFactory`; encola `SyncWorker` con `ExistingWorkPolicy.KEEP` y constraint `CONNECTED` en `onCreate()`
+- `AndroidManifest.xml`: elimina `WorkManagerInitializer` del startup para evitar conflicto con `Configuration.Provider`
+- Fix: `jsonPrimitive.long` → `jsonPrimitive.content.toLongOrNull()` (propiedad sin import explícito en kotlinx.serialization.json 1.x)
 
 ---
 
