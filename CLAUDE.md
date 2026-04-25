@@ -98,6 +98,16 @@ di/           → DatabaseModule
 → Room es caché offline-first con datos parciales; integridad referencial la garantiza Supabase
 → Sin esto: error 787 SQLITE_CONSTRAINT_FOREIGNKEY al insertar productos (empresas/bodegas vacías en Room local)
 
+**Decisión — MovimientoEntity.nota nullable en DB, obligatoria en negocio:**
+→ El esquema SQLite permite NULL; la obligatoriedad se garantiza en `MovimientoRepository`
+→ Excepción conocida: stock inicial en `ProductoRepository.crear()` usa `nota = "Stock inicial"` directo al DAO (evita dependencia circular con MovimientoRepository)
+→ No agregar esa dependencia circular — la excepción es legítima y está documentada
+
+**Decisión — Token JWT: logout forzado, sin refresh por ahora:**
+→ `checkSession()` valida `expires_at`; si expiró → limpia sesión → usuario re-hace login
+→ Refresh completo (usando `refresh_token` con el cliente Supabase) se implementa en Fase 5
+→ JWT de Supabase dura 1 hora por defecto; riesgo bajo hasta Fase 5
+
 ---
 
 ## 🗄️ MODELO DE DATOS (7 entidades, 5 niveles)
@@ -189,7 +199,7 @@ FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 ```
 
-**Último commit:**  `7bdd84e` — feat: Phase 3 — Movimientos
+**Último commit:**  `dcf0cdf` — fix: detect expired JWT on app start and force re-login
 **Rama activa:**    `develop`
 **Próxima sesión:** Fase 4 — Alertas de stock mínimo
 
@@ -222,6 +232,10 @@ FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 - `ProductosListScreen`: agrega flecha → por producto para navegar a movimientos; tap en fila sigue abriendo edición
 - `MainActivity`: ruta `movimientos/{productoId}`
 - Decisión: nota obligatoria en ENTRADA/SALIDA/AJUSTE — toda modificación de inventario debe tener razón documentada
+
+**Fix entre Fase 3 y Fase 4:**
+- `AuthRepository.checkSession()`: valida `expires_at` antes de devolver sesión — si expiró limpia Room y retorna `null` → `AuthViewModel` redirige a LoginScreen en lugar de fallo silencioso
+- Refresh de token diferido a Fase 5 (Sync) — es donde vive la lógica completa
 
 ---
 
