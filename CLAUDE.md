@@ -195,9 +195,10 @@ FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
-FASE 5 (Sync):            ☐ Pendiente
+FASE 5 (Sync):            ☐ Pendiente — dividida en 5A (push) y 5B (pull)
 FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
+WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
 **Último commit:**  `97adf4d` — feat: Phase 4 - Alertas de stock minimo
@@ -274,6 +275,28 @@ Features identificadas fuera del plan original. Cada una tiene su prerequisito y
 - `ProductoFormDialog`: botón de cámara junto al campo SKU → escanea y rellena
 - `MovimientoDialog`: escanear SKU para identificar el producto destino (útil en futuras pantallas de movimiento masivo)
 **Consideración:** agregar permiso `CAMERA` en `AndroidManifest.xml` y request en runtime
+
+---
+
+### 💬 Notificaciones WhatsApp
+**Prerequisito:** Fase 5 (Sync) completa + aprobación WhatsApp Business API (Meta)
+**Por qué esperar Sync:** el trigger vive en Supabase — solo puede detectar stock bajo cuando los movimientos ya están en la base de datos remota. Sin Sync, los datos solo existen en Room y el servidor nunca se entera.
+**Arquitectura:** cero impacto en código Android. Todo es server-side:
+```
+Movimiento synced a Supabase
+  → DB trigger o Supabase Realtime detecta stock_actual < stock_minimo
+  → Supabase Edge Function (Deno/TypeScript)
+  → WhatsApp Business API (Meta Cloud API)
+  → Mensaje al teléfono del usuario/admin
+```
+**Lo que falta en el modelo de datos:** campo `telefono` en `UsuarioEntity` o `EmpresaEntity` — migración menor de DB, se puede agregar en Fase 5 o 6.
+**Proceso administrativo Meta (iniciar ahora, en paralelo):**
+- Crear Meta Business Account verificada
+- Solicitar acceso a WhatsApp Business API (Cloud API)
+- Asignar número de teléfono dedicado (no puede ser número personal activo en WhatsApp)
+- Aprobación tarda entre 1 y 4 semanas — conviene iniciar durante Fases 5-6
+**Alternativa sin aprobación Meta:** `Intent` de Android que abre WhatsApp con texto pre-llenado — requiere interacción manual del usuario, no es automático.
+**Consideración de costos:** WhatsApp Business API cobra por conversación iniciada por la empresa (template messages). Evaluar volumen esperado de alertas antes de producción.
 
 ---
 
