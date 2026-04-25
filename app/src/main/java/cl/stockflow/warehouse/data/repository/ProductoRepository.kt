@@ -29,6 +29,9 @@ class ProductoRepository @Inject constructor(
     fun observarProductos(bodegaId: String): Flow<List<ProductoConStock>> =
         productoDao.observarConStock(bodegaId)
 
+    fun observarBajoMinimo(bodegaId: String): Flow<List<ProductoConStock>> =
+        productoDao.observarBajoMinimo(bodegaId)
+
     suspend fun obtenerPorId(id: String): ProductoEntity? = productoDao.obtenerPorId(id)
 
     suspend fun crear(
