@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026 — sesión Fase 3
+**Última actualización:** Abril 2026 — sesión Fase 4
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                                                  # limpiar bui
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fase 3 completa. Movimientos (ENTRADA/SALIDA/AJUSTE) funcionando con nota obligatoria.
+**Estado:** Fase 4 completa. Alertas de stock mínimo con tarjeta en Dashboard y pantalla de detalle.
 
 ---
 
@@ -67,9 +67,10 @@ Gson:           2.10.1
 ```
 ui/
   auth/         → LoginScreen, RegistroScreen, AuthViewModel
-  dashboard/    → DashboardScreen
+  dashboard/    → DashboardScreen (consume AlertasViewModel para count)
   productos/    → ProductosListScreen, ProductoViewModel
   movimientos/  → MovimientosScreen, MovimientoViewModel
+  alertas/      → AlertasScreen, AlertasViewModel
 domain/
   model/      → SesionUsuario, ProductoConStock
 data/
@@ -193,15 +194,15 @@ FASE 0 (Setup):           ✅ Completa
 FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ✅ Completa
-FASE 4 (Alertas):         ☐ Pendiente
+FASE 4 (Alertas):         ✅ Completa
 FASE 5 (Sync):            ☐ Pendiente
 FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 ```
 
-**Último commit:**  `dcf0cdf` — fix: detect expired JWT on app start and force re-login
+**Último commit:**  `97adf4d` — feat: Phase 4 - Alertas de stock minimo
 **Rama activa:**    `develop`
-**Próxima sesión:** Fase 4 — Alertas de stock mínimo
+**Próxima sesión:** Fase 5 — Sync offline-first con Supabase
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -232,6 +233,14 @@ FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 - `ProductosListScreen`: agrega flecha → por producto para navegar a movimientos; tap en fila sigue abriendo edición
 - `MainActivity`: ruta `movimientos/{productoId}`
 - Decisión: nota obligatoria en ENTRADA/SALIDA/AJUSTE — toda modificación de inventario debe tener razón documentada
+
+**Lo construido en Fase 4:**
+- `ProductoDao.observarBajoMinimo(bodegaId)`: mismo JOIN de `observarConStock` con `HAVING stock_actual < stock_minimo AND stock_minimo > 0`, ordenado por ratio crítico ascendente (más urgente primero)
+- `AlertasViewModel`: reutiliza `ProductoRepository.obtenerContexto()` + `observarBajoMinimo`; expone `AlertasUiState`
+- `AlertasScreen`: lista con icono ⚠️, stock actual en rojo, flecha directa a movimientos; empty state "Todo en orden"
+- `DashboardScreen`: consume `AlertasViewModel` — tarjeta roja visible solo si `count > 0`, navega a `AlertasScreen`
+- `MainActivity`: ruta `alertas`
+- Notificaciones push locales diferidas — requieren `WorkManager` + permiso `POST_NOTIFICATIONS`
 
 **Fix entre Fase 3 y Fase 4:**
 - `AuthRepository.checkSession()`: valida `expires_at` antes de devolver sesión — si expiró limpia Room y retorna `null` → `AuthViewModel` redirige a LoginScreen en lugar de fallo silencioso
@@ -288,3 +297,9 @@ Features identificadas fuera del plan original. Cada una tiene su prerequisito y
 4. **No filtrar por empresa_id** en código Kotlin — RLS lo hace
 5. **Stock siempre por query** — nunca campo mutable en ProductoEntity
 6. **Si hay duda sobre un contrato** — preguntar antes de asumir
+7. **Validación física obligatoria entre fases** — al terminar cada fase:
+   - Hacer revisión interna de huecos y decisiones
+   - Sugerir al usuario qué probar en el dispositivo físico (golden path + edge cases concretos)
+   - Preguntar cómo resultaron las pruebas
+   - Solo proponer la siguiente fase cuando el usuario confirme que todo está OK
+   - Un BUILD SUCCESSFUL no es suficiente para declarar una fase completa
