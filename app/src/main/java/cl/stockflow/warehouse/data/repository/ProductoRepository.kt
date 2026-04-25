@@ -8,6 +8,7 @@ import cl.stockflow.warehouse.data.local.dao.SyncDao
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
+import cl.stockflow.warehouse.data.sync.SyncTrigger
 import cl.stockflow.warehouse.data.sync.toSyncDelete
 import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.data.sync.toSyncUpdate
@@ -23,7 +24,8 @@ class ProductoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
     private val authSessionDao: AuthSessionDao,
     private val bodegaDao: BodegaDao,
-    private val syncDao: SyncDao
+    private val syncDao: SyncDao,
+    private val syncTrigger: SyncTrigger
 ) {
     suspend fun obtenerContexto(): Pair<String, String>? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
@@ -74,6 +76,7 @@ class ProductoRepository @Inject constructor(
                 movimientoDao.insertar(movimiento)
                 syncDao.encolar(movimiento.toSyncInsert())
             }
+            syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -87,6 +90,7 @@ class ProductoRepository @Inject constructor(
             val actualizado = producto.copy(synced = false, updated_at = Date())
             productoDao.actualizar(actualizado)
             syncDao.encolar(actualizado.toSyncUpdate())
+            syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -96,6 +100,7 @@ class ProductoRepository @Inject constructor(
     suspend fun eliminar(producto: ProductoEntity): Result<Unit> = try {
         productoDao.eliminar(producto)
         syncDao.encolar(producto.toSyncDelete())
+        syncTrigger.trigger()
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)

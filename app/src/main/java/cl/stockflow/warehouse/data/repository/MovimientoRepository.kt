@@ -5,6 +5,7 @@ import cl.stockflow.warehouse.data.local.dao.ProductoDao
 import cl.stockflow.warehouse.data.local.dao.SyncDao
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
+import cl.stockflow.warehouse.data.sync.SyncTrigger
 import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.domain.model.ProductoConStock
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +16,8 @@ import javax.inject.Singleton
 class MovimientoRepository @Inject constructor(
     private val movimientoDao: MovimientoDao,
     private val productoDao: ProductoDao,
-    private val syncDao: SyncDao
+    private val syncDao: SyncDao,
+    private val syncTrigger: SyncTrigger
 ) {
     fun observarProductoConStock(productoId: String): Flow<ProductoConStock?> =
         productoDao.observarProductoConStock(productoId)
@@ -35,6 +37,7 @@ class MovimientoRepository @Inject constructor(
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())
+            syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -56,6 +59,7 @@ class MovimientoRepository @Inject constructor(
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())
+            syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -77,6 +81,7 @@ class MovimientoRepository @Inject constructor(
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())
+            syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
