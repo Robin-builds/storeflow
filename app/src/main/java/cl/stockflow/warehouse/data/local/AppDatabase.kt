@@ -19,7 +19,7 @@ import cl.stockflow.warehouse.data.local.entity.*
         SyncEntity::class,
         AuthSessionEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -50,6 +50,12 @@ abstract class AppDatabase : RoomDatabase() {
                         updated_at INTEGER NOT NULL
                     )
                 """.trimIndent())
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE auth_sessions ADD COLUMN bodega_id TEXT NOT NULL DEFAULT ''")
             }
         }
     }

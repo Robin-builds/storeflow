@@ -11,6 +11,7 @@ data class AuthSessionEntity(
     val refresh_token: String,
     val user_id: String,
     val empresa_id: String,
+    val bodega_id: String = "",
     val expires_at: Date,
     val created_at: Date = Date(),
     val updated_at: Date = Date()

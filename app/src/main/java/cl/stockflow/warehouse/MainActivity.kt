@@ -17,7 +17,10 @@ import cl.stockflow.warehouse.ui.auth.AuthUiState
 import cl.stockflow.warehouse.ui.auth.AuthViewModel
 import cl.stockflow.warehouse.ui.auth.LoginScreen
 import cl.stockflow.warehouse.ui.auth.RegistroScreen
+import cl.stockflow.warehouse.ui.alertas.AlertasScreen
 import cl.stockflow.warehouse.ui.dashboard.DashboardScreen
+import cl.stockflow.warehouse.ui.movimientos.MovimientosScreen
+import cl.stockflow.warehouse.ui.productos.ProductosListScreen
 import cl.stockflow.warehouse.ui.theme.StockFlowTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -25,6 +28,10 @@ private object Rutas {
     const val LOGIN = "login"
     const val REGISTRO = "registro"
     const val DASHBOARD = "dashboard"
+    const val PRODUCTOS = "productos"
+    const val ALERTAS = "alertas"
+    const val MOVIMIENTOS = "movimientos/{productoId}"
+    fun movimientos(productoId: String) = "movimientos/$productoId"
 }
 
 @AndroidEntryPoint
@@ -79,7 +86,30 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Rutas.DASHBOARD) {
-                            DashboardScreen(onLogout = authViewModel::logout)
+                            DashboardScreen(
+                                onLogout = authViewModel::logout,
+                                onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) },
+                                onIrAAlerta = { navController.navigate(Rutas.ALERTAS) }
+                            )
+                        }
+                        composable(Rutas.ALERTAS) {
+                            AlertasScreen(
+                                onVolver = { navController.popBackStack() },
+                                onVerMovimientos = { productoId ->
+                                    navController.navigate(Rutas.movimientos(productoId))
+                                }
+                            )
+                        }
+                        composable(Rutas.PRODUCTOS) {
+                            ProductosListScreen(
+                                onVolver = { navController.popBackStack() },
+                                onVerMovimientos = { productoId ->
+                                    navController.navigate(Rutas.movimientos(productoId))
+                                }
+                            )
+                        }
+                        composable(Rutas.MOVIMIENTOS) {
+                            MovimientosScreen(onVolver = { navController.popBackStack() })
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 package cl.stockflow.warehouse.data.repository
 
+import cl.stockflow.warehouse.data.local.AppDatabase
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.stockflow.warehouse.data.remote.supabaseClient
@@ -8,7 +9,9 @@ import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -20,7 +23,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthRepository @Inject constructor(
-    private val authSessionDao: AuthSessionDao
+    private val authSessionDao: AuthSessionDao,
+    private val db: AppDatabase
 ) {
 
     fun observarSesion(): Flow<AuthSessionEntity?> = authSessionDao.observarSesion()
@@ -53,6 +57,16 @@ class AuthRepository @Inject constructor(
                 ?: return Result.failure(Exception("Usuario sin empresa asignada"))
             Timber.d("AUTH: empresa_id=$empresa_id")
 
+            Timber.d("AUTH: consultando bodegas...")
+            val bodegaFila = supabaseClient.postgrest["bodegas"]
+                .select(filter = { eq("empresa_id", empresa_id) })
+                .decodeList<JsonObject>()
+                .firstOrNull()
+                ?: return Result.failure(Exception("No hay bodegas configuradas para esta empresa"))
+            val bodega_id = bodegaFila["id"]?.jsonPrimitive?.content
+                ?: return Result.failure(Exception("Bodega sin ID"))
+            Timber.d("AUTH: bodega_id=$bodega_id")
+
             val expires_ms = session.expiresAt.toEpochMilliseconds()
             authSessionDao.guardarSesion(
                 AuthSessionEntity(
@@ -60,6 +74,7 @@ class AuthRepository @Inject constructor(
                     refresh_token = session.refreshToken,
                     user_id = user.id,
                     empresa_id = empresa_id,
+                    bodega_id = bodega_id,
                     expires_at = Date(expires_ms)
                 )
             )
@@ -146,6 +161,14 @@ class AuthRepository @Inject constructor(
                 ?: return Result.failure(Exception("Error al crear empresa"))
             Timber.d("AUTH: empresa creada id=$empresa_id")
 
+            val bodega_id = rpcResult["bodega_id"]?.jsonPrimitive?.content
+                ?: supabaseClient.postgrest["bodegas"]
+                    .select(filter = { eq("empresa_id", empresa_id) })
+                    .decodeList<JsonObject>()
+                    .firstOrNull()?.get("id")?.jsonPrimitive?.content
+                ?: return Result.failure(Exception("Error al obtener bodega"))
+            Timber.d("AUTH: bodega_id=$bodega_id")
+
             val expires_ms = session.expiresAt.toEpochMilliseconds()
             authSessionDao.guardarSesion(
                 AuthSessionEntity(
@@ -153,6 +176,7 @@ class AuthRepository @Inject constructor(
                     refresh_token = session.refreshToken,
                     user_id = user.id,
                     empresa_id = empresa_id,
+                    bodega_id = bodega_id,
                     expires_at = Date(expires_ms)
                 )
             )
@@ -182,9 +206,17 @@ class AuthRepository @Inject constructor(
         try {
             supabaseClient.gotrue.logout()
         } finally {
-            authSessionDao.limpiarSesion()
+            withContext(Dispatchers.IO) { db.clearAllTables() }
         }
     }
 
-    suspend fun checkSession(): AuthSessionEntity? = authSessionDao.obtenerSesion()
+    suspend fun checkSession(): AuthSessionEntity? {
+        val sesion = authSessionDao.obtenerSesion() ?: return null
+        if (sesion.expires_at.before(Date())) {
+            Timber.d("AUTH: token expirado, limpiando sesión")
+            withContext(Dispatchers.IO) { db.clearAllTables() }
+            return null
+        }
+        return sesion
+    }
 }

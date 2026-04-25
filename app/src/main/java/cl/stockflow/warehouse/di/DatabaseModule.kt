@@ -2,6 +2,8 @@ package cl.stockflow.warehouse.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import cl.stockflow.warehouse.data.local.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -22,7 +24,13 @@ object DatabaseModule {
             AppDatabase::class.java,
             AppDatabase.NOMBRE_DB
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    // Room es caché local — integridad referencial la garantiza Supabase
+                    db.execSQL("PRAGMA foreign_keys = OFF")
+                }
+            })
             .build()
 
     @Provides fun provideEmpresaDao(db: AppDatabase) = db.empresaDao()
