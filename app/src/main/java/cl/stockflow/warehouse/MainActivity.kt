@@ -18,6 +18,7 @@ import cl.stockflow.warehouse.ui.auth.AuthViewModel
 import cl.stockflow.warehouse.ui.auth.LoginScreen
 import cl.stockflow.warehouse.ui.auth.RegistroScreen
 import cl.stockflow.warehouse.ui.dashboard.DashboardScreen
+import cl.stockflow.warehouse.ui.movimientos.MovimientosScreen
 import cl.stockflow.warehouse.ui.productos.ProductosListScreen
 import cl.stockflow.warehouse.ui.theme.StockFlowTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,6 +28,8 @@ private object Rutas {
     const val REGISTRO = "registro"
     const val DASHBOARD = "dashboard"
     const val PRODUCTOS = "productos"
+    const val MOVIMIENTOS = "movimientos/{productoId}"
+    fun movimientos(productoId: String) = "movimientos/$productoId"
 }
 
 @AndroidEntryPoint
@@ -88,8 +91,14 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Rutas.PRODUCTOS) {
                             ProductosListScreen(
-                                onVolver = { navController.popBackStack() }
+                                onVolver = { navController.popBackStack() },
+                                onVerMovimientos = { productoId ->
+                                    navController.navigate(Rutas.movimientos(productoId))
+                                }
                             )
+                        }
+                        composable(Rutas.MOVIMIENTOS) {
+                            MovimientosScreen(onVolver = { navController.popBackStack() })
                         }
                     }
                 }

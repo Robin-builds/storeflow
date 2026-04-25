@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProductosListScreen(
     onVolver: () -> Unit,
+    onVerMovimientos: (productoId: String) -> Unit,
     viewModel: ProductoViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -104,7 +106,8 @@ fun ProductosListScreen(
                             items(productosFiltrados, key = { it.id }) { producto ->
                                 ProductoItem(
                                     producto = producto,
-                                    onClick = { productoAEditar = producto }
+                                    onClick = { productoAEditar = producto },
+                                    onVerMovimientos = { onVerMovimientos(producto.id) }
                                 )
                             }
                         }
@@ -150,7 +153,8 @@ fun ProductosListScreen(
 @Composable
 private fun ProductoItem(
     producto: ProductoConStock,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onVerMovimientos: () -> Unit
 ) {
     val stockBajo = producto.stock_actual < producto.stock_minimo
     ListItem(
@@ -166,12 +170,20 @@ private fun ProductoItem(
             )
         },
         trailingContent = {
-            if (stockBajo) {
-                Icon(
-                    Icons.Filled.Warning,
-                    contentDescription = "Stock bajo",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (stockBajo) {
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = "Stock bajo",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+                IconButton(onClick = onVerMovimientos) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Ver movimientos"
+                    )
+                }
             }
         },
         modifier = Modifier.clickable(onClick = onClick)

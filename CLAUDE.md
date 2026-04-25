@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026 — sesión Fase 2
+**Última actualización:** Abril 2026 — sesión Fase 3
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                                                  # limpiar bui
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fase 2 completa. Productos CRUD funcionando en dispositivo físico.
+**Estado:** Fase 3 completa. Movimientos (ENTRADA/SALIDA/AJUSTE) funcionando con nota obligatoria.
 
 ---
 
@@ -66,9 +66,10 @@ Gson:           2.10.1
 **Patrón:** Clean Architecture
 ```
 ui/
-  auth/       → LoginScreen, RegistroScreen, AuthViewModel
-  dashboard/  → DashboardScreen
-  productos/  → ProductosListScreen, ProductoViewModel
+  auth/         → LoginScreen, RegistroScreen, AuthViewModel
+  dashboard/    → DashboardScreen
+  productos/    → ProductosListScreen, ProductoViewModel
+  movimientos/  → MovimientosScreen, MovimientoViewModel
 domain/
   model/      → SesionUsuario, ProductoConStock
 data/
@@ -78,7 +79,7 @@ data/
     AppDatabase.kt  (versión 3)
     DateConverters.kt
   remote/     → SupabaseClient
-  repository/ → AuthRepository, ProductoRepository
+  repository/ → AuthRepository, ProductoRepository, MovimientoRepository
 di/           → DatabaseModule
 ```
 
@@ -181,14 +182,16 @@ HUECOS_Y_SOLUCIONES.md        → Decisiones y problemas resueltos
 FASE 0 (Setup):           ✅ Completa
 FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
-FASE 3 (Movimientos):     ☐ Pendiente
+FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ☐ Pendiente
 FASE 5 (Sync):            ☐ Pendiente
+FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
+FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 ```
 
-**Último commit:**  `bfdc675` — fix: Resolve registration flow
+**Último commit:**  `7bdd84e` — feat: Phase 3 — Movimientos
 **Rama activa:**    `develop`
-**Próxima sesión:** Fase 3 — Movimientos (ENTRADA / SALIDA / AJUSTE)
+**Próxima sesión:** Fase 4 — Alertas de stock mínimo
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -210,6 +213,56 @@ FASE 5 (Sync):            ☐ Pendiente
 - `ProductosListScreen`: lista con stock/alerta ⚠️, buscador, dialog crear/editar/eliminar, Snackbar
 - `DatabaseModule`: `PRAGMA foreign_keys = OFF` + migrations 1→2→3
 - Verificado en dispositivo: crear ✅ stock inicial ✅ editar ✅ eliminar ✅ buscar ✅ snackbar ✅ duplicado ✅
+
+**Lo construido en Fase 3:**
+- `MovimientoRepository`: registrarEntrada / registrarSalida (valida stock disponible) / registrarAjuste (delta a objetivo); nota obligatoria en los tres tipos
+- `MovimientoViewModel`: SavedStateHandle para productoId, `combine` de producto+movimientos en un solo Flow
+- `MovimientosScreen`: tarjeta de stock actual (roja si bajo mínimo), 3 botones de acción, historial con tipo/cantidad/nota/fecha, dialogs por tipo con placeholder contextual
+- `ProductoDao`: query `observarProductoConStock(productoId)` para live updates por producto individual
+- `ProductosListScreen`: agrega flecha → por producto para navegar a movimientos; tap en fila sigue abriendo edición
+- `MainActivity`: ruta `movimientos/{productoId}`
+- Decisión: nota obligatoria en ENTRADA/SALIDA/AJUSTE — toda modificación de inventario debe tener razón documentada
+
+---
+
+## 🗺️ ROADMAP DE FEATURES ADICIONALES
+
+Features identificadas fuera del plan original. Cada una tiene su prerequisito y consideraciones clave.
+
+---
+
+### 📦 Multi-bodega
+**Prerequisito:** Fase 5 (Sync) completa
+**Por qué esperar:** sin Sync, los movimientos de múltiples bodegas no llegan a Supabase de forma confiable; construir la lógica de selección de bodega activa antes del algoritmo de sync obliga a reescribirla.
+**Lo que ya existe:** `BodegaEntity` (FK → empresa, campo `ubicacion`), `BodegaDao` con CRUD completo y `observarPorEmpresa()`. El modelo está listo.
+**Lo que falta:**
+- UI para crear/listar/eliminar bodegas (nueva pantalla desde Dashboard)
+- Selector de bodega activa — actualmente `AuthSessionEntity.bodega_id` guarda solo una; necesita mecanismo de cambio (ej. menú en Dashboard)
+- Al cambiar de bodega activa, todo el inventario visible cambia (productos, movimientos, alertas)
+- Roles: considerar si todos los usuarios de la empresa pueden cambiar de bodega o solo ADMIN
+
+---
+
+### 📷 Escaneo de códigos de barra / QR
+**Prerequisito:** ninguno — puede implementarse ahora (Fase 3 ya completa)
+**Por qué es independiente:** es solo una capa de input; el escáner rellena el campo `sku` al crear/editar producto, o la cantidad en un movimiento. No toca arquitectura.
+**Biblioteca recomendada:** ML Kit Barcode Scanning (Google) — sin dependencia de app externa, funciona offline
+**Puntos de integración:**
+- `ProductoFormDialog`: botón de cámara junto al campo SKU → escanea y rellena
+- `MovimientoDialog`: escanear SKU para identificar el producto destino (útil en futuras pantallas de movimiento masivo)
+**Consideración:** agregar permiso `CAMERA` en `AndroidManifest.xml` y request en runtime
+
+---
+
+### 🌐 Dashboard web
+**Prerequisito:** Fase 5 (Sync) completa
+**Por qué esperar:** el dashboard web consume datos de Supabase; sin Sync los datos están desactualizados o vacíos. Una vez que Sync funciona, los datos ya están en Supabase con RLS activa — el backend es gratuito.
+**Stack sugerido:** Next.js + Supabase JS client (misma base de datos, misma RLS, mismo JWT)
+**Lo que el backend ya ofrece sin trabajo extra:**
+- Autenticación via Supabase Auth
+- Filtrado por empresa via RLS (`get_empresa_id()`)
+- Tablas: empresas, bodegas, productos, movimientos — todas con datos reales post-Sync
+**Consideración:** definir qué rol puede acceder al dashboard web (¿solo ADMIN?, ¿también operadores de bodega?)
 
 ---
 
