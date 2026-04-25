@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026 — sesión Fase 5A
+**Última actualización:** Abril 2026 — sesión Fase 5A/5B
 
 ---
 
@@ -195,16 +195,16 @@ FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
-FASE 5A (Sync push):      ⚠️ Implementada pero BLOQUEADA — sync falla en dispositivo físico
-FASE 5B (Sync pull):      ☐ Pendiente — requiere 5A funcionando
+FASE 5A (Sync push):      ✅ Completa — validada en dispositivo físico
+FASE 5B (Sync pull):      ☐ Pendiente
 FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `0add26c` — fix: trigger SyncWorker after each write
+**Último commit:**  pendiente de commit esta sesión
 **Rama activa:**    `develop`
-**Próxima sesión:** Depurar Fase 5A — ver plan detallado en sección "🔴 BLOQUEO FASE 5A" abajo
+**Próxima sesión:** Fase 5B — Sync pull (bajar datos de Supabase a Room)
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -260,75 +260,12 @@ WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (
 - `AndroidManifest.xml`: elimina `WorkManagerInitializer` del startup para evitar conflicto con `Configuration.Provider`
 - Fix timing: `SyncTrigger` singleton inyectable — encola con `REPLACE` después de cada escritura en repositorios
 - Fix: `jsonPrimitive.long` → `jsonPrimitive.content.toLongOrNull()` (propiedad sin import explícito en kotlinx.serialization.json 1.x)
-- **Estado físico:** SyncWorker se dispara correctamente, pero pushItem falla repetidamente (3 reintentos, luego descarta). Los datos NO llegan a Supabase.
+- Verificado en dispositivo físico: crear ✅ editar ✅ eliminar ✅ movimiento ✅ offline→online ✅
 
----
-
-## 🔴 BLOQUEO FASE 5A — Sync push no funciona en dispositivo físico
-
-**Síntoma:** SyncWorker corre y reintenta 3 veces por item, pero los datos nunca aparecen en Supabase.
-**Error exacto:** desconocido — requiere Logcat para ver el HTTP status code y el body de respuesta.
-
-### Paso 1 — Diagnóstico obligatorio (inicio de próxima sesión)
-Conectar dispositivo por USB, abrir Logcat en Android Studio, filtrar por tag `SYNC`.
-Reproducir: crear un producto → esperar ~10s → leer los logs.
-
-Los logs de `SyncWorker.pushItem` muestran:
-```
-SYNC: HTTP <code> — <body de Supabase>
-```
-
-| Código | Causa probable | Fix |
-|--------|---------------|-----|
-| 401 | JWT inválido o no enviado | Verificar header `Authorization: Bearer <token>` |
-| 403 | RLS bloqueando el INSERT | Ver sección RLS abajo |
-| 400 | Columna no existe en Supabase | Comparar payload con esquema real de la tabla |
-| 409 | Registro duplicado | Agregar `Prefer: resolution=merge-duplicates` |
-| 422 | Tipo de dato incorrecto | Verificar tipos (ej. `tipo` como string vs enum) |
-
-### Causa más probable — RLS
-La política RLS de `productos` usa `get_empresa_id()` que lee de la tabla `usuarios`.
-El SyncWorker envía el JWT del usuario, pero si hay algún problema con el claim `empresa_id`
-en `app_metadata`, la función devuelve NULL y RLS bloquea el INSERT.
-
-**Verificar en Supabase SQL Editor:**
-```sql
--- Probar con el access_token real del usuario (pegar como JWT en el header)
-SELECT get_empresa_id();
--- Si devuelve NULL → problema en app_metadata o en la función
-```
-
-### Alternativa de implementación (si el diagnóstico no resuelve)
-**Migrar SyncWorker de Ktor manual a postgrest-kt SDK:**
-
-En lugar de construir las llamadas HTTP manualmente, usar el SDK que ya está en el proyecto:
-```kotlin
-// Antes de cada operación en SyncWorker:
-supabase.auth.importSession(UserSession(
-    accessToken = sesion.access_token,
-    refreshToken = sesion.refresh_token,
-    expiresIn = ...,
-    tokenType = "bearer",
-    user = null
-))
-
-// INSERT
-supabase.from("productos").insert(payload)
-
-// UPDATE
-supabase.from("productos").update(payload) { filter { eq("id", item.entidad_id) } }
-
-// DELETE
-supabase.from("productos").delete { filter { eq("id", item.entidad_id) } }
-```
-
-**Ventajas del SDK:** maneja RLS automáticamente, serialización JSON verificada, no requiere construir headers manualmente.
-**Riesgo:** `importSession` puede tener comportamiento inconsistente en Worker context — probar primero.
-
-### Archivos a modificar en la alternativa
-- `SyncWorker.kt`: reemplazar `pushItem` y `refreshToken` con llamadas al SDK
-- `SupabaseClient.kt`: exponer instancia de `supabase` (ya existe `supabase` en el archivo)
-- Posible: agregar `@Serializable` data classes para los payloads (en lugar de JSON raw strings)
+**Fixes aplicados en sesión de depuración Fase 5A:**
+- Bug seguridad: `AuthRepository.logout()` ahora llama `db.clearAllTables()` (no solo `authSessionDao.limpiarSesion()`) — evita que datos de empresa A sean visibles al usuario de empresa B
+- `clearAllTables()` envuelto en `withContext(Dispatchers.IO)` — era llamado en hilo principal y crasheaba
+- `ksp("androidx.hilt:hilt-compiler:1.2.0")` agregado a `build.gradle.kts` — faltaba el procesador KSP de `@HiltWorker`; sin él `HiltWorkerFactory` devolvía null y WorkManager caía al fallback por reflexión
 
 ---
 

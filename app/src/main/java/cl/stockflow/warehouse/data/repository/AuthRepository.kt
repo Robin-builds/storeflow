@@ -1,5 +1,6 @@
 package cl.stockflow.warehouse.data.repository
 
+import cl.stockflow.warehouse.data.local.AppDatabase
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.stockflow.warehouse.data.remote.supabaseClient
@@ -8,7 +9,9 @@ import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -20,7 +23,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthRepository @Inject constructor(
-    private val authSessionDao: AuthSessionDao
+    private val authSessionDao: AuthSessionDao,
+    private val db: AppDatabase
 ) {
 
     fun observarSesion(): Flow<AuthSessionEntity?> = authSessionDao.observarSesion()
@@ -202,7 +206,7 @@ class AuthRepository @Inject constructor(
         try {
             supabaseClient.gotrue.logout()
         } finally {
-            authSessionDao.limpiarSesion()
+            withContext(Dispatchers.IO) { db.clearAllTables() }
         }
     }
 
@@ -210,7 +214,7 @@ class AuthRepository @Inject constructor(
         val sesion = authSessionDao.obtenerSesion() ?: return null
         if (sesion.expires_at.before(Date())) {
             Timber.d("AUTH: token expirado, limpiando sesión")
-            authSessionDao.limpiarSesion()
+            withContext(Dispatchers.IO) { db.clearAllTables() }
             return null
         }
         return sesion
