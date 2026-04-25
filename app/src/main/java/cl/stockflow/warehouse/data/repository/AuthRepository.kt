@@ -206,5 +206,13 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun checkSession(): AuthSessionEntity? = authSessionDao.obtenerSesion()
+    suspend fun checkSession(): AuthSessionEntity? {
+        val sesion = authSessionDao.obtenerSesion() ?: return null
+        if (sesion.expires_at.before(Date())) {
+            Timber.d("AUTH: token expirado, limpiando sesión")
+            authSessionDao.limpiarSesion()
+            return null
+        }
+        return sesion
+    }
 }
