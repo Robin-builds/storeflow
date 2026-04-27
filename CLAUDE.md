@@ -104,6 +104,12 @@ di/           → DatabaseModule
 → Excepción conocida: stock inicial en `ProductoRepository.crear()` usa `nota = "Stock inicial"` directo al DAO (evita dependencia circular con MovimientoRepository)
 → No agregar esa dependencia circular — la excepción es legítima y está documentada
 
+**Decisión — `precio: Int` en toda la cadena (no Double):**
+→ CLP (peso chileno) no usa decimales → `Int` es suficiente y más simple
+→ `ProductoEntity.precio: Int`, `ProductoConStock.precio: Int`; UI con `KeyboardType.Number`
+→ Columna Supabase migrada de `numeric(12,2)` a `integer` (migración aplicada 2026-04-26)
+→ `ProductoDto.precio: Double` en el DTO para tolerar si PostgREST devuelve `20000.00`; `.toInt()` en `toEntity()`
+
 **Decisión — Token JWT: logout forzado, sin refresh por ahora:**
 → `checkSession()` valida `expires_at`; si expiró → limpia sesión → usuario re-hace login
 → Refresh completo (usando `refresh_token` con el cliente Supabase) se implementa en Fase 5
@@ -207,8 +213,8 @@ FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `1000d61` — fix: security isolation on logout and unblock SyncWorker Hilt injection
-**Rama activa:**    `develop` (Fase 5B completa — pendiente commit)
+**Último commit:**  `81ac8f1` — feat: Phase 5B - offline-first sync pull from Supabase
+**Rama activa:**    `develop` (en sync con `main`)
 **Próxima sesión:** Fase 6 (Multi-bodega) o Fase 7 (Pulido UI)
 
 **Lo construido en Fase 1:**
@@ -294,8 +300,8 @@ Fix 3 — Short-circuit `&&` eliminado en `PullWorker`
 Fix 4 — `UsuarioDto.nombre` y `rol` → nullable
 - Campo `usuarios.nombre` potencialmente null si RPC no lo setea. Fix: `nombre: String? = null`, `rol: String? = null`, valores vacíos como fallback
 
-Fix 5 — `ProductoDto.precio: String` (PostgREST serializa `NUMERIC` como string)
-- PostgREST devuelve `"precio": "100000.00"` (string JSON), no número. Confirmado con `execute_sql` via Supabase MCP. `precio: Double` lanzaba `SerializationException` → el worker reintentaba infinitamente pero productos nunca entraban a Room. Fix: `precio: String = "0"` + `precio.toDoubleOrNull() ?: 0.0`
+Fix 5 — ~~`ProductoDto.precio: String`~~ **DIAGNOSIS INCORRECTA — revertida en Fix 7**
+- El `SerializationException` que se atribuyó al tipo de `precio` era en realidad el error del plugin faltante (Fix 6). Se aplicó `precio: String` pero no resolvió el bug. Fix 7 revierte esto.
 
 **Lo confirmado via Supabase MCP (herramienta disponible en sesión):**
 - 3 empresas, 3 usuarios, 3 bodegas, 5 productos, 7 movimientos en Supabase
