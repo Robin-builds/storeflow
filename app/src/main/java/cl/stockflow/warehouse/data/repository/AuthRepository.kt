@@ -4,6 +4,7 @@ import cl.stockflow.warehouse.data.local.AppDatabase
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.stockflow.warehouse.data.remote.supabaseClient
+import cl.stockflow.warehouse.data.sync.PullTrigger
 import cl.stockflow.warehouse.domain.model.SesionUsuario
 import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
@@ -24,7 +25,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val authSessionDao: AuthSessionDao,
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    private val pullTrigger: PullTrigger
 ) {
 
     fun observarSesion(): Flow<AuthSessionEntity?> = authSessionDao.observarSesion()
@@ -79,6 +81,7 @@ class AuthRepository @Inject constructor(
                 )
             )
             Timber.d("AUTH: sesion guardada en Room OK")
+            pullTrigger.trigger()
 
             Result.success(
                 SesionUsuario(

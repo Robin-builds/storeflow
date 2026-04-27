@@ -8,6 +8,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import cl.stockflow.warehouse.data.sync.PullWorker
 import cl.stockflow.warehouse.data.sync.SyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -26,19 +27,19 @@ class StockFlowApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
-        enqueueSyncWorker()
-    }
-
-    private fun enqueueSyncWorker() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-        WorkManager.getInstance(this).enqueueUniqueWork(
+        val wm = WorkManager.getInstance(this)
+        wm.enqueueUniqueWork(
+            PullWorker.WORK_NAME,
+            ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<PullWorker>().setConstraints(constraints).build()
+        )
+        wm.enqueueUniqueWork(
             SyncWorker.WORK_NAME,
             ExistingWorkPolicy.KEEP,
-            OneTimeWorkRequestBuilder<SyncWorker>()
-                .setConstraints(constraints)
-                .build()
+            OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(constraints).build()
         )
     }
 }

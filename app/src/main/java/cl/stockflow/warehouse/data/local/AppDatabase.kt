@@ -19,7 +19,7 @@ import cl.stockflow.warehouse.data.local.entity.*
         SyncEntity::class,
         AuthSessionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -56,6 +56,42 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE auth_sessions ADD COLUMN bodega_id TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // SQLite no soporta ALTER COLUMN — se recrea la tabla con precio INTEGER
+                // Sin DEFAULT en columnas (Room espera defaultValue='undefined')
+                // Con FK constraints igual al esquema original
+                db.execSQL("""
+                    CREATE TABLE productos_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        empresa_id TEXT NOT NULL,
+                        bodega_id TEXT NOT NULL,
+                        nombre TEXT NOT NULL,
+                        descripcion TEXT,
+                        sku TEXT,
+                        precio INTEGER NOT NULL,
+                        stock_minimo INTEGER NOT NULL,
+                        synced INTEGER NOT NULL,
+                        synced_at INTEGER,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL,
+                        FOREIGN KEY(empresa_id) REFERENCES empresas(id) ON DELETE CASCADE ON UPDATE NO ACTION,
+                        FOREIGN KEY(bodega_id) REFERENCES bodegas(id) ON DELETE CASCADE ON UPDATE NO ACTION
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO productos_new
+                    SELECT id, empresa_id, bodega_id, nombre, descripcion, sku,
+                           CAST(precio AS INTEGER), stock_minimo, synced, synced_at, created_at, updated_at
+                    FROM productos
+                """.trimIndent())
+                db.execSQL("DROP TABLE productos")
+                db.execSQL("ALTER TABLE productos_new RENAME TO productos")
+                db.execSQL("CREATE INDEX index_productos_empresa_id ON productos (empresa_id)")
+                db.execSQL("CREATE INDEX index_productos_bodega_id ON productos (bodega_id)")
             }
         }
     }

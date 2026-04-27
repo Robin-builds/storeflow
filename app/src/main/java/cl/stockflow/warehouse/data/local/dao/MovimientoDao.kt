@@ -16,6 +16,12 @@ interface MovimientoDao {
     @Query("UPDATE movimientos SET synced = 1, synced_at = :ahora WHERE id = :id")
     suspend fun marcarSincronizado(id: String, ahora: Long)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(movimientos: List<MovimientoEntity>)
+
     @Query("SELECT * FROM movimientos WHERE synced = 0")
     suspend fun obtenerNoSincronizados(): List<MovimientoEntity>
+
+    @Query("SELECT COUNT(*) FROM movimientos")
+    suspend fun contarTodos(): Int
 }

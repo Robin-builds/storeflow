@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026 — sesión Fase 5A/5B
+**Última actualización:** Abril 2026 — sesión Fase 5B completada
 
 ---
 
@@ -195,16 +195,21 @@ FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
+FASE 0 (Setup):           ✅ Completa
+FASE 1 (Auth):            ✅ Completa
+FASE 2 (Productos CRUD):  ✅ Completa
+FASE 3 (Movimientos):     ✅ Completa
+FASE 4 (Alertas):         ✅ Completa
 FASE 5A (Sync push):      ✅ Completa — validada en dispositivo físico
-FASE 5B (Sync pull):      ☐ Pendiente
-FASE 6 (Multi-bodega):    ☐ Pendiente — requiere Fase 5
+FASE 5B (Sync pull):      ✅ Completa — validada en dispositivo físico (2 cuentas por separado)
+FASE 6 (Multi-bodega):    ☐ Pendiente
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  pendiente de commit esta sesión
-**Rama activa:**    `develop`
-**Próxima sesión:** Fase 5B — Sync pull (bajar datos de Supabase a Room)
+**Último commit:**  `1000d61` — fix: security isolation on logout and unblock SyncWorker Hilt injection
+**Rama activa:**    `develop` (Fase 5B completa — pendiente commit)
+**Próxima sesión:** Fase 6 (Multi-bodega) o Fase 7 (Pulido UI)
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -266,6 +271,43 @@ WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (
 - Bug seguridad: `AuthRepository.logout()` ahora llama `db.clearAllTables()` (no solo `authSessionDao.limpiarSesion()`) — evita que datos de empresa A sean visibles al usuario de empresa B
 - `clearAllTables()` envuelto en `withContext(Dispatchers.IO)` — era llamado en hilo principal y crasheaba
 - `ksp("androidx.hilt:hilt-compiler:1.2.0")` agregado a `build.gradle.kts` — faltaba el procesador KSP de `@HiltWorker`; sin él `HiltWorkerFactory` devolvía null y WorkManager caía al fallback por reflexión
+
+**Lo construido en Fase 5B (Sync pull):**
+- `PullDtos.kt`: DTOs `@Serializable` para las 6 tablas (Empresa, Bodega, Proveedor, Usuario, Producto, Movimiento); parseo de fechas ISO 8601 via `OffsetDateTime` (minSdk 27); `synced/synced_at` no vienen de Supabase — se setean localmente a `true/Date()` en `toEntity()`
+- `PullWorker.kt` (`@HiltWorker`): hace GET `/rest/v1/<tabla>?select=*` con Ktor en orden de dependencia FK (empresas → bodegas/proveedores/usuarios → productos → movimientos); usa `Json { ignoreUnknownKeys = true }` para tolerar columnas extra; retorna `Result.retry()` si cualquier tabla falla
+- `PullTrigger.kt`: singleton inyectable, encola `PullWorker` con `ExistingWorkPolicy.REPLACE` (corregido de KEEP — ver fixes 5B)
+- `[6 DAOs]`: agregado `upsertAll(List<Entity>)` con `OnConflictStrategy.REPLACE` en EmpresaDao, BodegaDao, ProveedorDao, UsuarioDao, ProductoDao, MovimientoDao
+- `StockFlowApp.kt`: encola `PullWorker` (además de `SyncWorker`) en `onCreate()`
+- `AuthRepository.kt`: inyecta `PullTrigger`; llama `pullTrigger.trigger()` tras login exitoso
+
+**Fixes aplicados en sesión de depuración Fase 5B (2026-04-26) — bug persiste tras todos estos fixes:**
+
+Fix 1 — `EmpresaDto.rut: String` → nullable
+- `registrar_empresa` no recibe `p_rut`, campo es null en Supabase → crash serialización → short-circuit bloqueaba toda la cadena. Fix: `rut: String? = null`, `rut ?: ""`
+
+Fix 2 — `ExistingWorkPolicy.KEEP` → `REPLACE` en `PullTrigger`
+- Race condition: si WorkManager no había ejecutado el PullWorker de `onCreate()` cuando login completaba, el segundo enqueue se ignoraba. Fix: `REPLACE`
+
+Fix 3 — Short-circuit `&&` eliminado en `PullWorker`
+- Con `&&` en cadena, un fallo en `usuarios` bloqueaba el pull de `productos`. Fix: cada tabla se asigna a `val e1..e6` independientes antes de combinar el resultado
+
+Fix 4 — `UsuarioDto.nombre` y `rol` → nullable
+- Campo `usuarios.nombre` potencialmente null si RPC no lo setea. Fix: `nombre: String? = null`, `rol: String? = null`, valores vacíos como fallback
+
+Fix 5 — `ProductoDto.precio: String` (PostgREST serializa `NUMERIC` como string)
+- PostgREST devuelve `"precio": "100000.00"` (string JSON), no número. Confirmado con `execute_sql` via Supabase MCP. `precio: Double` lanzaba `SerializationException` → el worker reintentaba infinitamente pero productos nunca entraban a Room. Fix: `precio: String = "0"` + `precio.toDoubleOrNull() ?: 0.0`
+
+**Lo confirmado via Supabase MCP (herramienta disponible en sesión):**
+- 3 empresas, 3 usuarios, 3 bodegas, 5 productos, 7 movimientos en Supabase
+- `get_empresa_id()` es SECURITY DEFINER ✅ — RLS correcta
+- Logs API Supabase confirman: PullWorker ejecuta todas las tablas, todos los GETs retornan 200
+- El bug al cierre de sesión está entre `upsertAll` y la UI — no en red/auth
+
+**Estado al cierre de sesión 2026-04-26:** Fase 5B completa y validada.
+
+**Deuda técnica conocida:**
+- Refresh de token JWT: actualmente logout forzado al expirar — refresh completo pendiente
+- `SyncPayloads.kt` solo cubre `productos` y `movimientos` — empresas/bodegas/proveedores sin push todavía (se crean vía RPC, no necesitan push por ahora)
 
 ---
 
@@ -329,6 +371,100 @@ Movimiento synced a Supabase
 - Filtrado por empresa via RLS (`get_empresa_id()`)
 - Tablas: empresas, bodegas, productos, movimientos — todas con datos reales post-Sync
 **Consideración:** definir qué rol puede acceder al dashboard web (¿solo ADMIN?, ¿también operadores de bodega?)
+
+---
+
+## 🧪 HISTORIAL DE PRUEBAS FÍSICAS
+
+Registro de validaciones en dispositivos reales. Incluye resultado, dispositivo y bugs encontrados.
+
+---
+
+### Fase 1 — Auth
+**Dispositivo:** no registrado
+**Resultado:** login ✅ registro ✅
+**Bugs encontrados:** ninguno
+
+---
+
+### Fase 2 — Productos CRUD
+**Dispositivo:** no registrado
+**Resultado:** crear ✅ stock inicial ✅ editar ✅ eliminar ✅ buscar ✅ snackbar ✅ duplicado ✅
+**Bugs encontrados:** ninguno
+
+---
+
+### Fase 3 — Movimientos
+**Dispositivo:** no registrado
+**Resultado:** entrada ✅ salida ✅ ajuste ✅ historial ✅ navegación ✅
+**Bugs encontrados:** ninguno
+
+---
+
+### Fase 4 — Alertas
+**Dispositivo:** no registrado
+**Resultado:** tarjeta dashboard ✅ pantalla detalle ✅ empty state ✅ navegación a movimientos ✅
+**Bugs encontrados:** ninguno
+
+---
+
+### Fase 5A — Sync push
+**Dispositivo:** no registrado
+**Resultado:** crear ✅ editar ✅ eliminar ✅ movimiento ✅ offline→online ✅
+**Bugs encontrados (corregidos en misma sesión):**
+- Logout limpiaba solo `auth_sessions`, no toda la DB → datos de empresa A visibles a empresa B
+- `clearAllTables()` en hilo principal → crash
+- Faltaba `ksp("androidx.hilt:hilt-compiler:1.2.0")` → HiltWorkerFactory devolvía null
+
+---
+
+### Fase 5B — Sync pull (primera ronda, 2026-04-26)
+**Dispositivo:** Samsung Galaxy S25 FE (dispositivo nuevo, sin datos locales)
+**Cuentas probadas:** 2 cuentas de empresas distintas
+**Resultado:**
+- Login: ✅ funciona
+- Carga de datos existentes en Supabase: ❌ no aparecen datos
+
+**Bugs encontrados (pendiente re-validar tras fix):**
+1. `EmpresaDto.rut: String` no-nullable → `registrar_empresa` no recibe `p_rut`, campo es `null` en Supabase → `SerializationException` en primer pull → short-circuit detiene todos los pulls restantes → `Result.retry()` indefinido. **Fix: `rut: String? = null`, `rut ?: ""`**
+2. `PullTrigger` usaba `ExistingWorkPolicy.KEEP` → race condition: si `PullWorker` de `onCreate()` aún en estado `ENQUEUED` al completar login, el segundo enqueue se ignora → primer worker corre sin sesión → `Result.success()` sin datos. **Fix: `ExistingWorkPolicy.REPLACE`**
+
+**Segunda ronda (2026-04-26) — tras fix precio:**
+- Mismo resultado: login ✅, productos no aparecen ❌
+- Confirmado via Supabase MCP logs: PullWorker SÍ ejecuta, SÍ llega a Supabase, todos los GETs retornan 200
+- El bug NO está en la red ni en la autenticación
+- El bug debe estar entre el `upsertAll` y la UI — desconocido al cierre de sesión
+
+**Fixes aplicados en sesión de diagnóstico Fase 5B (2026-04-26) — bug resuelto:**
+
+Fix 6 — Plugin `kotlin("plugin.serialization")` faltante en `build.gradle.kts`
+- Sin el plugin, `@Serializable` en los DTOs de `PullDtos.kt` compila pero no genera serializers en runtime
+- Error en Logcat: `SerializationException: Serializer for class 'ProductoDto' is not found`
+- Fix: agregar alias `kotlin-serialization` en `libs.versions.toml` y `alias(libs.plugins.kotlin.serialization)` en `app/build.gradle.kts`
+- Nota: el Fix 5 anterior (`precio: String`) era una diagnosis incorrecta del mismo error del plugin
+
+Fix 7 — `precio: Double` en `ProductoDto` vs `20000.00` (número JSON)
+- Con el plugin aplicado, Supabase retorna `"precio":20000.00` — número JSON, no string
+- `precio: String` (Fix 5) fallaba; `precio: Double` funciona, luego `.toInt()` en `toEntity()`
+- Se cambió `precio` a `Int` en toda la cadena: entity, domain model, repository, viewmodel, UI
+- Columna Supabase migrada de `numeric(12,2)` a `integer` via MCP
+- Room migración 3→4 agregada (recreación de tabla con FK constraints — sin DEFAULT en columnas)
+
+**Resultado:** inventario visible por cuenta en dispositivo físico (Samsung Galaxy S25 FE) ✅
+
+---
+
+### Fase 5B — Sync pull (validación final, 2026-04-26)
+**Dispositivo:** Samsung Galaxy S25 FE
+**Cuentas probadas:** 2 cuentas de empresas distintas en el mismo dispositivo
+**Resultado:**
+- Login cuenta Sara: ✅
+- Inventario de Sara visible tras login: ✅
+- Login cuenta segunda empresa: ✅
+- Inventario separado por empresa (aislamiento multi-tenant): ✅
+- Datos en Supabase coinciden con lo visible en la app: ✅
+
+**Bugs encontrados:** ninguno (todos resueltos en sesión)
 
 ---
 
