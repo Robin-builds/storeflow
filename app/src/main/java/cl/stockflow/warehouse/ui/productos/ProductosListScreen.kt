@@ -196,7 +196,7 @@ private fun ProductoFormDialog(
     titulo: String,
     productoInicial: ProductoConStock?,
     formState: FormUiState,
-    onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Double, stockMin: Int, stockInicial: Int) -> Unit,
+    onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Int, stockMin: Int, stockInicial: Int) -> Unit,
     onEliminar: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
@@ -212,7 +212,7 @@ private fun ProductoFormDialog(
     val cargando = formState is FormUiState.Cargando
     val errorMensaje = (formState as? FormUiState.Error)?.mensaje
 
-    val precioValido = precio.toDoubleOrNull()?.let { it >= 0 } ?: false
+    val precioValido = precio.toIntOrNull()?.let { it >= 0 } ?: false
     val stockMinimoValido = stock_minimo.toIntOrNull()?.let { it >= 0 } ?: false
     val stockInicialValido = stock_inicial.toIntOrNull()?.let { it >= 0 } ?: false
     val stockInicialInt = stock_inicial.toIntOrNull() ?: 0
@@ -274,7 +274,7 @@ private fun ProductoFormDialog(
                         value = precio,
                         onValueChange = { precio = it },
                         label = { Text("Precio") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         enabled = !cargando,
                         isError = !precioValido,
@@ -336,7 +336,7 @@ private fun ProductoFormDialog(
                             nombre.trim(),
                             descripcion.trim().ifBlank { null },
                             sku.trim().ifBlank { null },
-                            precio.toDoubleOrNull() ?: 0.0,
+                            precio.toIntOrNull() ?: 0,
                             stock_minimo.toIntOrNull() ?: 0,
                             if (modoCrear) stock_inicial.toIntOrNull() ?: 0 else 0
                         )

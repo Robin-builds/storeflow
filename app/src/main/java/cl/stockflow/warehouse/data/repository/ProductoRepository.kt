@@ -47,7 +47,7 @@ class ProductoRepository @Inject constructor(
         nombre: String,
         descripcion: String?,
         sku: String?,
-        precio: Double,
+        precio: Int,
         stock_minimo: Int,
         stock_inicial: Int = 0
     ): Result<Unit> {

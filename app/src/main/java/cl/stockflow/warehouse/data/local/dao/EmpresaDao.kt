@@ -21,6 +21,9 @@ interface EmpresaDao {
     @Query("SELECT * FROM empresas ORDER BY nombre ASC")
     fun observarTodas(): Flow<List<EmpresaEntity>>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(empresas: List<EmpresaEntity>)
+
     @Query("SELECT * FROM empresas WHERE synced = 0")
     suspend fun obtenerNoSincronizadas(): List<EmpresaEntity>
 }

@@ -21,6 +21,9 @@ interface ProveedorDao {
     @Query("SELECT * FROM proveedores WHERE empresa_id = :empresaId ORDER BY nombre ASC")
     fun observarPorEmpresa(empresaId: String): Flow<List<ProveedorEntity>>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(proveedores: List<ProveedorEntity>)
+
     @Query("SELECT * FROM proveedores WHERE synced = 0")
     suspend fun obtenerNoSincronizados(): List<ProveedorEntity>
 }

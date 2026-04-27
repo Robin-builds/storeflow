@@ -32,7 +32,7 @@ data class ProductoEntity(
     val nombre: String,
     val descripcion: String? = null,
     val sku: String? = null,
-    val precio: Double = 0.0,
+    val precio: Int = 0,
     val stock_minimo: Int = 0,
     // stock NO se almacena — siempre se calcula via MovimientoEntity
     val synced: Boolean = false,

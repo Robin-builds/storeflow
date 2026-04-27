@@ -9,7 +9,7 @@ data class ProductoConStock(
     val nombre: String,
     val descripcion: String?,
     val sku: String?,
-    val precio: Double,
+    val precio: Int,
     val stock_minimo: Int,
     val stock_actual: Int,
     val synced: Boolean,

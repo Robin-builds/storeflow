@@ -6,6 +6,7 @@ import cl.stockflow.warehouse.data.local.entity.ProductoEntity
 import cl.stockflow.warehouse.data.repository.ProductoRepository
 import cl.stockflow.warehouse.domain.model.ProductoConStock
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -63,7 +64,9 @@ class ProductoViewModel @Inject constructor(
             }
             empresa_id = ctx.first
             bodega_id = ctx.second
+            Timber.d("VIEWMODEL: observando bodega_id=$bodega_id")
             repository.observarProductos(bodega_id).collect { lista ->
+                Timber.d("VIEWMODEL: Flow emitió ${lista.size} productos para bodega_id=$bodega_id")
                 _todosLosProductos.value = lista
                 _uiState.value = ProductosUiState.Listo(lista)
             }
@@ -76,7 +79,7 @@ class ProductoViewModel @Inject constructor(
         nombre: String,
         descripcion: String?,
         sku: String?,
-        precio: Double,
+        precio: Int,
         stock_minimo: Int,
         stock_inicial: Int = 0
     ) {
@@ -97,7 +100,7 @@ class ProductoViewModel @Inject constructor(
         nombre: String,
         descripcion: String?,
         sku: String?,
-        precio: Double,
+        precio: Int,
         stock_minimo: Int
     ) {
         viewModelScope.launch {

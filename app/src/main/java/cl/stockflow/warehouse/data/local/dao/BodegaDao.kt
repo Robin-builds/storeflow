@@ -24,6 +24,9 @@ interface BodegaDao {
     @Query("SELECT * FROM bodegas WHERE empresa_id = :empresaId ORDER BY nombre ASC LIMIT 1")
     suspend fun obtenerPrimeraParaEmpresa(empresaId: String): BodegaEntity?
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(bodegas: List<BodegaEntity>)
+
     @Query("SELECT * FROM bodegas WHERE synced = 0")
     suspend fun obtenerNoSincronizadas(): List<BodegaEntity>
 }

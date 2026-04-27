@@ -24,7 +24,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             AppDatabase.NOMBRE_DB
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
                     // Room es caché local — integridad referencial la garantiza Supabase

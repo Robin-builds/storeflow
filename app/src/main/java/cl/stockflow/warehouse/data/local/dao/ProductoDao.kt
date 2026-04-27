@@ -71,6 +71,12 @@ interface ProductoDao {
     @Query("UPDATE productos SET synced = 1, synced_at = :ahora WHERE id = :id")
     suspend fun marcarSincronizado(id: String, ahora: Long)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(productos: List<ProductoEntity>)
+
     @Query("SELECT * FROM productos WHERE synced = 0")
     suspend fun obtenerNoSincronizados(): List<ProductoEntity>
+
+    @Query("SELECT COUNT(*) FROM productos")
+    suspend fun contarTodos(): Int
 }
