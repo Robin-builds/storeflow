@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
+import cl.stockflow.warehouse.data.local.dao.BodegaDao
 import cl.stockflow.warehouse.data.local.dao.MovimientoDao
 import cl.stockflow.warehouse.data.local.dao.ProductoDao
 import cl.stockflow.warehouse.data.local.dao.SyncDao
@@ -33,7 +34,8 @@ class SyncWorker @AssistedInject constructor(
     private val syncDao: SyncDao,
     private val authSessionDao: AuthSessionDao,
     private val productoDao: ProductoDao,
-    private val movimientoDao: MovimientoDao
+    private val movimientoDao: MovimientoDao,
+    private val bodegaDao: BodegaDao
 ) : CoroutineWorker(context, workerParams) {
 
     private val httpClient = HttpClient(Android) { expectSuccess = false }
@@ -154,8 +156,9 @@ class SyncWorker @AssistedInject constructor(
     private suspend fun marcarSincronizado(item: SyncEntity) {
         val ahora = System.currentTimeMillis()
         when (item.entidad_tipo) {
-            "productos" -> productoDao.marcarSincronizado(item.entidad_id, ahora)
+            "productos"   -> productoDao.marcarSincronizado(item.entidad_id, ahora)
             "movimientos" -> movimientoDao.marcarSincronizado(item.entidad_id, ahora)
+            "bodegas"     -> bodegaDao.marcarSincronizado(item.entidad_id, ahora)
         }
     }
 

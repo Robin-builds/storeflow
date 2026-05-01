@@ -13,16 +13,22 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.ui.alertas.AlertasUiState
 import cl.stockflow.warehouse.ui.alertas.AlertasViewModel
+import cl.stockflow.warehouse.ui.bodegas.BodegaViewModel
+import cl.stockflow.warehouse.ui.bodegas.BodegasUiState
 
 @Composable
 fun DashboardScreen(
     onLogout: () -> Unit,
     onIrAProductos: () -> Unit,
     onIrAAlerta: () -> Unit,
-    viewModel: AlertasViewModel = hiltViewModel()
+    onIrABodegas: () -> Unit,
+    alertasViewModel: AlertasViewModel = hiltViewModel(),
+    bodegaViewModel: BodegaViewModel = hiltViewModel()
 ) {
-    val alertasState by viewModel.uiState.collectAsState()
+    val alertasState by alertasViewModel.uiState.collectAsState()
+    val bodegasState by bodegaViewModel.uiState.collectAsState()
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
+    val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
 
     Column(
         modifier = Modifier
@@ -35,9 +41,9 @@ fun DashboardScreen(
             text = "StockFlow",
             style = MaterialTheme.typography.headlineLarge
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Dashboard",
+            text = bodegaActiva?.nombre ?: "Cargando...",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -83,6 +89,13 @@ fun DashboardScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Productos")
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onIrABodegas,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Gestionar bodegas")
         }
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {

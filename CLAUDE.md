@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Abril 2026 — sesión Fase 5B completada
+**Última actualización:** Mayo 2026 — Fase 6 completa y validada en dispositivo físico
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                                                  # limpiar bui
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fase 4 completa. Alertas de stock mínimo con tarjeta en Dashboard y pantalla de detalle.
+**Estado:** Fases 0–5B completas. En planificación: Fase 6 (Multi-bodega + Roles).
 
 ---
 
@@ -88,6 +88,14 @@ di/           → DatabaseModule
 → RLS en Supabase filtra por empresa automáticamente
 → El código Kotlin NO filtra manualmente por empresa_id
 
+**Roles de usuario:**
+→ Enum `Rol` en `domain/model/Rol.kt`: `ADMIN`, `OPERADOR`
+→ `rol` se persiste en `AuthSessionEntity` (se lee de tabla `usuarios` al hacer login)
+→ `SesionUsuario` expone el `rol` al ViewModel/UI
+→ RLS en Supabase NO usa el rol — solo la app Android lo usa para control de acceso en UI
+→ Regla: solo ADMIN puede crear/eliminar bodegas; OPERADOR solo puede seleccionar bodega activa
+→ El primer usuario de cada empresa es ADMIN (asignado por RPC `registrar_empresa`)
+
 **Auth:** Supabase Auth (`auth-kt`) — email/password
 → Token + `empresa_id` + `bodega_id` se guardan en Room (`auth_sessions`) — NO en memoria
 → Al abrir app: si hay sesión en Room → Dashboard, si no → Login
@@ -109,6 +117,11 @@ di/           → DatabaseModule
 → `ProductoEntity.precio: Int`, `ProductoConStock.precio: Int`; UI con `KeyboardType.Number`
 → Columna Supabase migrada de `numeric(12,2)` a `integer` (migración aplicada 2026-04-26)
 → `ProductoDto.precio: Double` en el DTO para tolerar si PostgREST devuelve `20000.00`; `.toInt()` en `toEntity()`
+
+**Decisión — Room migration 4→5 para agregar `rol` en `auth_sessions`:**
+→ `ALTER TABLE auth_sessions ADD COLUMN rol TEXT NOT NULL DEFAULT 'ADMIN'`
+→ DEFAULT 'ADMIN' es seguro: todos los usuarios existentes fueron creados vía RPC como ADMIN
+→ Migración no requiere recrear tabla (sin FK constraints en `auth_sessions`)
 
 **Decisión — Token JWT: logout forzado, sin refresh por ahora:**
 → `checkSession()` valida `expires_at`; si expiró → limpia sesión → usuario re-hace login
@@ -208,14 +221,14 @@ FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
 FASE 5A (Sync push):      ✅ Completa — validada en dispositivo físico
 FASE 5B (Sync pull):      ✅ Completa — validada en dispositivo físico (2 cuentas por separado)
-FASE 6 (Multi-bodega):    ☐ Pendiente
+FASE 6 (Multi-bodega):    ✅ Completa — validada en dispositivo físico (Mayo 2026)
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `81ac8f1` — feat: Phase 5B - offline-first sync pull from Supabase
-**Rama activa:**    `develop` (en sync con `main`)
-**Próxima sesión:** Fase 6 (Multi-bodega) o Fase 7 (Pulido UI)
+**Último commit:**  `4e5cf5e` — docs: document Phase 8 rich domain model and multi-select backlog
+**Rama activa:**    `dev-warehouse` → pendiente merge a `develop` y `main`
+**Próxima sesión:** Fase 7 (Pulido UI) o Fase 8 (Modelo dominio rico + atributos)
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -323,6 +336,110 @@ Features identificadas fuera del plan original. Cada una tiene su prerequisito y
 
 ---
 
+### 🏗️ PLAN FASE 6 — Multi-bodega + Roles (rama: `dev-warehouse`)
+
+**Objetivo:** Permitir que una empresa opere con múltiples bodegas y que la app controle acceso según el rol del usuario (ADMIN vs. OPERADOR).
+
+**Principio guía:** La capa de datos ya está lista. El trabajo es casi exclusivamente en nuevos archivos de lógica y UI, con cambios mínimos sobre los existentes.
+
+---
+
+#### S1 — Rol enum + Room migration + AuthRepository
+**Archivos a crear:**
+- `domain/model/Rol.kt` — `enum class Rol { ADMIN, OPERADOR }`
+
+**Archivos a modificar:**
+- `domain/model/SesionUsuario.kt` — agregar campo `val rol: Rol`
+- `data/local/entity/AuthSessionEntity.kt` — agregar `val rol: String = "ADMIN"` (Room v4→v5)
+- `data/local/AppDatabase.kt` — versión 5, MIGRATION_4_5: `ALTER TABLE auth_sessions ADD COLUMN rol TEXT NOT NULL DEFAULT 'ADMIN'`
+- `data/repository/AuthRepository.kt`:
+  - `login()`: leer campo `rol` de tabla `usuarios` junto con `empresa_id`; guardarlo en `AuthSessionEntity`
+  - `registrar()`: después del RPC, leer `rol` del usuario recién creado y guardarlo en sesión
+  - Agregar `obtenerRolActual(): Rol?` — lee `AuthSessionEntity.rol` y lo mapea al enum
+
+**DoD:** Compila. Login guarda `rol` en sesión. `obtenerRolActual()` retorna `Rol.ADMIN` para usuarios existentes.
+**Commit:** `feat: Phase 6 S1 — Rol enum, Room migration v5, AuthRepository reads rol`
+
+---
+
+#### S2 — BodegaRepository
+**Archivos a crear:**
+- `data/repository/BodegaRepository.kt`
+  - `observarBodegas(): Flow<List<BodegaEntity>>` — lee `empresa_id` de sesión, usa `BodegaDao.observarPorEmpresa()`
+  - `obtenerBodegaActiva(): BodegaEntity?` — por `AuthSessionEntity.bodega_id`
+  - `crear(nombre: String, ubicacion: String?)` — inserta en Room + encola `SyncDao INSERT`
+  - `eliminar(id: String)` — elimina en Room + encola `SyncDao DELETE`
+  - `cambiarBodegaActiva(bodegaId: String)` — actualiza `AuthSessionEntity.bodega_id` en Room
+  - Inyectado con Hilt vía `DatabaseModule`
+
+**DoD:** Compila. Métodos retornan `Result<Unit>`. `cambiarBodegaActiva()` actualiza la sesión en Room.
+**Commit:** `feat: Phase 6 S2 — BodegaRepository with CRUD and active-bodega switch`
+
+---
+
+#### S3 — BodegaViewModel
+**Archivos a crear:**
+- `ui/bodegas/BodegaViewModel.kt`
+  - `BodegasUiState`: `Cargando`, `Listo(bodegas: List<BodegaEntity>, activa: BodegaEntity?, esAdmin: Boolean)`
+  - Expone `uiState: StateFlow<BodegasUiState>`
+  - `crear(nombre, ubicacion)` — solo si `esAdmin`; Snackbar si OPERADOR intenta
+  - `eliminar(id)` — solo si `esAdmin`; no permite eliminar la bodega activa
+  - `cambiarBodegaActiva(bodegaId)` — disponible para cualquier rol; emite evento de navegación
+
+**Evento de navegación al cambiar bodega:** `SharedFlow<Unit>` → UI hace `navController.navigate("dashboard") { popUpTo(0) { inclusive = true } }` (vacía el backstack para que los ViewModels se reinicialicen)
+
+**DoD:** Compila. `esAdmin` refleja correctamente el rol de sesión. Cambio de bodega emite el evento.
+**Commit:** `feat: Phase 6 S3 — BodegaViewModel with role-gated CRUD`
+
+---
+
+#### S4 — BodegasScreen + DashboardScreen actualizado
+**Archivos a crear:**
+- `ui/bodegas/BodegasScreen.kt`
+  - Lista de bodegas con nombre + ubicación (si existe)
+  - Fila activa destacada (check o chip "Activa")
+  - Tap en fila → `cambiarBodegaActiva()` → navega a Dashboard
+  - FAB "Nueva bodega" visible solo si `esAdmin`
+  - Botón eliminar (ícono papelera) visible solo si `esAdmin` y bodega no es la activa
+  - Dialog confirmación antes de eliminar
+  - Dialog form crear: campo `nombre` (obligatorio) + campo `ubicacion` (opcional)
+
+**Archivos a modificar:**
+- `ui/dashboard/DashboardScreen.kt`
+  - Mostrar nombre de bodega activa en el header (subtítulo o chip)
+  - Botón "Gestionar bodegas" → navega a `bodegas`
+- `MainActivity.kt`
+  - Nueva ruta `bodegas`
+  - Al evento de cambio de bodega: `popUpTo("dashboard") { inclusive = true }` + navigate a dashboard
+
+**DoD:** Golden path: ADMIN crea bodega → aparece en lista → tap → inventario cambia → dashboard muestra nombre nuevo. OPERADOR no ve FAB ni botón eliminar.
+**Commit:** `feat: Phase 6 S4 — BodegasScreen and Dashboard with bodega selector`
+
+---
+
+#### S5 — Sync push para bodegas
+**Archivos a modificar:**
+- `data/sync/SyncPayloads.kt` — agregar extensiones para `BodegaEntity`:
+  - `BodegaEntity.toSyncInsert()` — payload JSON para POST a `/rest/v1/bodegas`
+  - `BodegaEntity.toSyncUpdate()` — payload JSON para PATCH
+  - `BodegaEntity.toSyncDelete()` — payload para DELETE
+- `data/local/dao/BodegaDao.kt` — agregar `marcarSincronizado(id: String, ahora: Date)`
+- `data/sync/SyncWorker.kt` — procesar `SyncEntity` con `tabla = "bodegas"` igual que productos
+
+**DoD:** Crear bodega offline → sync → aparece en Supabase. Eliminar bodega → sync → desaparece en Supabase.
+**Commit:** `feat: Phase 6 S5 — Sync push for bodegas`
+
+---
+
+#### Restricciones globales de la Fase 6
+- No agregar roles a la lógica de RLS de Supabase — el control de rol es solo en UI/Android
+- No cambiar el patrón `obtenerContexto()` en repositorios existentes — solo lee `bodega_id`
+- Al cambiar bodega, vaciar el backstack completo para reinicializar todos los ViewModels
+- `eliminar()` debe validar que la bodega no sea la activa antes de proceder
+- Si la empresa solo tiene 1 bodega, no mostrar botón eliminar (aunque sea ADMIN)
+
+---
+
 ### 📦 Multi-bodega
 **Prerequisito:** Fase 5 (Sync) completa
 **Por qué esperar:** sin Sync, los movimientos de múltiples bodegas no llegan a Supabase de forma confiable; construir la lógica de selección de bodega activa antes del algoritmo de sync obliga a reescribirla.
@@ -365,6 +482,53 @@ Movimiento synced a Supabase
 - Aprobación tarda entre 1 y 4 semanas — conviene iniciar durante Fases 5-6
 **Alternativa sin aprobación Meta:** `Intent` de Android que abre WhatsApp con texto pre-llenado — requiere interacción manual del usuario, no es automático.
 **Consideración de costos:** WhatsApp Business API cobra por conversación iniciada por la empresa (template messages). Evaluar volumen esperado de alertas antes de producción.
+
+---
+
+### 🧩 Modelo de dominio rico + Atributos personalizables (Fase 8)
+**Prerequisito:** ninguno técnico — puede ir después de Fase 7
+**Por qué como fase separada:** requiere refactorizar `ProductoConStock` → `Producto` en toda la cadena (repositorios, ViewModels, UI). Es un cambio deliberado que merece su propio espacio.
+
+**Arquitectura objetivo:**
+```kotlin
+// Dominio rico — reemplaza ProductoConStock
+data class Producto(
+    val id: String,
+    val nombre: String,
+    val stockActual: Int,
+    val stockMinimo: Int,
+    val precio: Int,
+    val atributos: Map<String, String> = emptyMap()   // atributos dinámicos por empresa
+) {
+    fun esBajoStock(): Boolean = stockActual < stockMinimo
+    fun valorInventario(): Int = precio * stockActual
+    fun ratioStock(): Float = if (stockMinimo > 0) stockActual.toFloat() / stockMinimo else 1f
+}
+```
+
+**Nuevas entidades Room:**
+- `AtributoTemplateEntity` (`id`, `empresa_id`, `clave`, `tipo`, `obligatorio`, `orden`) — define qué campos tiene cada empresa
+- `ProductoAtributoEntity` (`producto_id`, `template_id`, `valor`) — valores por producto
+
+**Lo que falta:**
+- Migración Room para las dos tablas nuevas
+- `ProductoRepository` ensambla `Producto` desde `ProductoEntity` + `ProductoAtributoEntity`
+- `ProductosListScreen` y `MovimientosScreen` consumen `Producto` (renombrar referencias)
+- Pantalla de configuración de atributos (acceso solo ADMIN, desde Dashboard)
+- `ProductoFormDialog` muestra/edita atributos dinámicos según los templates de la empresa
+
+**Decisión de tipos de atributo:**
+Valores como `String` en MVP. Tipos futuros: `NUMBER`, `DATE`, `BOOLEAN`, `SELECT` (lista de opciones).
+
+---
+
+### 🗂️ Selección masiva de productos (Fase 7 o 8)
+**Prerequisito:** ninguno
+**Por qué se difirió:** no existe multi-select en `ProductosListScreen`; agregar checkboxes + barra de acciones masivas es scope significativo.
+**Casos de uso:**
+- Eliminar varios productos a la vez desde la bodega destino tras una transferencia
+- Mover productos entre bodegas en bloque
+**Referencia:** surgió como necesidad al diseñar eliminación segura de bodegas con productos.
 
 ---
 
