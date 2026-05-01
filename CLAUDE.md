@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 6 completa (compilada), pendiente validación física
+**Última actualización:** Mayo 2026 — Fase 6 completa y validada en dispositivo físico
 
 ---
 
@@ -221,14 +221,14 @@ FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
 FASE 5A (Sync push):      ✅ Completa — validada en dispositivo físico
 FASE 5B (Sync pull):      ✅ Completa — validada en dispositivo físico (2 cuentas por separado)
-FASE 6 (Multi-bodega):    ✅ Completa (compilada) — pendiente validación física
+FASE 6 (Multi-bodega):    ✅ Completa — validada en dispositivo físico (Mayo 2026)
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `81ac8f1` — feat: Phase 5B - offline-first sync pull from Supabase
-**Rama activa:**    `dev-warehouse` (creada desde `develop` para Fase 6)
-**Próxima sesión:** Fase 6 — S1: Rol enum + Room migration 4→5 + AuthRepository
+**Último commit:**  `4e5cf5e` — docs: document Phase 8 rich domain model and multi-select backlog
+**Rama activa:**    `dev-warehouse` → pendiente merge a `develop` y `main`
+**Próxima sesión:** Fase 7 (Pulido UI) o Fase 8 (Modelo dominio rico + atributos)
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
