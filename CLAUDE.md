@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 6 completa y validada en dispositivo físico
+**Última actualización:** Mayo 2026 — Fase 8 S1 completa (Usuario domain object)
 
 ---
 
@@ -57,6 +57,12 @@ Coroutines:     1.7.3
 Lifecycle:      2.7.0
 Activity Compose: 1.8.1
 Gson:           2.10.1
+```
+
+**Dependencias de test agregadas en Fase 8 S1:**
+```
+mockk:                  1.13.12  (testImplementation — mocking para unit tests)
+kotlinx-coroutines-test:1.7.3   (testImplementation — runTest + Flow testing)
 ```
 
 ---
@@ -214,21 +220,21 @@ FASE 1 (Auth):            ✅ Completa
 FASE 2 (Productos CRUD):  ✅ Completa
 FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
-FASE 0 (Setup):           ✅ Completa
-FASE 1 (Auth):            ✅ Completa
-FASE 2 (Productos CRUD):  ✅ Completa
-FASE 3 (Movimientos):     ✅ Completa
-FASE 4 (Alertas):         ✅ Completa
 FASE 5A (Sync push):      ✅ Completa — validada en dispositivo físico
 FASE 5B (Sync pull):      ✅ Completa — validada en dispositivo físico (2 cuentas por separado)
 FASE 6 (Multi-bodega):    ✅ Completa — validada en dispositivo físico (Mayo 2026)
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
+FASE 8 S1 (Usuario obj):  ✅ Completa — 12 unit tests verdes
+FASE 8 S2 (Bodega obj):   ☐ Próxima sesión
+FASE 8 S3 (Producto obj): ☐ Pendiente
+FASE 8 S4 (UI migración): ☐ Pendiente
+FASE 8 S5 (Atributos):    ☐ Pendiente
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `4e5cf5e` — docs: document Phase 8 rich domain model and multi-select backlog
-**Rama activa:**    `dev-warehouse` → pendiente merge a `develop` y `main`
-**Próxima sesión:** Fase 7 (Pulido UI) o Fase 8 (Modelo dominio rico + atributos)
+**Último commit:**  `6e6d9ac` — test: Phase 8 S1 — unit tests for Usuario domain object and UsuarioRepository
+**Rama activa:**    `dev-rich-domain`
+**Próxima sesión:** Fase 8 — S2: `Bodega` domain object
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -327,6 +333,12 @@ Fix 5 — ~~`ProductoDto.precio: String`~~ **DIAGNOSIS INCORRECTA — revertida 
 **Deuda técnica conocida:**
 - Refresh de token JWT: actualmente logout forzado al expirar — refresh completo pendiente
 - `SyncPayloads.kt` solo cubre `productos` y `movimientos` — empresas/bodegas/proveedores sin push todavía (se crean vía RPC, no necesitan push por ahora)
+
+**Lo construido en Fase 8 S1:**
+- `domain/model/Usuario.kt` — objeto rico con `esAdmin()`, `puedeGestionarBodegas()`, `puedeEliminarProductos()`, `puedeRegistrarMovimientos()`
+- `data/repository/UsuarioRepository.kt` — `observarUsuarioActual(): Flow<Usuario?>` + `obtenerUsuarioActual(): Usuario?`; usa `sesion.rol` como fuente autoritativa (funciona antes del primer pull si `UsuarioEntity` no existe aún)
+- `BodegaViewModel.kt` — ahora combina 3 flows; `esAdmin` viene de `usuario?.esAdmin()` en lugar del check manual `Rol.fromString(...) == Rol.ADMIN`
+- Tests: `UsuarioTest` (5 casos) + `UsuarioRepositoryTest` (7 casos) — 12/12 verdes
 
 ---
 
@@ -485,6 +497,175 @@ Movimiento synced a Supabase
 
 ---
 
+### 🏗️ PLAN FASE 8 — Modelo de dominio rico + Atributos personalizables (rama: `dev-rich-domain`)
+
+**Objetivo:** Reemplazar los objetos anémicos de dominio (`ProductoConStock`, uso directo de `BodegaEntity` y `UsuarioEntity` en UI) por objetos ricos con comportamiento propio. Sentar la base para atributos personalizables por empresa.
+
+**Principio guía:** Las entidades Room (`*Entity`) son contratos de persistencia — nunca deben salir de la capa `data/`. Los objetos de dominio son los contratos de negocio — son lo único que la capa `ui/` conoce.
+
+**Estrategia de migración sin romper el build en cada sesión:**
+- `ProductoConStock` se mantiene como tipo interno de la capa de datos (Room lo necesita para los `@Query` con JOIN). Se agrega `.toDomain(): Producto` y se elimina toda referencia externa en la misma sesión que se actualiza el repositorio + ViewModels.
+- `BodegaEntity` se mapea a `Bodega` en `BodegaRepository`. La sesión S2 actualiza el repositorio, ViewModel y pantalla en un solo commit.
+- `UsuarioEntity` se mapea a `Usuario` en `UsuarioRepository`. Sin breaking changes — el ViewModel de bodegas simplemente migra de `sesion.rol` a `usuario.esAdmin()`.
+
+---
+
+#### S1 — `Usuario` domain object + `UsuarioRepository`
+**Archivos a crear:**
+- `domain/model/Usuario.kt`:
+  ```kotlin
+  data class Usuario(
+      val id: String,
+      val nombre: String,
+      val email: String,
+      val rol: Rol,
+      val empresaId: String
+  ) {
+      fun esAdmin(): Boolean = rol == Rol.ADMIN
+      fun puedeGestionarBodegas(): Boolean = esAdmin()
+      fun puedeEliminarProductos(): Boolean = esAdmin()
+      fun puedeRegistrarMovimientos(): Boolean = true
+  }
+  ```
+- `data/repository/UsuarioRepository.kt`:
+  - `observarUsuarioActual(): Flow<Usuario?>` — combina `authSessionDao.observarSesion()` con `usuarioDao.obtenerPorId(sesion.user_id)`; usa `sesion.rol` como fuente autoritativa del rol (leído en login, más confiable que `UsuarioEntity.rol`)
+  - `obtenerUsuarioActual(): Usuario?` — versión suspend
+
+**Archivos a modificar:**
+- `ui/bodegas/BodegaViewModel.kt` — inyectar `UsuarioRepository`; reemplazar `Rol.fromString(sesion?.rol ?: "OPERADOR") == Rol.ADMIN` por `usuario.esAdmin()`
+
+**Breaking changes:** ninguno — es additive. El ViewModel de bodegas mejora internamente.
+**DoD:** Compila. `BodegaViewModel` obtiene `esAdmin` desde `UsuarioRepository`, no desde la sesión directamente.
+**Commit:** `feat: Phase 8 S1 — Usuario domain object and UsuarioRepository`
+
+---
+
+#### S2 — `Bodega` domain object
+**Archivos a crear:**
+- `domain/model/Bodega.kt`:
+  ```kotlin
+  data class Bodega(
+      val id: String,
+      val nombre: String,
+      val ubicacion: String?,
+      val empresaId: String,
+      val esActiva: Boolean = false
+  ) {
+      fun descripcion(): String = ubicacion?.let { "$nombre — $it" } ?: nombre
+  }
+  ```
+
+**Archivos a modificar:**
+- `data/repository/BodegaRepository.kt`:
+  - `observarBodegas()` retorna `Flow<List<Bodega>>` — el repositorio setea `esActiva` comparando `bodega.id == sesion.bodega_id`
+  - `obtenerBodegaActiva()` retorna `Bodega?`
+  - `eliminar(id)` recibe `String` — sin cambios en firma
+  - `cambiarBodegaActiva(bodegaId)` — sin cambios en firma
+  - Agregar extensión privada `BodegaEntity.toDomain(bodegaActivaId: String): Bodega`
+- `ui/bodegas/BodegaViewModel.kt` — `BodegasUiState.Listo` usa `List<Bodega>` y `Bodega?` en lugar de `List<BodegaEntity>` y `BodegaEntity?`
+- `ui/bodegas/BodegasScreen.kt` — usa `Bodega` en lugar de `BodegaEntity`; llama `bodega.descripcion()` en lugar de construcción manual
+
+**Breaking changes:** internos a la feature de bodegas — todo se actualiza en el mismo commit.
+**DoD:** Compila. `BodegasScreen` usa `Bodega`. El cálculo de `esActiva` vive en el repositorio.
+**Commit:** `feat: Phase 8 S2 — Bodega domain object, BodegaRepository returns Bodega`
+
+---
+
+#### S3 — `Producto` domain object + repositorio + ViewModels
+**Archivos a crear:**
+- `domain/model/Producto.kt`:
+  ```kotlin
+  data class Producto(
+      val id: String,
+      val nombre: String,
+      val descripcion: String?,
+      val sku: String?,
+      val precio: Int,
+      val stockMinimo: Int,
+      val stockActual: Int,
+      val bodegaId: String,
+      val empresaId: String,
+      val atributos: Map<String, String> = emptyMap()
+  ) {
+      fun esBajoStock(): Boolean = stockActual < stockMinimo
+      fun valorInventario(): Int = precio * stockActual
+      fun ratioStock(): Float = if (stockMinimo > 0) stockActual.toFloat() / stockMinimo else 1f
+      fun tieneStock(): Boolean = stockActual > 0
+      fun descripcionCompleta(): String = listOfNotNull(descripcion, sku?.let { "SKU: $it" }).joinToString(" · ")
+  }
+  ```
+
+**Archivos a modificar:**
+- `domain/model/ProductoConStock.kt` — agregar `fun toDomain(): Producto` (se mantiene como tipo Room interno)
+- `data/repository/ProductoRepository.kt`:
+  - `observarProductos(bodegaId)` retorna `Flow<List<Producto>>`
+  - `observarBajoMinimo(bodegaId)` retorna `Flow<List<Producto>>`
+  - `observarProducto(productoId)` retorna `Flow<Producto?>`
+  - Mapeo interno: `ProductoConStock.toDomain()` en cada colección
+- `ui/productos/ProductoViewModel.kt` — usa `Producto` en `ProductosUiState`
+- `ui/alertas/AlertasViewModel.kt` — usa `Producto` en `AlertasUiState`
+- `ui/movimientos/MovimientoViewModel.kt` — usa `Producto`
+
+**Breaking changes:** repositorio + 3 ViewModels — todo en un commit.
+**DoD:** Compila. ViewModels exponen `Producto`. `ProductoConStock` solo existe dentro de `data/`.
+**Commit:** `feat: Phase 8 S3 — Producto domain object, repository and ViewModels migrated`
+
+---
+
+#### S4 — Actualizar UI de productos
+**Archivos a modificar:**
+- `ui/productos/ProductosListScreen.kt` — usa `Producto`; reemplaza checks manuales por `producto.esBajoStock()`, `producto.valorInventario()`
+- `ui/alertas/AlertasScreen.kt` — usa `Producto`; `producto.esBajoStock()` para colores
+- `ui/movimientos/MovimientosScreen.kt` — usa `Producto`
+
+**Breaking changes:** ninguno — ViewModels ya retornan `Producto` desde S3.
+**DoD:** Compila. Las 3 pantallas usan métodos del dominio en lugar de comparaciones inline.
+**Commit:** `feat: Phase 8 S4 — UI screens migrated to Producto domain object`
+
+---
+
+#### S5 — Infraestructura de atributos (Room migration v5→v6)
+**Archivos a crear:**
+- `domain/model/AtributoTemplate.kt`:
+  ```kotlin
+  data class AtributoTemplate(
+      val id: String,
+      val empresaId: String,
+      val clave: String,       // nombre interno: "principio_activo"
+      val etiqueta: String,    // nombre visible: "Principio activo"
+      val tipo: TipoAtributo,  // TEXT, NUMBER, DATE (MVP: solo TEXT)
+      val obligatorio: Boolean,
+      val orden: Int
+  )
+  enum class TipoAtributo { TEXT, NUMBER, DATE }
+  ```
+- `data/local/entity/AtributoTemplateEntity.kt` + `AtributoTemplateDao.kt`
+  - CRUD + `observarPorEmpresa(empresaId): Flow<List<AtributoTemplateEntity>>`
+- `data/local/entity/ProductoAtributoEntity.kt` + `ProductoAtributoDao.kt`
+  - `(producto_id, template_id, valor)` — PK compuesta
+  - `obtenerPorProducto(productoId): List<ProductoAtributoEntity>`
+  - `upsertAll(atributos: List<ProductoAtributoEntity>)`
+
+**Archivos a modificar:**
+- `data/local/AppDatabase.kt` — versión 6, `MIGRATION_5_6` (dos CREATE TABLE)
+- `di/DatabaseModule.kt` — proveer nuevos DAOs
+- `data/repository/ProductoRepository.kt` — cargar `atributos: Map<String, String>` en `toDomain()`, combining `ProductoConStock` + `ProductoAtributoDao.obtenerPorProducto()`
+
+**Breaking changes:** ninguno — `Producto.atributos` ya existe como `emptyMap()` por defecto.
+**DoD:** Compila. `Producto.atributos` se llena desde Room. Base lista para UI de configuración (Fase 9).
+**Commit:** `feat: Phase 8 S5 — AtributoTemplate and ProductoAtributo entities, attributes load in Producto`
+
+---
+
+#### Restricciones globales de la Fase 8
+- `*Entity` nunca sale de la capa `data/` — ningún composable recibe una entidad Room
+- `ProductoConStock` se mantiene como tipo interno de Room — no se elimina del `ProductoDao`
+- `Bodega.esActiva` lo setea el repositorio — nunca la UI ni el ViewModel
+- `Usuario.rol` se lee de `AuthSessionEntity` (login value) — no de `UsuarioEntity` (pull value)
+- MVP de atributos: solo tipo `TEXT` — `TipoAtributo.NUMBER` y `DATE` existen en el enum pero no en UI
+
+---
+
 ### 🧩 Modelo de dominio rico + Atributos personalizables (Fase 8)
 **Prerequisito:** ninguno técnico — puede ir después de Fase 7
 **Por qué como fase separada:** requiere refactorizar `ProductoConStock` → `Producto` en toda la cadena (repositorios, ViewModels, UI). Es un cambio deliberado que merece su propio espacio.
@@ -635,6 +816,33 @@ Fix 7 — `precio: Double` en `ProductoDto` vs `20000.00` (número JSON)
 - Datos en Supabase coinciden con lo visible en la app: ✅
 
 **Bugs encontrados:** ninguno (todos resueltos en sesión)
+
+---
+
+## 🧪 HISTORIAL DE TESTS UNITARIOS
+
+Registro de suites de tests automatizados. Se ejecutan con `gradlew.bat test`.
+
+---
+
+### Fase 8 S1 — Usuario domain object + UsuarioRepository
+
+**Archivo:** `test/.../domain/model/UsuarioTest.kt` — 5 tests
+**Archivo:** `test/.../data/repository/UsuarioRepositoryTest.kt` — 7 tests
+**Resultado:** 12/12 verdes ✅
+**Deps agregadas:** `mockk:1.13.12` + `kotlinx-coroutines-test:1.7.3`
+
+Casos cubiertos:
+- `esAdmin()` true para ADMIN, false para OPERADOR
+- `puedeGestionarBodegas/puedeEliminarProductos` reflejan `esAdmin()`
+- `puedeRegistrarMovimientos()` siempre true
+- `observarUsuarioActual()` emite null cuando sesión es null
+- `observarUsuarioActual()` usa datos de sesión cuando `UsuarioEntity` no existe aún (pre-pull)
+- `observarUsuarioActual()` usa nombre/email de `UsuarioEntity` cuando existe
+- **Rol de sesión tiene precedencia sobre rol de `UsuarioEntity`** (caso crítico de divergencia)
+- OPERADOR → `esAdmin()` false
+- `obtenerUsuarioActual()` retorna null sin sesión
+- `obtenerUsuarioActual()` retorna usuario correcto con sesión + entity
 
 ---
 
