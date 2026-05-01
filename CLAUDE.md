@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — plan Fase 6 definido, rama `dev-warehouse` creada
+**Última actualización:** Mayo 2026 — Fase 6 completa (compilada), pendiente validación física
 
 ---
 
@@ -221,7 +221,7 @@ FASE 3 (Movimientos):     ✅ Completa
 FASE 4 (Alertas):         ✅ Completa
 FASE 5A (Sync push):      ✅ Completa — validada en dispositivo físico
 FASE 5B (Sync pull):      ✅ Completa — validada en dispositivo físico (2 cuentas por separado)
-FASE 6 (Multi-bodega):    ☐ Pendiente
+FASE 6 (Multi-bodega):    ✅ Completa (compilada) — pendiente validación física
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
@@ -482,6 +482,53 @@ Movimiento synced a Supabase
 - Aprobación tarda entre 1 y 4 semanas — conviene iniciar durante Fases 5-6
 **Alternativa sin aprobación Meta:** `Intent` de Android que abre WhatsApp con texto pre-llenado — requiere interacción manual del usuario, no es automático.
 **Consideración de costos:** WhatsApp Business API cobra por conversación iniciada por la empresa (template messages). Evaluar volumen esperado de alertas antes de producción.
+
+---
+
+### 🧩 Modelo de dominio rico + Atributos personalizables (Fase 8)
+**Prerequisito:** ninguno técnico — puede ir después de Fase 7
+**Por qué como fase separada:** requiere refactorizar `ProductoConStock` → `Producto` en toda la cadena (repositorios, ViewModels, UI). Es un cambio deliberado que merece su propio espacio.
+
+**Arquitectura objetivo:**
+```kotlin
+// Dominio rico — reemplaza ProductoConStock
+data class Producto(
+    val id: String,
+    val nombre: String,
+    val stockActual: Int,
+    val stockMinimo: Int,
+    val precio: Int,
+    val atributos: Map<String, String> = emptyMap()   // atributos dinámicos por empresa
+) {
+    fun esBajoStock(): Boolean = stockActual < stockMinimo
+    fun valorInventario(): Int = precio * stockActual
+    fun ratioStock(): Float = if (stockMinimo > 0) stockActual.toFloat() / stockMinimo else 1f
+}
+```
+
+**Nuevas entidades Room:**
+- `AtributoTemplateEntity` (`id`, `empresa_id`, `clave`, `tipo`, `obligatorio`, `orden`) — define qué campos tiene cada empresa
+- `ProductoAtributoEntity` (`producto_id`, `template_id`, `valor`) — valores por producto
+
+**Lo que falta:**
+- Migración Room para las dos tablas nuevas
+- `ProductoRepository` ensambla `Producto` desde `ProductoEntity` + `ProductoAtributoEntity`
+- `ProductosListScreen` y `MovimientosScreen` consumen `Producto` (renombrar referencias)
+- Pantalla de configuración de atributos (acceso solo ADMIN, desde Dashboard)
+- `ProductoFormDialog` muestra/edita atributos dinámicos según los templates de la empresa
+
+**Decisión de tipos de atributo:**
+Valores como `String` en MVP. Tipos futuros: `NUMBER`, `DATE`, `BOOLEAN`, `SELECT` (lista de opciones).
+
+---
+
+### 🗂️ Selección masiva de productos (Fase 7 o 8)
+**Prerequisito:** ninguno
+**Por qué se difirió:** no existe multi-select en `ProductosListScreen`; agregar checkboxes + barra de acciones masivas es scope significativo.
+**Casos de uso:**
+- Eliminar varios productos a la vez desde la bodega destino tras una transferencia
+- Mover productos entre bodegas en bloque
+**Referencia:** surgió como necesidad al diseñar eliminación segura de bodegas con productos.
 
 ---
 
