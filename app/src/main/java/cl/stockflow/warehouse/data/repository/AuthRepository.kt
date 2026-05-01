@@ -5,6 +5,7 @@ import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.stockflow.warehouse.data.remote.supabaseClient
 import cl.stockflow.warehouse.data.sync.PullTrigger
+import cl.stockflow.warehouse.domain.model.Rol
 import cl.stockflow.warehouse.domain.model.SesionUsuario
 import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
@@ -57,7 +58,8 @@ class AuthRepository @Inject constructor(
 
             val empresa_id = fila["empresa_id"]?.jsonPrimitive?.content
                 ?: return Result.failure(Exception("Usuario sin empresa asignada"))
-            Timber.d("AUTH: empresa_id=$empresa_id")
+            val rol = fila["rol"]?.jsonPrimitive?.content ?: "OPERADOR"
+            Timber.d("AUTH: empresa_id=$empresa_id, rol=$rol")
 
             Timber.d("AUTH: consultando bodegas...")
             val bodegaFila = supabaseClient.postgrest["bodegas"]
@@ -77,6 +79,7 @@ class AuthRepository @Inject constructor(
                     user_id = user.id,
                     empresa_id = empresa_id,
                     bodega_id = bodega_id,
+                    rol = rol,
                     expires_at = Date(expires_ms)
                 )
             )
@@ -89,7 +92,8 @@ class AuthRepository @Inject constructor(
                     empresa_id = empresa_id,
                     access_token = session.accessToken,
                     refresh_token = session.refreshToken,
-                    expires_at = expires_ms
+                    expires_at = expires_ms,
+                    rol = Rol.fromString(rol)
                 )
             )
         } catch (e: Exception) {
@@ -180,6 +184,7 @@ class AuthRepository @Inject constructor(
                     user_id = user.id,
                     empresa_id = empresa_id,
                     bodega_id = bodega_id,
+                    rol = Rol.ADMIN.name,   // registrar_empresa siempre crea ADMIN
                     expires_at = Date(expires_ms)
                 )
             )
@@ -191,7 +196,8 @@ class AuthRepository @Inject constructor(
                     empresa_id = empresa_id,
                     access_token = session.accessToken,
                     refresh_token = session.refreshToken,
-                    expires_at = expires_ms
+                    expires_at = expires_ms,
+                    rol = Rol.ADMIN
                 )
             )
         } catch (e: Exception) {
@@ -221,5 +227,10 @@ class AuthRepository @Inject constructor(
             return null
         }
         return sesion
+    }
+
+    suspend fun obtenerRolActual(): Rol? {
+        val sesion = authSessionDao.obtenerSesion() ?: return null
+        return Rol.fromString(sesion.rol)
     }
 }
