@@ -8,10 +8,13 @@ import cl.stockflow.warehouse.data.local.entity.BodegaEntity
 import cl.stockflow.warehouse.data.sync.toSyncDelete
 import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.data.sync.toSyncUpdate
+import cl.stockflow.warehouse.domain.model.Bodega
 import java.util.Date
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,18 +27,18 @@ class BodegaRepository @Inject constructor(
     private val productoDao: ProductoDao
 ) {
 
-    fun observarBodegas(): Flow<List<BodegaEntity>> = flow {
-        val sesion = authSessionDao.obtenerSesion()
-        if (sesion == null) {
-            emit(emptyList())
-            return@flow
+    // flatMapLatest: cuando bodega_id cambia en sesión, esActiva se recalcula en todos los items
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observarBodegas(): Flow<List<Bodega>> = authSessionDao.observarSesion()
+        .flatMapLatest { sesion ->
+            if (sesion == null) flowOf(emptyList())
+            else bodegaDao.observarPorEmpresa(sesion.empresa_id)
+                .map { entities -> entities.map { it.toDomain(sesion.bodega_id) } }
         }
-        emitAll(bodegaDao.observarPorEmpresa(sesion.empresa_id))
-    }
 
-    suspend fun obtenerBodegaActiva(): BodegaEntity? {
+    suspend fun obtenerBodegaActiva(): Bodega? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
-        return bodegaDao.obtenerPorId(sesion.bodega_id)
+        return bodegaDao.obtenerPorId(sesion.bodega_id)?.toDomain(sesion.bodega_id)
     }
 
     suspend fun crear(nombre: String, ubicacion: String?): Result<Unit> {
@@ -100,3 +103,11 @@ class BodegaRepository @Inject constructor(
         }
     }
 }
+
+private fun BodegaEntity.toDomain(bodegaActivaId: String): Bodega = Bodega(
+    id = id,
+    nombre = nombre,
+    ubicacion = ubicacion,
+    empresaId = empresa_id,
+    esActiva = id == bodegaActivaId
+)
