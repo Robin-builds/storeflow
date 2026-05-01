@@ -15,6 +15,9 @@ interface AuthSessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun guardarSesion(sesion: AuthSessionEntity)
 
+    @Query("UPDATE auth_sessions SET bodega_id = :bodegaId WHERE id = 1")
+    suspend fun actualizarBodegaActiva(bodegaId: String)
+
     @Query("DELETE FROM auth_sessions")
     suspend fun limpiarSesion()
 }

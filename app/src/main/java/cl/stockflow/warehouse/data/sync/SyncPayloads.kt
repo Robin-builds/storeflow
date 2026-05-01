@@ -1,5 +1,6 @@
 package cl.stockflow.warehouse.data.sync
 
+import cl.stockflow.warehouse.data.local.entity.BodegaEntity
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.OperacionSync
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
@@ -54,6 +55,36 @@ fun MovimientoEntity.toSyncInsert() = SyncEntity(
     operacion = OperacionSync.INSERT,
     payload = toSupabaseJson()
 )
+
+fun BodegaEntity.toSyncInsert() = SyncEntity(
+    entidad_tipo = "bodegas",
+    entidad_id = id,
+    operacion = OperacionSync.INSERT,
+    payload = toSupabaseJson()
+)
+
+fun BodegaEntity.toSyncUpdate() = SyncEntity(
+    entidad_tipo = "bodegas",
+    entidad_id = id,
+    operacion = OperacionSync.UPDATE,
+    payload = toSupabaseJson()
+)
+
+fun BodegaEntity.toSyncDelete() = SyncEntity(
+    entidad_tipo = "bodegas",
+    entidad_id = id,
+    operacion = OperacionSync.DELETE,
+    payload = "{}"
+)
+
+private fun BodegaEntity.toSupabaseJson(): String = buildJsonObject {
+    put("id", id)
+    put("empresa_id", empresa_id)
+    put("nombre", nombre)
+    ubicacion?.let { put("ubicacion", it) }
+    put("created_at", isoFmt.format(created_at))
+    put("updated_at", isoFmt.format(updated_at))
+}.toString()
 
 private fun MovimientoEntity.toSupabaseJson(): String = buildJsonObject {
     put("id", id)
