@@ -3,7 +3,7 @@ package cl.stockflow.warehouse.ui.alertas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.stockflow.warehouse.data.repository.ProductoRepository
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 sealed class AlertasUiState {
     object Cargando : AlertasUiState()
-    data class Listo(val alertas: List<ProductoConStock>) : AlertasUiState()
+    data class Listo(val alertas: List<Producto>) : AlertasUiState()
 }
 
 @HiltViewModel

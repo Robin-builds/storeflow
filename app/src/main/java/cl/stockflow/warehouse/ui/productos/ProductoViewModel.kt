@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
 import cl.stockflow.warehouse.data.repository.ProductoRepository
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 sealed class ProductosUiState {
     object Cargando : ProductosUiState()
-    data class Listo(val productos: List<ProductoConStock>) : ProductosUiState()
+    data class Listo(val productos: List<Producto>) : ProductosUiState()
     data class Error(val mensaje: String) : ProductosUiState()
 }
 
@@ -46,9 +46,9 @@ class ProductoViewModel @Inject constructor(
     private val _busqueda = MutableStateFlow("")
     val busqueda: StateFlow<String> = _busqueda.asStateFlow()
 
-    private val _todosLosProductos = MutableStateFlow<List<ProductoConStock>>(emptyList())
+    private val _todosLosProductos = MutableStateFlow<List<Producto>>(emptyList())
 
-    val productosFiltrados: StateFlow<List<ProductoConStock>> = combine(
+    val productosFiltrados: StateFlow<List<Producto>> = combine(
         _todosLosProductos, _busqueda
     ) { lista, query ->
         if (query.isBlank()) lista
@@ -96,7 +96,7 @@ class ProductoViewModel @Inject constructor(
     }
 
     fun actualizar(
-        producto: ProductoConStock,
+        producto: Producto,
         nombre: String,
         descripcion: String?,
         sku: String?,
@@ -107,8 +107,8 @@ class ProductoViewModel @Inject constructor(
             _formState.value = FormUiState.Cargando
             val entity = ProductoEntity(
                 id = producto.id,
-                empresa_id = producto.empresa_id,
-                bodega_id = producto.bodega_id,
+                empresa_id = producto.empresaId,
+                bodega_id = producto.bodegaId,
                 nombre = nombre.trim(),
                 descripcion = descripcion?.trim()?.ifBlank { null },
                 sku = sku?.trim()?.ifBlank { null },

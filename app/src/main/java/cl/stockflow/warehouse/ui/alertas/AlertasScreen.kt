@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +83,7 @@ fun AlertasScreen(
 
 @Composable
 private fun AlertaItem(
-    producto: ProductoConStock,
+    producto: Producto,
     onVerMovimientos: () -> Unit
 ) {
     ListItem(
@@ -92,7 +92,7 @@ private fun AlertaItem(
         },
         supportingContent = {
             Text(
-                text = "Stock: ${producto.stock_actual}  ·  Mínimo: ${producto.stock_minimo}",
+                text = "Stock: ${producto.stockActual}  ·  Mínimo: ${producto.stockMinimo}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )

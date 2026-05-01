@@ -12,8 +12,9 @@ import cl.stockflow.warehouse.data.sync.SyncTrigger
 import cl.stockflow.warehouse.data.sync.toSyncDelete
 import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.data.sync.toSyncUpdate
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,11 +34,14 @@ class ProductoRepository @Inject constructor(
         return sesion.empresa_id to sesion.bodega_id
     }
 
-    fun observarProductos(bodegaId: String): Flow<List<ProductoConStock>> =
-        productoDao.observarConStock(bodegaId)
+    fun observarProductos(bodegaId: String): Flow<List<Producto>> =
+        productoDao.observarConStock(bodegaId).map { list -> list.map { it.toDomain() } }
 
-    fun observarBajoMinimo(bodegaId: String): Flow<List<ProductoConStock>> =
-        productoDao.observarBajoMinimo(bodegaId)
+    fun observarBajoMinimo(bodegaId: String): Flow<List<Producto>> =
+        productoDao.observarBajoMinimo(bodegaId).map { list -> list.map { it.toDomain() } }
+
+    fun observarProducto(productoId: String): Flow<Producto?> =
+        productoDao.observarProductoConStock(productoId).map { it?.toDomain() }
 
     suspend fun obtenerPorId(id: String): ProductoEntity? = productoDao.obtenerPorId(id)
 

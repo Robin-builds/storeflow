@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -87,7 +87,7 @@ fun MovimientosScreen(
         }
     }
 
-    val stockActual = (uiState as? MovimientosUiState.Listo)?.producto?.stock_actual ?: 0
+    val stockActual = (uiState as? MovimientosUiState.Listo)?.producto?.stockActual ?: 0
     tipoSeleccionado?.let { tipo ->
         MovimientoDialog(
             tipo = tipo,
@@ -110,12 +110,12 @@ fun MovimientosScreen(
 
 @Composable
 private fun ContenidoMovimientos(
-    producto: ProductoConStock,
+    producto: Producto,
     movimientos: List<MovimientoEntity>,
     onRegistrar: (TipoMovimiento) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val stockBajo = producto.stock_actual < producto.stock_minimo
+    val stockBajo = producto.esBajoStock()
 
     Column(modifier = modifier.fillMaxSize()) {
         // Tarjeta de stock
@@ -145,13 +145,13 @@ private fun ContenidoMovimientos(
                 }
                 Column {
                     Text(
-                        text = "Stock actual: ${producto.stock_actual}",
+                        text = "Stock actual: ${producto.stockActual}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    if (producto.stock_minimo > 0) {
+                    if (producto.stockMinimo > 0) {
                         Text(
-                            text = "Mínimo: ${producto.stock_minimo}",
+                            text = "Mínimo: ${producto.stockMinimo}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

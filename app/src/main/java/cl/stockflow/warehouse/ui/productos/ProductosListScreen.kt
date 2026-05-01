@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +36,7 @@ fun ProductosListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var mostrarFormCrear by remember { mutableStateOf(false) }
-    var productoAEditar by remember { mutableStateOf<ProductoConStock?>(null) }
+    var productoAEditar by remember { mutableStateOf<Producto?>(null) }
 
     LaunchedEffect(formState) {
         if (formState is FormUiState.Guardado) {
@@ -152,18 +152,17 @@ fun ProductosListScreen(
 
 @Composable
 private fun ProductoItem(
-    producto: ProductoConStock,
+    producto: Producto,
     onClick: () -> Unit,
     onVerMovimientos: () -> Unit
 ) {
-    val stockBajo = producto.stock_actual < producto.stock_minimo
     ListItem(
         headlineContent = { Text(producto.nombre) },
         supportingContent = {
             Text(
                 buildString {
-                    append("Stock: ${producto.stock_actual}")
-                    if (producto.stock_minimo > 0) append("  ·  Mín: ${producto.stock_minimo}")
+                    append("Stock: ${producto.stockActual}")
+                    if (producto.stockMinimo > 0) append("  ·  Mín: ${producto.stockMinimo}")
                     if (producto.sku != null) append("  ·  SKU: ${producto.sku}")
                 },
                 style = MaterialTheme.typography.bodySmall
@@ -171,7 +170,7 @@ private fun ProductoItem(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (stockBajo) {
+                if (producto.esBajoStock()) {
                     Icon(
                         Icons.Filled.Warning,
                         contentDescription = "Stock bajo",
@@ -194,7 +193,7 @@ private fun ProductoItem(
 @Composable
 private fun ProductoFormDialog(
     titulo: String,
-    productoInicial: ProductoConStock?,
+    productoInicial: Producto?,
     formState: FormUiState,
     onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Int, stockMin: Int, stockInicial: Int) -> Unit,
     onEliminar: (() -> Unit)?,
@@ -205,7 +204,7 @@ private fun ProductoFormDialog(
     var descripcion by remember { mutableStateOf(productoInicial?.descripcion ?: "") }
     var sku by remember { mutableStateOf(productoInicial?.sku ?: "") }
     var precio by remember { mutableStateOf(productoInicial?.precio?.toString() ?: "0") }
-    var stock_minimo by remember { mutableStateOf(productoInicial?.stock_minimo?.toString() ?: "0") }
+    var stock_minimo by remember { mutableStateOf(productoInicial?.stockMinimo?.toString() ?: "0") }
     var stock_inicial by remember { mutableStateOf("0") }
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
 
