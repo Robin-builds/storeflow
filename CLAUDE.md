@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 8 S1 completa (Usuario domain object)
+**Última actualización:** Mayo 2026 — Fase 8 S2 completa (Bodega domain object)
 
 ---
 
@@ -225,16 +225,16 @@ FASE 5B (Sync pull):      ✅ Completa — validada en dispositivo físico (2 cu
 FASE 6 (Multi-bodega):    ✅ Completa — validada en dispositivo físico (Mayo 2026)
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 FASE 8 S1 (Usuario obj):  ✅ Completa — 12 unit tests verdes
-FASE 8 S2 (Bodega obj):   ☐ Próxima sesión
+FASE 8 S2 (Bodega obj):   ✅ Completa — 9 unit tests verdes
 FASE 8 S3 (Producto obj): ☐ Pendiente
 FASE 8 S4 (UI migración): ☐ Pendiente
 FASE 8 S5 (Atributos):    ☐ Pendiente
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `6e6d9ac` — test: Phase 8 S1 — unit tests for Usuario domain object and UsuarioRepository
+**Último commit:**  `a6db12c` — feat: Phase 8 S2 — Bodega domain object, BodegaRepository returns Bodega
 **Rama activa:**    `dev-rich-domain`
-**Próxima sesión:** Fase 8 — S2: `Bodega` domain object
+**Próxima sesión:** Fase 8 — S3: `Producto` domain object
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -339,6 +339,13 @@ Fix 5 — ~~`ProductoDto.precio: String`~~ **DIAGNOSIS INCORRECTA — revertida 
 - `data/repository/UsuarioRepository.kt` — `observarUsuarioActual(): Flow<Usuario?>` + `obtenerUsuarioActual(): Usuario?`; usa `sesion.rol` como fuente autoritativa (funciona antes del primer pull si `UsuarioEntity` no existe aún)
 - `BodegaViewModel.kt` — ahora combina 3 flows; `esAdmin` viene de `usuario?.esAdmin()` en lugar del check manual `Rol.fromString(...) == Rol.ADMIN`
 - Tests: `UsuarioTest` (5 casos) + `UsuarioRepositoryTest` (7 casos) — 12/12 verdes
+
+**Lo construido en Fase 8 S2:**
+- `domain/model/Bodega.kt` — objeto rico con `esActiva: Boolean` y `descripcion()`
+- `BodegaRepository.kt` — `observarBodegas()` retorna `Flow<List<Bodega>>`; usa `flatMapLatest` sobre la sesión para que `esActiva` se recalcule reactivamente cuando cambia `bodega_id` (tras `cambiarBodegaActiva()`); extensión privada `BodegaEntity.toDomain(bodegaActivaId)`
+- `BodegaViewModel.kt` — `BodegasUiState.Listo` usa `List<Bodega>` y `Bodega?`; se elimina `authRepository` del combine (ya no necesario — `esActiva` viene del repositorio)
+- `BodegasScreen.kt` — usa `bodega.esActiva` directamente; eliminado cálculo manual `bodega.id == state.activa?.id`
+- Tests: `BodegaTest` (3 casos) + `BodegaRepositoryTest` (6 casos) — 9/9 verdes
 
 ---
 
@@ -843,6 +850,25 @@ Casos cubiertos:
 - OPERADOR → `esAdmin()` false
 - `obtenerUsuarioActual()` retorna null sin sesión
 - `obtenerUsuarioActual()` retorna usuario correcto con sesión + entity
+
+---
+
+### Fase 8 S2 — Bodega domain object + BodegaRepository
+
+**Archivo:** `test/.../domain/model/BodegaTest.kt` — 3 tests
+**Archivo:** `test/.../data/repository/BodegaRepositoryTest.kt` — 6 tests
+**Resultado:** 9/9 verdes ✅
+
+Casos cubiertos:
+- `descripcion()` retorna solo nombre cuando `ubicacion` es null
+- `descripcion()` retorna `"nombre — ubicacion"` cuando existe
+- `esActiva` refleja el valor del constructor
+- `observarBodegas()` emite lista vacía cuando sesión es null
+- `observarBodegas()` marca `esActiva = true` solo en la bodega cuyo id coincide con `sesion.bodega_id`
+- `observarBodegas()` mapea campos correctamente (nombre, ubicacion, empresaId)
+- **`esActiva` se recalcula reactivamente cuando cambia `bodega_id` en sesión** (caso crítico)
+- `obtenerBodegaActiva()` retorna null sin sesión
+- `obtenerBodegaActiva()` retorna `Bodega` con `esActiva = true`
 
 ---
 
