@@ -120,7 +120,7 @@ fun BodegasScreen(
         AlertDialog(
             onDismissRequest = { bodegaAEliminar = null },
             title = { Text("Eliminar bodega") },
-            text = { Text("¿Eliminar \"${bodega.nombre}\"? Esta acción no se puede deshacer.") },
+            text = { Text("¿Eliminar \"${bodega.nombre}\"? Los productos existentes serán trasladados automáticamente a la bodega más antigua de la empresa. Esta acción no se puede deshacer.") },
             confirmButton = {
                 TextButton(
                     onClick = {

@@ -29,4 +29,10 @@ interface BodegaDao {
 
     @Query("SELECT * FROM bodegas WHERE synced = 0")
     suspend fun obtenerNoSincronizadas(): List<BodegaEntity>
+
+    @Query("SELECT * FROM bodegas WHERE empresa_id = :empresaId AND id != :excludeId ORDER BY created_at ASC LIMIT 1")
+    suspend fun obtenerMasAntiguaExcluyendo(empresaId: String, excludeId: String): BodegaEntity?
+
+    @Query("UPDATE bodegas SET synced = 1, synced_at = :ahora WHERE id = :id")
+    suspend fun marcarSincronizado(id: String, ahora: Long)
 }

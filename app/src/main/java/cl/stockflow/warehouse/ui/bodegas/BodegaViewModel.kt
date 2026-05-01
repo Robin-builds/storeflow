@@ -89,6 +89,7 @@ class BodegaViewModel @Inject constructor(
         }
         viewModelScope.launch {
             bodegaRepository.eliminar(id)
+                .onSuccess { _mensaje.emit("Bodega eliminada") }
                 .onFailure { _mensaje.emit("Error al eliminar bodega: ${it.message}") }
         }
     }

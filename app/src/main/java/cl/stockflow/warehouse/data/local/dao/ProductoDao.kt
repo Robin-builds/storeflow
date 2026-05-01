@@ -79,4 +79,13 @@ interface ProductoDao {
 
     @Query("SELECT COUNT(*) FROM productos")
     suspend fun contarTodos(): Int
+
+    @Query("SELECT COUNT(*) FROM productos WHERE bodega_id = :bodegaId")
+    suspend fun contarPorBodega(bodegaId: String): Int
+
+    @Query("SELECT * FROM productos WHERE bodega_id = :bodegaId")
+    suspend fun obtenerListaPorBodega(bodegaId: String): List<ProductoEntity>
+
+    @Query("UPDATE productos SET bodega_id = :bodegaIdDestino, updated_at = :ahora WHERE bodega_id = :bodegaIdOrigen")
+    suspend fun transferirABodega(bodegaIdOrigen: String, bodegaIdDestino: String, ahora: Long = System.currentTimeMillis())
 }
