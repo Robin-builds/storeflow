@@ -1,6 +1,6 @@
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 8 S2 completa (Bodega domain object)
+**Última actualización:** Mayo 2026 — Fase 8 S3+S4 completa y validada en dispositivo físico
 
 ---
 
@@ -226,15 +226,14 @@ FASE 6 (Multi-bodega):    ✅ Completa — validada en dispositivo físico (Mayo
 FASE 7 (Pulido UI):       ☐ Pendiente — puede ir antes del lanzamiento
 FASE 8 S1 (Usuario obj):  ✅ Completa — 12 unit tests verdes
 FASE 8 S2 (Bodega obj):   ✅ Completa — 9 unit tests verdes
-FASE 8 S3 (Producto obj): ☐ Pendiente
-FASE 8 S4 (UI migración): ☐ Pendiente
-FASE 8 S5 (Atributos):    ☐ Pendiente
+FASE 8 S3+S4 (Producto):  ✅ Completa — 14 unit tests verdes — validada en dispositivo físico
+FASE 8 S5 (Atributos):    ☐ Próxima sesión
 WHATSAPP (Notif.):        ☐ Pendiente — requiere Fase 5 + aprobación Meta (iniciar trámite ya)
 ```
 
-**Último commit:**  `a6db12c` — feat: Phase 8 S2 — Bodega domain object, BodegaRepository returns Bodega
+**Último commit:**  `58fcd3e` — feat: Phase 8 S3+S4 — Producto domain object, repositories and all screens migrated
 **Rama activa:**    `dev-rich-domain`
-**Próxima sesión:** Fase 8 — S3: `Producto` domain object
+**Próxima sesión:** Fase 8 — S5: Atributos personalizables (Room migration v5→v6)
 
 **Lo construido en Fase 1:**
 - `AuthSessionEntity` (campos: access_token, refresh_token, user_id, empresa_id, **bodega_id**) → `AppDatabase` v2→v3
@@ -346,6 +345,15 @@ Fix 5 — ~~`ProductoDto.precio: String`~~ **DIAGNOSIS INCORRECTA — revertida 
 - `BodegaViewModel.kt` — `BodegasUiState.Listo` usa `List<Bodega>` y `Bodega?`; se elimina `authRepository` del combine (ya no necesario — `esActiva` viene del repositorio)
 - `BodegasScreen.kt` — usa `bodega.esActiva` directamente; eliminado cálculo manual `bodega.id == state.activa?.id`
 - Tests: `BodegaTest` (3 casos) + `BodegaRepositoryTest` (6 casos) — 9/9 verdes
+
+**Lo construido en Fase 8 S3+S4 (colapsadas — screens rompen al cambiar ViewModels):**
+- `domain/model/Producto.kt` — objeto rico con `esBajoStock()`, `valorInventario()`, `ratioStock()`, `tieneStock()`, `descripcionCompleta()`
+- `ProductoConStock.kt` — agrego `toDomain(): Producto`; sigue siendo tipo interno de Room
+- `ProductoRepository.kt` — `observarProductos/observarBajoMinimo` retornan `Flow<List<Producto>>`; nuevo `observarProducto(productoId): Flow<Producto?>`
+- `MovimientoRepository.kt` — `observarProductoConStock` → `observarProducto`, retorna `Flow<Producto?>`
+- `ProductoViewModel`, `AlertasViewModel`, `MovimientoViewModel` — usan `Producto`
+- `ProductosListScreen`, `MovimientosScreen`, `AlertasScreen` — `stock_actual/stock_minimo` → `stockActual/stockMinimo`; `esBajoStock()` reemplaza comparación inline
+- Tests: `ProductoTest` (14 casos) — 14/14 verdes; validado en dispositivo físico ✅
 
 ---
 
@@ -826,6 +834,13 @@ Fix 7 — `precio: Double` en `ProductoDto` vs `20000.00` (número JSON)
 
 ---
 
+### Fase 8 S3+S4 — Producto domain object + UI migrada
+**Dispositivo:** no registrado
+**Resultado:** productos ✅ stock bajo ✅ movimientos ✅ alertas ✅ bodegas ✅
+**Bugs encontrados:** ninguno
+
+---
+
 ## 🧪 HISTORIAL DE TESTS UNITARIOS
 
 Registro de suites de tests automatizados. Se ejecutan con `gradlew.bat test`.
@@ -869,6 +884,21 @@ Casos cubiertos:
 - **`esActiva` se recalcula reactivamente cuando cambia `bodega_id` en sesión** (caso crítico)
 - `obtenerBodegaActiva()` retorna null sin sesión
 - `obtenerBodegaActiva()` retorna `Bodega` con `esActiva = true`
+
+---
+
+### Fase 8 S3+S4 — Producto domain object + screens migradas
+
+**Archivo:** `test/.../domain/model/ProductoTest.kt` — 14 tests
+**Resultado:** 14/14 verdes ✅
+
+Casos cubiertos:
+- `esBajoStock()` — true/false/igual al mínimo
+- `valorInventario()` — precio × stock, cero cuando sin stock
+- `ratioStock()` — cociente correcto; retorna 1f cuando stockMinimo es 0
+- `tieneStock()` — true/false
+- `descripcionCompleta()` — con descripcion+sku, solo descripcion, solo sku, ambos null → ""
+- `ProductoConStock.toDomain()` — todos los campos mapeados correctamente (snake_case → camelCase)
 
 ---
 
