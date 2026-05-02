@@ -1,46 +1,43 @@
 package cl.stockflow.warehouse.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary             = Verde700,
+    onPrimary           = Color.White,
+    primaryContainer    = Verde50,
+    onPrimaryContainer  = Verde900,
+
+    secondary              = Verde600,
+    onSecondary            = Color.White,
+    secondaryContainer     = Verde200,
+    onSecondaryContainer   = Verde800,
+
+    background       = Slate50,
+    onBackground     = Slate900,
+    surface          = Color.White,
+    onSurface        = Slate900,
+    surfaceVariant   = Slate100,
+    onSurfaceVariant = Slate700,
+
+    outline        = Slate300,
+    outlineVariant = Slate100,
+
+    error            = Rojo600,
+    onError          = Color.White,
+    errorContainer   = Rojo50,
+    onErrorContainer = Rojo700,
 )
 
 @Composable
-fun StockFlowTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+fun StockFlowTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = LightColorScheme,
+        typography  = StockFlowTypography,
+        shapes      = StockFlowShapes,
+        content     = content
     )
 }
