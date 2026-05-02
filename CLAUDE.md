@@ -1,3 +1,4 @@
+
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
 **Última actualización:** Mayo 2026 — Fase 9 S1 completa
@@ -267,6 +268,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 8 S3+S4 Producto dom. | productos ✅ movimientos ✅ alertas ✅ bodegas ✅ | ninguno |
 | 8 S5 Atributos infra. | Room v5→v6 ✅ inventario existente ✅ | ninguno |
 | 9 S1 Config. atributos | ADMIN ✅ OPERADOR ✅ crear/eliminar ✅ | ninguno |
+| 9 S2 Form. producto atributos | crear con atributos ✅ editar pre-llena ✅ obligatorio bloquea ✅ | ninguno |
 
 ---
 
