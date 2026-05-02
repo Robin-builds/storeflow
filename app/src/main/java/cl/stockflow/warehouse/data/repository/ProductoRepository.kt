@@ -11,6 +11,7 @@ import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
 import cl.stockflow.warehouse.data.sync.SyncTrigger
+import cl.stockflow.warehouse.data.sync.productoAtributosSyncItem
 import cl.stockflow.warehouse.data.sync.toSyncDelete
 import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.data.sync.toSyncUpdate
@@ -93,6 +94,8 @@ class ProductoRepository @Inject constructor(
                 syncDao.encolar(movimiento.toSyncInsert())
             }
             guardarAtributos(producto.id, atributos)
+            if (atributos.any { (_, v) -> v.isNotBlank() })
+                syncDao.encolar(productoAtributosSyncItem(producto.id, atributos))
             syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -112,6 +115,7 @@ class ProductoRepository @Inject constructor(
             syncDao.encolar(actualizado.toSyncUpdate())
             productoAtributoDao.eliminarPorProducto(actualizado.id)
             guardarAtributos(actualizado.id, atributos)
+            syncDao.encolar(productoAtributosSyncItem(actualizado.id, atributos))
             syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {

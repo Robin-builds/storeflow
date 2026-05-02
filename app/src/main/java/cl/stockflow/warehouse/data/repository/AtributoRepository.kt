@@ -2,7 +2,11 @@ package cl.stockflow.warehouse.data.repository
 
 import cl.stockflow.warehouse.data.local.dao.AtributoTemplateDao
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
+import cl.stockflow.warehouse.data.local.dao.SyncDao
 import cl.stockflow.warehouse.data.local.entity.AtributoTemplateEntity
+import cl.stockflow.warehouse.data.sync.SyncTrigger
+import cl.stockflow.warehouse.data.sync.toSyncDelete
+import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.domain.model.AtributoTemplate
 import cl.stockflow.warehouse.domain.model.TipoAtributo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,7 +20,9 @@ import javax.inject.Singleton
 @Singleton
 class AtributoRepository @Inject constructor(
     private val atributoTemplateDao: AtributoTemplateDao,
-    private val authSessionDao: AuthSessionDao
+    private val authSessionDao: AuthSessionDao,
+    private val syncDao: SyncDao,
+    private val syncTrigger: SyncTrigger
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observarTemplates(): Flow<List<AtributoTemplate>> = authSessionDao.observarSesion()
@@ -36,16 +42,17 @@ class AtributoRepository @Inject constructor(
         val empresaId = authSessionDao.obtenerSesion()?.empresa_id
             ?: return Result.failure(Exception("Sin sesión activa"))
         return try {
-            atributoTemplateDao.insertar(
-                AtributoTemplateEntity(
-                    empresa_id = empresaId,
-                    clave = clave.trim(),
-                    etiqueta = etiqueta.trim(),
-                    tipo = tipo.name,
-                    obligatorio = obligatorio,
-                    orden = orden
-                )
+            val entity = AtributoTemplateEntity(
+                empresa_id = empresaId,
+                clave = clave.trim(),
+                etiqueta = etiqueta.trim(),
+                tipo = tipo.name,
+                obligatorio = obligatorio,
+                orden = orden
             )
+            atributoTemplateDao.insertar(entity)
+            syncDao.encolar(entity.toSyncInsert())
+            syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -53,17 +60,18 @@ class AtributoRepository @Inject constructor(
     }
 
     suspend fun eliminar(template: AtributoTemplate): Result<Unit> = try {
-        atributoTemplateDao.eliminar(
-            AtributoTemplateEntity(
-                id = template.id,
-                empresa_id = template.empresaId,
-                clave = template.clave,
-                etiqueta = template.etiqueta,
-                tipo = template.tipo.name,
-                obligatorio = template.obligatorio,
-                orden = template.orden
-            )
+        val entity = AtributoTemplateEntity(
+            id = template.id,
+            empresa_id = template.empresaId,
+            clave = template.clave,
+            etiqueta = template.etiqueta,
+            tipo = template.tipo.name,
+            obligatorio = template.obligatorio,
+            orden = template.orden
         )
+        atributoTemplateDao.eliminar(entity)
+        syncDao.encolar(entity.toSyncDelete())
+        syncTrigger.trigger()
         Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)

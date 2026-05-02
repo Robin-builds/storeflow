@@ -21,4 +21,7 @@ interface AtributoTemplateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(templates: List<AtributoTemplateEntity>)
+
+    @Query("UPDATE atributo_templates SET synced = 1, synced_at = :ahora WHERE id = :id")
+    suspend fun marcarSincronizado(id: String, ahora: Long)
 }
