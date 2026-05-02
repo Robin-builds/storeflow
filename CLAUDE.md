@@ -239,7 +239,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 ---
 
-### S4 — Pull para atributos ← PRÓXIMA
+### S4 — Pull para atributos ✅
 
 **Qué hace:** Extiende `PullWorker` con GET a `atributo_templates` y `producto_atributos`; `upsertAll` en sus DAOs.
 
@@ -269,6 +269,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 8 S5 Atributos infra. | Room v5→v6 ✅ inventario existente ✅ | ninguno |
 | 9 S1 Config. atributos | ADMIN ✅ OPERADOR ✅ crear/eliminar ✅ | ninguno |
 | 9 S2 Form. producto atributos | crear con atributos ✅ editar pre-llena ✅ obligatorio bloquea ✅ | ninguno |
+| 9 S3 Sync push atributos | template crea/elimina en Supabase ✅ valores producto sincronizan ✅ | ninguno |
 
 ---
 
