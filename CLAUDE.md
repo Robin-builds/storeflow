@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 9 S1 completa
+**Última actualización:** Mayo 2026 — Fase 9 completa (atributos personalizables con sync)
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                 # limpiar build
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–9 S1 completas. En curso: Fase 9 S2.
+**Estado:** Fases 0–9 completas. En curso: Fase 10 (Gestión de usuarios).
 
 ---
 
@@ -186,23 +186,28 @@ FASE 5A (Sync push):                  ✅ Completa — validada en dispositivo f
 FASE 5B (Sync pull):                  ✅ Completa — validada en dispositivo físico (2 cuentas)
 FASE 6 (Multi-bodega + Roles):        ✅ Completa — validada en dispositivo físico
 FASE 7 (Pulido UI):                   ☐ Pendiente
-FASE 8 S1-S5 (Dom. rico + Atributos): ✅ Completa — 45 unit tests verdes
+FASE 8 S1-S5 (Dom. rico + Atributos): ✅ Completa — 50 unit tests verdes
 FASE 9 S1 (Config. atributos UI):     ✅ Completa — validada en dispositivo físico
-FASE 9 S2 (Form. producto atributos): ✅ Completa — 4 unit tests verdes
+FASE 9 S2 (Form. producto atributos): ✅ Completa — 4 unit tests verdes — validada
+FASE 9 S3 (Sync push atributos):      ✅ Completa — validada en dispositivo físico
+FASE 9 S4 (Pull atributos):           ✅ Completa — validada en 2 dispositivos (sync demostrado)
+FASE 10 S1 (Reg. usuario en empresa): ☐ Próxima sesión
+FASE 10 S2 (UsuariosScreen ADMIN):    ☐ Pendiente
+FASE 7 (Pulido UI):                   ☐ Pendiente
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 ```
 
 **Tests unitarios acumulados:** 50/50 verdes
-→ Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Atributos form (4) + ExampleUnit (1)
+→ Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `dev-rich-domain`
-**Último commit:** test: Phase 9 S2 — ProductoAtributosFormTest (4 cases)
+**Último commit:** docs: update CLAUDE.md after Phase 9 S4 complete
 
 ---
 
-## 🗺️ ROADMAP — Fase 9 (en curso)
+## 🗺️ ROADMAP — Fase 9 ✅ Completa
 
-**Objetivo:** UI completa para atributos personalizables.
+**Objetivo:** UI completa para atributos personalizables — logrado.
 
 ---
 
@@ -245,6 +250,65 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 **Prerequisito:** S3 completo (tablas en Supabase con datos reales).
 **Commit:** `feat: Phase 9 S4 — pull worker extended for attribute tables`
+
+---
+
+## 🗺️ ROADMAP — Fase 10: Gestión de usuarios
+
+**Objetivo:** ADMIN puede registrar usuarios adicionales (OPERADOR) en su empresa sin depender de otra cuenta.
+
+**Restricción técnica:** Supabase Admin API no está disponible en el cliente mobile → se usa RPC SECURITY DEFINER que crea el auth user + fila en `usuarios`.
+
+---
+
+### S1 — RPC `registrar_usuario_empresa` + flujo "Unirme a empresa" ← PRÓXIMA
+
+**Supabase (SQL):**
+```sql
+CREATE OR REPLACE FUNCTION registrar_usuario_empresa(
+  p_email TEXT, p_password TEXT, p_nombre TEXT, p_empresa_id UUID
+) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_user_id UUID;
+BEGIN
+  v_user_id := (SELECT id FROM auth.users WHERE email = p_email);
+  IF v_user_id IS NULL THEN
+    v_user_id := extensions.uuid_generate_v4();
+    INSERT INTO auth.users (id, email, encrypted_password, ...)
+    -- usar supabase_auth_admin o extensions según versión
+  END IF;
+  INSERT INTO public.usuarios (id, empresa_id, nombre, email, rol)
+  VALUES (v_user_id, p_empresa_id, p_nombre, p_email, 'OPERADOR')
+  ON CONFLICT (id) DO NOTHING;
+  RETURN v_user_id;
+END; $$;
+```
+> Nota: la creación de usuarios via RPC depende de permisos del proyecto Supabase. Evaluar si es viable o si se requiere Edge Function.
+
+**Android:**
+- `RegistroScreen`: agrega toggle "Nueva empresa" / "Unirme a empresa existente"
+- Flujo "Unirme": email + password + nombre + **código de empresa** (= `empresa_id`)
+- `AuthRepository.registrarEnEmpresa(email, password, nombre, empresaId)` → llama RPC → hace login
+- El rol queda como `OPERADOR`; ADMIN asigna roles desde `UsuariosScreen` (S2)
+
+**DoD:** OPERADOR puede registrarse con el código de empresa del ADMIN → login → ve inventario de esa empresa.
+**Commit:** `feat: Phase 10 S1 — join-company registration flow`
+
+---
+
+### S2 — UsuariosScreen (ADMIN)
+
+**Qué hace:** ADMIN ve la lista de usuarios de su empresa y puede cambiarles el rol o eliminarlos.
+
+**Archivos a crear:**
+- `ui/usuarios/UsuariosScreen.kt` + `UsuariosViewModel.kt`
+- `data/repository/UsuarioRepository.kt` — agregar `observarUsuarios(): Flow<List<Usuario>>` y `eliminar(usuario)` y `cambiarRol(usuario, nuevoRol)`
+
+**Archivos a modificar:**
+- `DashboardScreen.kt` — botón "Gestionar usuarios" visible solo para ADMIN
+- `MainActivity.kt` — ruta `usuarios`
+
+**DoD:** ADMIN ve todos los usuarios de su empresa, puede cambiar rol ADMIN↔OPERADOR y eliminar usuarios.
+**Commit:** `feat: Phase 10 S2 — UsuariosScreen for ADMIN user management`
 
 ---
 
