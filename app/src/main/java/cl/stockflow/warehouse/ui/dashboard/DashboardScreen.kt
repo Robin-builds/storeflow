@@ -22,6 +22,7 @@ fun DashboardScreen(
     onIrAProductos: () -> Unit,
     onIrAAlerta: () -> Unit,
     onIrABodegas: () -> Unit,
+    onIrAAtributos: () -> Unit,
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     bodegaViewModel: BodegaViewModel = hiltViewModel()
 ) {
@@ -29,6 +30,7 @@ fun DashboardScreen(
     val bodegasState by bodegaViewModel.uiState.collectAsState()
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
+    val esAdmin = (bodegasState as? BodegasUiState.Listo)?.esAdmin ?: false
 
     Column(
         modifier = Modifier
@@ -96,6 +98,15 @@ fun DashboardScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Gestionar bodegas")
+        }
+        if (esAdmin) {
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onIrAAtributos,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Configurar atributos")
+            }
         }
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {

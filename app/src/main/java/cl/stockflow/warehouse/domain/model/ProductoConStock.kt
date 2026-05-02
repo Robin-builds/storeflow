@@ -17,7 +17,7 @@ data class ProductoConStock(
     val created_at: Date,
     val updated_at: Date
 ) {
-    fun toDomain(): Producto = Producto(
+    fun toDomain(atributos: Map<String, String> = emptyMap()): Producto = Producto(
         id = id,
         nombre = nombre,
         descripcion = descripcion,
@@ -26,6 +26,7 @@ data class ProductoConStock(
         stockMinimo = stock_minimo,
         stockActual = stock_actual,
         bodegaId = bodega_id,
-        empresaId = empresa_id
+        empresaId = empresa_id,
+        atributos = atributos
     )
 }

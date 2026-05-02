@@ -4,7 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -18,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import cl.stockflow.warehouse.domain.model.AtributoTemplate
 import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.launch
 
@@ -32,17 +35,18 @@ fun ProductosListScreen(
     val formState by viewModel.formState.collectAsState()
     val busqueda by viewModel.busqueda.collectAsState()
     val productosFiltrados by viewModel.productosFiltrados.collectAsState()
+    val templates by viewModel.templates.collectAsState()
+    val productoEditando by viewModel.productoEditando.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var mostrarFormCrear by remember { mutableStateOf(false) }
-    var productoAEditar by remember { mutableStateOf<Producto?>(null) }
 
     LaunchedEffect(formState) {
         if (formState is FormUiState.Guardado) {
             val mensaje = (formState as FormUiState.Guardado).mensaje
             mostrarFormCrear = false
-            productoAEditar = null
+            viewModel.limpiarEdicion()
             viewModel.limpiarFormState()
             scope.launch { snackbarHostState.showSnackbar(mensaje) }
         }
@@ -106,7 +110,7 @@ fun ProductosListScreen(
                             items(productosFiltrados, key = { it.id }) { producto ->
                                 ProductoItem(
                                     producto = producto,
-                                    onClick = { productoAEditar = producto },
+                                    onClick = { viewModel.seleccionarParaEditar(producto.id) },
                                     onVerMovimientos = { onVerMovimientos(producto.id) }
                                 )
                             }
@@ -121,9 +125,10 @@ fun ProductosListScreen(
         ProductoFormDialog(
             titulo = "Nuevo producto",
             productoInicial = null,
+            templates = templates,
             formState = formState,
-            onGuardar = { nombre, desc, sku, precio, stockMin, stockInicial ->
-                viewModel.crear(nombre, desc, sku, precio, stockMin, stockInicial)
+            onGuardar = { nombre, desc, sku, precio, stockMin, stockInicial, atributos ->
+                viewModel.crear(nombre, desc, sku, precio, stockMin, stockInicial, atributos)
             },
             onEliminar = null,
             onDismiss = {
@@ -133,17 +138,18 @@ fun ProductosListScreen(
         )
     }
 
-    productoAEditar?.let { producto ->
+    productoEditando?.let { producto ->
         ProductoFormDialog(
             titulo = "Editar producto",
             productoInicial = producto,
+            templates = templates,
             formState = formState,
-            onGuardar = { nombre, desc, sku, precio, stockMin, _ ->
-                viewModel.actualizar(producto, nombre, desc, sku, precio, stockMin)
+            onGuardar = { nombre, desc, sku, precio, stockMin, _, atributos ->
+                viewModel.actualizar(producto, nombre, desc, sku, precio, stockMin, atributos)
             },
             onEliminar = { viewModel.eliminar(producto.id) },
             onDismiss = {
-                productoAEditar = null
+                viewModel.limpiarEdicion()
                 viewModel.limpiarFormState()
             }
         )
@@ -194,8 +200,9 @@ private fun ProductoItem(
 private fun ProductoFormDialog(
     titulo: String,
     productoInicial: Producto?,
+    templates: List<AtributoTemplate>,
     formState: FormUiState,
-    onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Int, stockMin: Int, stockInicial: Int) -> Unit,
+    onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Int, stockMin: Int, stockInicial: Int, atributos: Map<String, String>) -> Unit,
     onEliminar: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
@@ -208,6 +215,15 @@ private fun ProductoFormDialog(
     var stock_inicial by remember { mutableStateOf("0") }
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
 
+    // Map templateId → valor; pre-rellena desde producto.atributos (clave→valor) usando los templates
+    val atributosState = remember(templates, productoInicial) {
+        mutableStateMapOf<String, String>().also { map ->
+            templates.forEach { t ->
+                map[t.id] = productoInicial?.atributos?.get(t.clave) ?: ""
+            }
+        }
+    }
+
     val cargando = formState is FormUiState.Cargando
     val errorMensaje = (formState as? FormUiState.Error)?.mensaje
 
@@ -217,8 +233,11 @@ private fun ProductoFormDialog(
     val stockInicialInt = stock_inicial.toIntOrNull() ?: 0
     val stockMinimoInt = stock_minimo.toIntOrNull() ?: 0
     val stockInicialMenorQueMinimo = modoCrear && stockInicialInt > 0 && stockInicialInt < stockMinimoInt
+    val atributosObligatoriosCubiertos = templates
+        .filter { it.obligatorio }
+        .all { t -> (atributosState[t.id] ?: "").isNotBlank() }
     val formularioValido = nombre.isNotBlank() && precioValido && stockMinimoValido &&
-            stockInicialValido && !stockInicialMenorQueMinimo
+            stockInicialValido && !stockInicialMenorQueMinimo && atributosObligatoriosCubiertos
 
     if (mostrarConfirmarEliminar) {
         AlertDialog(
@@ -242,7 +261,10 @@ private fun ProductoFormDialog(
         onDismissRequest = { if (!cargando) onDismiss() },
         title = { Text(titulo) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it },
@@ -306,6 +328,22 @@ private fun ProductoFormDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+                if (templates.isNotEmpty()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    templates.forEach { template ->
+                        OutlinedTextField(
+                            value = atributosState[template.id] ?: "",
+                            onValueChange = { atributosState[template.id] = it },
+                            label = {
+                                Text(if (template.obligatorio) "${template.etiqueta} *" else template.etiqueta)
+                            },
+                            singleLine = true,
+                            enabled = !cargando,
+                            isError = template.obligatorio && (atributosState[template.id] ?: "").isBlank(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
                 if (errorMensaje != null) {
                     Text(
                         text = errorMensaje,
@@ -337,7 +375,8 @@ private fun ProductoFormDialog(
                             sku.trim().ifBlank { null },
                             precio.toIntOrNull() ?: 0,
                             stock_minimo.toIntOrNull() ?: 0,
-                            if (modoCrear) stock_inicial.toIntOrNull() ?: 0 else 0
+                            if (modoCrear) stock_inicial.toIntOrNull() ?: 0 else 0,
+                            atributosState.filter { (_, v) -> v.isNotBlank() }
                         )
                     },
                     enabled = formularioValido
