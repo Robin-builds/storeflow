@@ -187,15 +187,15 @@ FASE 6 (Multi-bodega + Roles):        ✅ Completa — validada en dispositivo f
 FASE 7 (Pulido UI):                   ☐ Pendiente
 FASE 8 S1-S5 (Dom. rico + Atributos): ✅ Completa — 45 unit tests verdes
 FASE 9 S1 (Config. atributos UI):     ✅ Completa — validada en dispositivo físico
-FASE 9 S2 (Form. producto atributos): ☐ Próxima sesión
+FASE 9 S2 (Form. producto atributos): ✅ Completa — 4 unit tests verdes
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 ```
 
-**Tests unitarios acumulados:** 45/45 verdes
-→ Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10)
+**Tests unitarios acumulados:** 50/50 verdes
+→ Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Atributos form (4) + ExampleUnit (1)
 
 **Rama activa:** `dev-rich-domain`
-**Último commit:** feat: Phase 9 S1 — AtributoRepository, AtributoViewModel, AtributosScreen, Dashboard ADMIN button
+**Último commit:** test: Phase 9 S2 — ProductoAtributosFormTest (4 cases)
 
 ---
 
@@ -205,7 +205,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 ---
 
-### S2 — Formulario de producto con atributos dinámicos ← PRÓXIMA
+### S2 — Formulario de producto con atributos dinámicos ✅
 
 **Qué hace:** Al crear/editar un producto, mostrar un campo por cada `AtributoTemplate` de la empresa. Al guardar, persistir valores en `ProductoAtributoEntity`.
 
@@ -229,7 +229,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 ---
 
-### S3 — Sync push para atributos
+### S3 — Sync push para atributos ← PRÓXIMA
 
 **Qué hace:** `AtributoRepository.crear/eliminar` encola en `SyncEntity`. `SyncWorker` procesa contra tablas `atributo_templates` y `producto_atributos` en Supabase.
 
