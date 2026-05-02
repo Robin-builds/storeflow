@@ -23,6 +23,7 @@ fun DashboardScreen(
     onIrAAlerta: () -> Unit,
     onIrABodegas: () -> Unit,
     onIrAAtributos: () -> Unit,
+    onIrAUsuarios: () -> Unit,
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     bodegaViewModel: BodegaViewModel = hiltViewModel()
 ) {
@@ -106,6 +107,13 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Configurar atributos")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onIrAUsuarios,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Gestionar usuarios")
             }
         }
         Spacer(modifier = Modifier.height(12.dp))

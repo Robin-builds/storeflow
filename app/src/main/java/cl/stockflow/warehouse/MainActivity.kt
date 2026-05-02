@@ -21,6 +21,7 @@ import cl.stockflow.warehouse.ui.alertas.AlertasScreen
 import cl.stockflow.warehouse.ui.atributos.AtributosScreen
 import cl.stockflow.warehouse.ui.bodegas.BodegasScreen
 import cl.stockflow.warehouse.ui.dashboard.DashboardScreen
+import cl.stockflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.stockflow.warehouse.ui.movimientos.MovimientosScreen
 import cl.stockflow.warehouse.ui.productos.ProductosListScreen
 import cl.stockflow.warehouse.ui.theme.StockFlowTheme
@@ -34,6 +35,7 @@ private object Rutas {
     const val ALERTAS = "alertas"
     const val BODEGAS = "bodegas"
     const val ATRIBUTOS = "atributos"
+    const val USUARIOS = "usuarios"
     const val MOVIMIENTOS = "movimientos/{productoId}"
     fun movimientos(productoId: String) = "movimientos/$productoId"
 }
@@ -95,7 +97,8 @@ class MainActivity : ComponentActivity() {
                                 onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) },
                                 onIrAAlerta = { navController.navigate(Rutas.ALERTAS) },
                                 onIrABodegas = { navController.navigate(Rutas.BODEGAS) },
-                                onIrAAtributos = { navController.navigate(Rutas.ATRIBUTOS) }
+                                onIrAAtributos = { navController.navigate(Rutas.ATRIBUTOS) },
+                                onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) }
                             )
                         }
                         composable(Rutas.ALERTAS) {
@@ -126,6 +129,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Rutas.ATRIBUTOS) {
                             AtributosScreen(onVolver = { navController.popBackStack() })
+                        }
+                        composable(Rutas.USUARIOS) {
+                            UsuariosScreen(onVolver = { navController.popBackStack() })
                         }
                         composable(Rutas.MOVIMIENTOS) {
                             MovimientosScreen(onVolver = { navController.popBackStack() })

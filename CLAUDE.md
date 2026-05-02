@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 9 completa (atributos personalizables con sync)
+**Última actualización:** Mayo 2026 — Fase 10 completa (gestión de usuarios)
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                 # limpiar build
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–9 completas. En curso: Fase 10 (Gestión de usuarios).
+**Estado:** Fases 0–10 completas. Siguiente: Fase 7 (Pulido UI).
 
 ---
 
@@ -66,6 +66,7 @@ ui/
   alertas/      → AlertasScreen, AlertasViewModel
   bodegas/      → BodegasScreen, BodegaViewModel
   atributos/    → AtributosScreen, AtributoViewModel
+  usuarios/     → UsuariosScreen, UsuariosViewModel
 domain/
   model/        → SesionUsuario, Usuario, Bodega, Producto, AtributoTemplate, Rol, TipoAtributo
 data/
@@ -104,6 +105,7 @@ di/             → DatabaseModule
 - `Bodega.esActiva` lo setea `BodegaRepository` — nunca la UI ni el ViewModel
 - `Usuario.rol` se lee de `AuthSessionEntity` (login value) — no de `UsuarioEntity` (pull value, puede divergir)
 - MVP de atributos: solo tipo `TEXT` — `NUMBER` y `DATE` existen en enum pero no en UI
+- `UsuarioRepository.eliminar/cambiarRol` usan REST directo (Ktor PATCH/DELETE) sin pasar por SyncWorker — operaciones síncronas críticas que no admiten cola offline
 
 ---
 
@@ -191,8 +193,8 @@ FASE 9 S1 (Config. atributos UI):     ✅ Completa — validada en dispositivo f
 FASE 9 S2 (Form. producto atributos): ✅ Completa — 4 unit tests verdes — validada
 FASE 9 S3 (Sync push atributos):      ✅ Completa — validada en dispositivo físico
 FASE 9 S4 (Pull atributos):           ✅ Completa — validada en 2 dispositivos (sync demostrado)
-FASE 10 S1 (Reg. usuario en empresa): 🔄 En curso — Edge Function deployada, pendiente UI (S2)
-FASE 10 S2 (UsuariosScreen ADMIN):    ☐ Pendiente
+FASE 10 S1 (Reg. usuario en empresa): ✅ Completa — Edge Function deployada + AuthRepository
+FASE 10 S2 (UsuariosScreen ADMIN):    ✅ Completa — validada en 2 dispositivos físicos
 FASE 7 (Pulido UI):                   ☐ Pendiente
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 ```
@@ -201,7 +203,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `dev-rich-domain`
-**Último commit:** feat: Phase 10 S1 — register-user Edge Function + AuthRepository
+**Último commit:** feat: Phase 10 S2 — UsuariosScreen for ADMIN user management
 
 ---
 
@@ -262,7 +264,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 ---
 
-### S1 — Edge Function `registrar-usuario-empresa` ← PRÓXIMA
+### S1 — Edge Function `registrar-usuario-empresa` ✅
 
 **Edge Function desplegada:** `supabase/functions/registrar-usuario-empresa/index.ts`
 
@@ -278,31 +280,31 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 **DoD:**
 ```
-☐ ADMIN puede registrar un OPERADOR desde UsuariosScreen (S2)
-☐ El OPERADOR registrado puede hacer login inmediatamente
-☐ El OPERADOR ve el inventario de la empresa del ADMIN (RLS correcto via app_metadata)
-☐ El OPERADOR NO puede crear/eliminar bodegas ni atributos (control de rol en UI)
-☐ Si email ya existe → error claro "Email ya registrado en el sistema"
-☐ Si INSERT falla → rollback automático (no quedan usuarios huérfanos)
-☐ Validación física: ADMIN registra OPERADOR, OPERADOR hace login en segundo dispositivo
+✅ ADMIN puede registrar un OPERADOR desde UsuariosScreen
+✅ El OPERADOR registrado puede hacer login inmediatamente
+✅ El OPERADOR ve el inventario de la empresa del ADMIN (RLS correcto via app_metadata)
+✅ El OPERADOR NO puede crear/eliminar bodegas ni atributos (control de rol en UI)
+✅ Si email ya existe → error claro desde Edge Function
+✅ Si INSERT falla → rollback automático (no quedan usuarios huérfanos)
+✅ Validación física: ADMIN registra OPERADOR, OPERADOR hace login en segundo dispositivo
 ```
 **Commit:** `feat: Phase 10 S1 — register-user Edge Function + AuthRepository`
 
 ---
 
-### S2 — UsuariosScreen (ADMIN)
+### S2 — UsuariosScreen (ADMIN) ✅
 
-**Qué hace:** ADMIN ve la lista de usuarios de su empresa y puede cambiarles el rol o eliminarlos.
+**Qué hace:** ADMIN ve la lista de usuarios de su empresa y puede registrar nuevos, cambiarles el rol o eliminarlos.
 
-**Archivos a crear:**
+**Archivos creados:**
 - `ui/usuarios/UsuariosScreen.kt` + `UsuariosViewModel.kt`
-- `data/repository/UsuarioRepository.kt` — agregar `observarUsuarios(): Flow<List<Usuario>>` y `eliminar(usuario)` y `cambiarRol(usuario, nuevoRol)`
 
-**Archivos a modificar:**
+**Archivos modificados:**
+- `data/repository/UsuarioRepository.kt` — `observarUsuariosDeEmpresa()`, `eliminar()`, `cambiarRol()`, `insertarLocal()`
 - `DashboardScreen.kt` — botón "Gestionar usuarios" visible solo para ADMIN
 - `MainActivity.kt` — ruta `usuarios`
 
-**DoD:** ADMIN ve todos los usuarios de su empresa, puede cambiar rol ADMIN↔OPERADOR y eliminar usuarios.
+**DoD:** ✅ validado en 2 dispositivos físicos
 **Commit:** `feat: Phase 10 S2 — UsuariosScreen for ADMIN user management`
 
 ---
@@ -329,6 +331,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 9 S1 Config. atributos | ADMIN ✅ OPERADOR ✅ crear/eliminar ✅ | ninguno |
 | 9 S2 Form. producto atributos | crear con atributos ✅ editar pre-llena ✅ obligatorio bloquea ✅ | ninguno |
 | 9 S3 Sync push atributos | template crea/elimina en Supabase ✅ valores producto sincronizan ✅ | ninguno |
+| 10 S2 UsuariosScreen | ADMIN registra OPERADOR ✅ OPERADOR login ✅ rol UI correcto ✅ cambiar rol ✅ eliminar ✅ | ninguno |
 
 ---
 
