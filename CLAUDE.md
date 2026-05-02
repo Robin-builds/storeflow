@@ -230,7 +230,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 ---
 
-### S3 — Sync push para atributos ← PRÓXIMA
+### S3 — Sync push para atributos ✅
 
 **Qué hace:** `AtributoRepository.crear/eliminar` encola en `SyncEntity`. `SyncWorker` procesa contra tablas `atributo_templates` y `producto_atributos` en Supabase.
 
@@ -239,7 +239,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 ---
 
-### S4 — Pull para atributos
+### S4 — Pull para atributos ← PRÓXIMA
 
 **Qué hace:** Extiende `PullWorker` con GET a `atributo_templates` y `producto_atributos`; `upsertAll` en sus DAOs.
 
