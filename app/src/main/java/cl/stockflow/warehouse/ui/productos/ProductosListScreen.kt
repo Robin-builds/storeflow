@@ -1,7 +1,9 @@
 package cl.stockflow.warehouse.ui.productos
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -122,8 +124,7 @@ fun ProductosListScreen(
                             items(productosFiltrados, key = { it.id }) { producto ->
                                 ProductoItem(
                                     producto = producto,
-                                    onClick = { viewModel.seleccionarParaEditar(producto.id) },
-                                    onVerMovimientos = { onVerMovimientos(producto.id) }
+                                    onClick = { onVerMovimientos(producto.id) }
                                 )
                             }
                         }
@@ -171,8 +172,7 @@ fun ProductosListScreen(
 @Composable
 private fun ProductoItem(
     producto: Producto,
-    onClick: () -> Unit,
-    onVerMovimientos: () -> Unit
+    onClick: () -> Unit
 ) {
     val borderColor = when {
         producto.stockActual == 0 -> Rojo600
@@ -180,7 +180,6 @@ private fun ProductoItem(
         else -> Verde400
     }
     Card(
-        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -200,6 +199,7 @@ private fun ProductoItem(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .clickable(onClick = onClick)
                     .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
                 Text(
@@ -216,12 +216,23 @@ private fun ProductoItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = onVerMovimientos) {
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Ver movimientos",
-                    tint = Verde700
-                )
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier.padding(end = 12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(color = Verde700, shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Ver movimientos",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }
