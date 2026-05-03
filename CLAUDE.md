@@ -23,7 +23,7 @@ gradlew.bat clean                 # limpiar build
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–10 + Fase 7 completas. Próximo: QR/barcode, JWT refresh, o selección masiva.
+**Estado:** Fases 0–10 + Fase 7 completas. JWT refresh implementado. Próximo: QR/barcode o selección masiva.
 
 ---
 
@@ -203,7 +203,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `develop`
-**Último commit:** merge: Phase 7 UI polish into develop
+**Último commit:** merge: JWT silent refresh into develop
 
 ---
 
@@ -317,7 +317,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 💬 WhatsApp notif. | Sync + aprobación Meta | Edge Function en Supabase; cero impacto código Android |
 | 🗂️ Selección masiva | ninguno | Multi-select en `ProductosListScreen`; útil para transferencias entre bodegas |
 | 🌐 Dashboard web | Sync completo | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional |
-| 🔄 JWT refresh | deuda técnica | Refresh token con cliente Supabase; actualmente logout forzado al expirar |
+| 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
 
 ---
 
