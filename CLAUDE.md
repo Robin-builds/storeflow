@@ -196,14 +196,17 @@ FASE 9 S4 (Pull atributos):           ✅ Completa — validada en 2 dispositivo
 FASE 10 S1 (Reg. usuario en empresa): ✅ Completa — Edge Function deployada + AuthRepository
 FASE 10 S2 (UsuariosScreen ADMIN):    ✅ Completa — validada en 2 dispositivos físicos
 FASE 7 (Pulido UI):                   ✅ Completa — validada en dispositivo físico
+ESCANEO QR/Barcode (SKU):             ✅ Completa — validada en dispositivo físico
+SELECCIÓN MASIVA:                     ✅ Completa — validada en dispositivo físico
+COMPARTIR STOCK (WhatsApp/share):     ✅ Completa — validada en dispositivo físico
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 ```
 
 **Tests unitarios acumulados:** 50/50 verdes
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
-**Rama activa:** `develop`
-**Último commit:** merge: JWT silent refresh into develop
+**Rama activa:** `main`
+**Último commit:** merge: feat/share-stock → main — share inventory and low-stock alerts via system share
 
 ---
 
@@ -313,9 +316,10 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 | Feature | Prerequisito | Notas clave |
 |---|---|---|
-| 📷 Escaneo QR/barcode | ninguno | ML Kit Barcode; integra en campo SKU del form de producto |
-| 💬 WhatsApp notif. | Sync + aprobación Meta | Edge Function en Supabase; cero impacto código Android |
-| 🗂️ Selección masiva | ninguno | Multi-select en `ProductosListScreen`; útil para transferencias entre bodegas |
+| 📷 Escaneo QR/barcode | ✅ implementado | ML Kit Barcode + CameraX; botón "Escanear" en campo SKU del form de producto |
+| 💬 Compartir stock | ✅ implementado | Intent ACTION_SEND desde AlertasScreen e inventario completo; sin API Meta |
+| 💬 WhatsApp notif. push | requiere aprobación Meta | Edge Function en Supabase; cero impacto código Android |
+| 🗂️ Selección masiva | ✅ implementado | Long-press → modo selección; eliminar masivo + transferir entre bodegas |
 | 🌐 Dashboard web | Sync completo | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional |
 | 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
 
@@ -333,6 +337,9 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 9 S3 Sync push atributos | template crea/elimina en Supabase ✅ valores producto sincronizan ✅ | ninguno |
 | 10 S2 UsuariosScreen | ADMIN registra OPERADOR ✅ OPERADOR login ✅ rol UI correcto ✅ cambiar rol ✅ eliminar ✅ | ninguno |
 | 7 Pulido UI | FABs ✅ cards productos ✅ botón circular chevron ✅ BackButton ✅ Dashboard ElevatedButton ✅ SegmentedButtonRow ✅ | ChevronRight no en core icons → reemplazado por KeyboardArrowRight |
+| Escaneo QR/Barcode | escaneo QR ✅ código barras ✅ campo SKU se llena automático ✅ | ninguno |
+| Selección masiva | long-press ✅ eliminar masivo ✅ transferir entre bodegas ✅ | ninguno |
+| Compartir stock | inventario completo ✅ alertas bajo stock ✅ WhatsApp nativo ✅ | ninguno |
 
 ---
 
