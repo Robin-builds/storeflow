@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import cl.stockflow.warehouse.ui.components.BackButton
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,11 +31,7 @@ fun AlertasScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Alertas de stock") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         }
     ) { padding ->
@@ -83,7 +79,7 @@ fun AlertasScreen(
 
 @Composable
 private fun AlertaItem(
-    producto: ProductoConStock,
+    producto: Producto,
     onVerMovimientos: () -> Unit
 ) {
     ListItem(
@@ -92,7 +88,7 @@ private fun AlertaItem(
         },
         supportingContent = {
             Text(
-                text = "Stock: ${producto.stock_actual}  ·  Mínimo: ${producto.stock_minimo}",
+                text = "Stock: ${producto.stockActual}  ·  Mínimo: ${producto.stockMinimo}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )

@@ -17,9 +17,11 @@ import cl.stockflow.warehouse.data.local.entity.*
         ProductoEntity::class,
         MovimientoEntity::class,
         SyncEntity::class,
-        AuthSessionEntity::class
+        AuthSessionEntity::class,
+        AtributoTemplateEntity::class,
+        ProductoAtributoEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -32,6 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun movimientoDao(): MovimientoDao
     abstract fun syncDao(): SyncDao
     abstract fun authSessionDao(): AuthSessionDao
+    abstract fun atributoTemplateDao(): AtributoTemplateDao
+    abstract fun productoAtributoDao(): ProductoAtributoDao
 
     companion object {
         const val NOMBRE_DB = "stockflow.db"
@@ -56,6 +60,46 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE auth_sessions ADD COLUMN bodega_id TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE auth_sessions ADD COLUMN rol TEXT NOT NULL DEFAULT 'ADMIN'")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS atributo_templates (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        empresa_id TEXT NOT NULL,
+                        clave TEXT NOT NULL,
+                        etiqueta TEXT NOT NULL,
+                        tipo TEXT NOT NULL,
+                        obligatorio INTEGER NOT NULL,
+                        orden INTEGER NOT NULL,
+                        synced INTEGER NOT NULL,
+                        synced_at INTEGER,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL,
+                        FOREIGN KEY(empresa_id) REFERENCES empresas(id) ON DELETE CASCADE ON UPDATE NO ACTION
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_atributo_templates_empresa_id ON atributo_templates (empresa_id)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS producto_atributos (
+                        producto_id TEXT NOT NULL,
+                        template_id TEXT NOT NULL,
+                        valor TEXT NOT NULL,
+                        PRIMARY KEY(producto_id, template_id),
+                        FOREIGN KEY(producto_id) REFERENCES productos(id) ON DELETE CASCADE ON UPDATE NO ACTION,
+                        FOREIGN KEY(template_id) REFERENCES atributo_templates(id) ON DELETE CASCADE ON UPDATE NO ACTION
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_producto_atributos_producto_id ON producto_atributos (producto_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_producto_atributos_template_id ON producto_atributos (template_id)")
             }
         }
 

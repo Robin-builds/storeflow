@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.repository.MovimientoRepository
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 sealed class MovimientosUiState {
     object Cargando : MovimientosUiState()
-    data class Listo(val producto: ProductoConStock, val movimientos: List<MovimientoEntity>) : MovimientosUiState()
+    data class Listo(val producto: Producto, val movimientos: List<MovimientoEntity>) : MovimientosUiState()
     data class Error(val mensaje: String) : MovimientosUiState()
 }
 
@@ -44,7 +44,7 @@ class MovimientoViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                repository.observarProductoConStock(productoId),
+                repository.observarProducto(productoId),
                 repository.observarMovimientos(productoId)
             ) { producto, movimientos ->
                 if (producto == null) MovimientosUiState.Error("Producto no encontrado")

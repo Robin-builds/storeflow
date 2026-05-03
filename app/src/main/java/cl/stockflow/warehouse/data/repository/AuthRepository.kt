@@ -3,18 +3,28 @@ package cl.stockflow.warehouse.data.repository
 import cl.stockflow.warehouse.data.local.AppDatabase
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.entity.AuthSessionEntity
+import cl.stockflow.warehouse.data.remote.SUPABASE_ANON_KEY
+import cl.stockflow.warehouse.data.remote.SUPABASE_URL
 import cl.stockflow.warehouse.data.remote.supabaseClient
 import cl.stockflow.warehouse.data.sync.PullTrigger
+import cl.stockflow.warehouse.domain.model.Rol
 import cl.stockflow.warehouse.domain.model.SesionUsuario
 import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import io.ktor.client.*
+import io.ktor.client.engine.android.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import timber.log.Timber
@@ -57,7 +67,8 @@ class AuthRepository @Inject constructor(
 
             val empresa_id = fila["empresa_id"]?.jsonPrimitive?.content
                 ?: return Result.failure(Exception("Usuario sin empresa asignada"))
-            Timber.d("AUTH: empresa_id=$empresa_id")
+            val rol = fila["rol"]?.jsonPrimitive?.content ?: "OPERADOR"
+            Timber.d("AUTH: empresa_id=$empresa_id, rol=$rol")
 
             Timber.d("AUTH: consultando bodegas...")
             val bodegaFila = supabaseClient.postgrest["bodegas"]
@@ -77,6 +88,7 @@ class AuthRepository @Inject constructor(
                     user_id = user.id,
                     empresa_id = empresa_id,
                     bodega_id = bodega_id,
+                    rol = rol,
                     expires_at = Date(expires_ms)
                 )
             )
@@ -89,7 +101,8 @@ class AuthRepository @Inject constructor(
                     empresa_id = empresa_id,
                     access_token = session.accessToken,
                     refresh_token = session.refreshToken,
-                    expires_at = expires_ms
+                    expires_at = expires_ms,
+                    rol = Rol.fromString(rol)
                 )
             )
         } catch (e: Exception) {
@@ -180,6 +193,7 @@ class AuthRepository @Inject constructor(
                     user_id = user.id,
                     empresa_id = empresa_id,
                     bodega_id = bodega_id,
+                    rol = Rol.ADMIN.name,   // registrar_empresa siempre crea ADMIN
                     expires_at = Date(expires_ms)
                 )
             )
@@ -191,7 +205,8 @@ class AuthRepository @Inject constructor(
                     empresa_id = empresa_id,
                     access_token = session.accessToken,
                     refresh_token = session.refreshToken,
-                    expires_at = expires_ms
+                    expires_at = expires_ms,
+                    rol = Rol.ADMIN
                 )
             )
         } catch (e: Exception) {
@@ -205,6 +220,50 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun registrarUsuarioEnEmpresa(
+        email: String,
+        password: String,
+        nombre: String
+    ): Result<String> {
+        val sesion = authSessionDao.obtenerSesion()
+            ?: return Result.failure(Exception("Sin sesión activa"))
+        val httpClient = HttpClient(Android) { expectSuccess = false }
+        return try {
+            Timber.d("AUTH: registrarUsuarioEnEmpresa email=$email")
+            val body = buildJsonObject {
+                put("email", email.trim())
+                put("password", password)
+                put("nombre", nombre.trim())
+            }.toString()
+            val response = httpClient.post("$SUPABASE_URL/functions/v1/registrar-usuario-empresa") {
+                headers {
+                    append("apikey", SUPABASE_ANON_KEY)
+                    append("Authorization", "Bearer ${sesion.access_token}")
+                    append("Content-Type", "application/json")
+                }
+                setBody(body)
+            }
+            val responseBody = response.bodyAsText()
+            Timber.d("AUTH: registrarUsuarioEnEmpresa HTTP ${response.status.value} — $responseBody")
+            if (!response.status.isSuccess()) {
+                val msg = try {
+                    Json.parseToJsonElement(responseBody).jsonObject["error"]?.jsonPrimitive?.content
+                        ?: responseBody
+                } catch (e: Exception) { responseBody }
+                Result.failure(Exception(msg))
+            } else {
+                val userId = Json.parseToJsonElement(responseBody).jsonObject["user_id"]?.jsonPrimitive?.content
+                    ?: return Result.failure(Exception("Respuesta inesperada del servidor"))
+                Result.success(userId)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "AUTH: error en registrarUsuarioEnEmpresa")
+            Result.failure(Exception("Error de conexión: ${e.message}"))
+        } finally {
+            httpClient.close()
+        }
+    }
+
     suspend fun logout() {
         try {
             supabaseClient.gotrue.logout()
@@ -215,11 +274,31 @@ class AuthRepository @Inject constructor(
 
     suspend fun checkSession(): AuthSessionEntity? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
-        if (sesion.expires_at.before(Date())) {
-            Timber.d("AUTH: token expirado, limpiando sesión")
+        if (sesion.expires_at.after(Date())) return sesion
+
+        Timber.d("AUTH: token expirado, intentando refresh silencioso")
+        return try {
+            supabaseClient.gotrue.refreshCurrentSession()
+            val nueva = supabaseClient.gotrue.currentSessionOrNull()
+                ?: throw Exception("sesión nula tras refresh")
+            val actualizada = sesion.copy(
+                access_token = nueva.accessToken,
+                refresh_token = nueva.refreshToken,
+                expires_at = Date(nueva.expiresAt.toEpochMilliseconds()),
+                updated_at = Date()
+            )
+            withContext(Dispatchers.IO) { authSessionDao.guardarSesion(actualizada) }
+            Timber.d("AUTH: refresh OK — nueva expiración: ${actualizada.expires_at}")
+            actualizada
+        } catch (e: Exception) {
+            Timber.e(e, "AUTH: refresh fallido, forzando re-login")
             withContext(Dispatchers.IO) { db.clearAllTables() }
-            return null
+            null
         }
-        return sesion
+    }
+
+    suspend fun obtenerRolActual(): Rol? {
+        val sesion = authSessionDao.obtenerSesion() ?: return null
+        return Rol.fromString(sesion.rol)
     }
 }

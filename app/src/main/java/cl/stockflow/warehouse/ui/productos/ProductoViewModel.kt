@@ -3,10 +3,12 @@ package cl.stockflow.warehouse.ui.productos
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
+import cl.stockflow.warehouse.data.repository.AtributoRepository
 import cl.stockflow.warehouse.data.repository.ProductoRepository
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.AtributoTemplate
+import cl.stockflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
-import timber.log.Timber
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +16,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 sealed class ProductosUiState {
     object Cargando : ProductosUiState()
-    data class Listo(val productos: List<ProductoConStock>) : ProductosUiState()
+    data class Listo(val productos: List<Producto>) : ProductosUiState()
     data class Error(val mensaje: String) : ProductosUiState()
 }
 
@@ -31,7 +34,8 @@ sealed class FormUiState {
 
 @HiltViewModel
 class ProductoViewModel @Inject constructor(
-    private val repository: ProductoRepository
+    private val repository: ProductoRepository,
+    private val atributoRepository: AtributoRepository
 ) : ViewModel() {
 
     private var empresa_id = ""
@@ -46,14 +50,22 @@ class ProductoViewModel @Inject constructor(
     private val _busqueda = MutableStateFlow("")
     val busqueda: StateFlow<String> = _busqueda.asStateFlow()
 
-    private val _todosLosProductos = MutableStateFlow<List<ProductoConStock>>(emptyList())
+    private val _todosLosProductos = MutableStateFlow<List<Producto>>(emptyList())
 
-    val productosFiltrados: StateFlow<List<ProductoConStock>> = combine(
+    val productosFiltrados: StateFlow<List<Producto>> = combine(
         _todosLosProductos, _busqueda
     ) { lista, query ->
         if (query.isBlank()) lista
         else lista.filter { it.nombre.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _templates = MutableStateFlow<List<AtributoTemplate>>(emptyList())
+    val templates: StateFlow<List<AtributoTemplate>> = _templates.asStateFlow()
+
+    // Producto que se está editando, cargado con atributos completos
+    private val _productoEditando = MutableStateFlow<Producto?>(null)
+    val productoEditando: StateFlow<Producto?> = _productoEditando.asStateFlow()
+    private var editJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -71,6 +83,24 @@ class ProductoViewModel @Inject constructor(
                 _uiState.value = ProductosUiState.Listo(lista)
             }
         }
+        viewModelScope.launch {
+            atributoRepository.observarTemplates().collect { _templates.value = it }
+        }
+    }
+
+    fun seleccionarParaEditar(productoId: String) {
+        editJob?.cancel()
+        editJob = viewModelScope.launch {
+            repository.observarProducto(productoId).collect {
+                _productoEditando.value = it
+            }
+        }
+    }
+
+    fun limpiarEdicion() {
+        editJob?.cancel()
+        editJob = null
+        _productoEditando.value = null
     }
 
     fun setBusqueda(query: String) { _busqueda.value = query }
@@ -81,7 +111,8 @@ class ProductoViewModel @Inject constructor(
         sku: String?,
         precio: Int,
         stock_minimo: Int,
-        stock_inicial: Int = 0
+        stock_inicial: Int = 0,
+        atributos: Map<String, String> = emptyMap()
     ) {
         if (stock_inicial > 0 && stock_inicial < stock_minimo) {
             _formState.value = FormUiState.Error("El stock inicial no puede ser menor al stock mínimo ($stock_minimo)")
@@ -89,26 +120,27 @@ class ProductoViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _formState.value = FormUiState.Cargando
-            repository.crear(empresa_id, bodega_id, nombre, descripcion, sku, precio, stock_minimo, stock_inicial)
+            repository.crear(empresa_id, bodega_id, nombre, descripcion, sku, precio, stock_minimo, stock_inicial, atributos)
                 .onSuccess { _formState.value = FormUiState.Guardado("Producto creado") }
                 .onFailure { _formState.value = FormUiState.Error(it.message ?: "Error al guardar") }
         }
     }
 
     fun actualizar(
-        producto: ProductoConStock,
+        producto: Producto,
         nombre: String,
         descripcion: String?,
         sku: String?,
         precio: Int,
-        stock_minimo: Int
+        stock_minimo: Int,
+        atributos: Map<String, String> = emptyMap()
     ) {
         viewModelScope.launch {
             _formState.value = FormUiState.Cargando
             val entity = ProductoEntity(
                 id = producto.id,
-                empresa_id = producto.empresa_id,
-                bodega_id = producto.bodega_id,
+                empresa_id = producto.empresaId,
+                bodega_id = producto.bodegaId,
                 nombre = nombre.trim(),
                 descripcion = descripcion?.trim()?.ifBlank { null },
                 sku = sku?.trim()?.ifBlank { null },
@@ -116,7 +148,7 @@ class ProductoViewModel @Inject constructor(
                 stock_minimo = stock_minimo,
                 synced = false
             )
-            repository.actualizar(entity)
+            repository.actualizar(entity, atributos)
                 .onSuccess { _formState.value = FormUiState.Guardado("Producto actualizado") }
                 .onFailure { _formState.value = FormUiState.Error(it.message ?: "Error al actualizar") }
         }

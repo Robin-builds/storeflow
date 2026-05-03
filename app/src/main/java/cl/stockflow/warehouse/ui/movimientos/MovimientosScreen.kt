@@ -5,7 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.theme.Verde400
+import cl.stockflow.warehouse.ui.theme.Verde700
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -57,11 +59,7 @@ fun MovimientosScreen(
                     val nombre = (uiState as? MovimientosUiState.Listo)?.producto?.nombre ?: "Movimientos"
                     Text(nombre)
                 },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         }
     ) { padding ->
@@ -80,6 +78,7 @@ fun MovimientosScreen(
                 ContenidoMovimientos(
                     producto = state.producto,
                     movimientos = state.movimientos,
+                    tipoActivo = tipoSeleccionado,
                     onRegistrar = { tipo -> tipoSeleccionado = tipo },
                     modifier = Modifier.padding(padding)
                 )
@@ -87,7 +86,7 @@ fun MovimientosScreen(
         }
     }
 
-    val stockActual = (uiState as? MovimientosUiState.Listo)?.producto?.stock_actual ?: 0
+    val stockActual = (uiState as? MovimientosUiState.Listo)?.producto?.stockActual ?: 0
     tipoSeleccionado?.let { tipo ->
         MovimientoDialog(
             tipo = tipo,
@@ -110,12 +109,13 @@ fun MovimientosScreen(
 
 @Composable
 private fun ContenidoMovimientos(
-    producto: ProductoConStock,
+    producto: Producto,
     movimientos: List<MovimientoEntity>,
+    tipoActivo: TipoMovimiento?,
     onRegistrar: (TipoMovimiento) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val stockBajo = producto.stock_actual < producto.stock_minimo
+    val stockBajo = producto.esBajoStock()
 
     Column(modifier = modifier.fillMaxSize()) {
         // Tarjeta de stock
@@ -145,13 +145,13 @@ private fun ContenidoMovimientos(
                 }
                 Column {
                     Text(
-                        text = "Stock actual: ${producto.stock_actual}",
+                        text = "Stock actual: ${producto.stockActual}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    if (producto.stock_minimo > 0) {
+                    if (producto.stockMinimo > 0) {
                         Text(
-                            text = "Mínimo: ${producto.stock_minimo}",
+                            text = "Mínimo: ${producto.stockMinimo}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -161,29 +161,30 @@ private fun ContenidoMovimientos(
         }
 
         // Botones de acción
-        Row(
+        val tipos = listOf(TipoMovimiento.ENTRADA, TipoMovimiento.SALIDA, TipoMovimiento.AJUSTE)
+        val etiquetas = listOf("Entrada", "Salida", "Ajuste")
+        SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            OutlinedButton(
-                onClick = { onRegistrar(TipoMovimiento.ENTRADA) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorEntrada)
-            ) { Text("Entrada") }
-
-            OutlinedButton(
-                onClick = { onRegistrar(TipoMovimiento.SALIDA) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorSalida)
-            ) { Text("Salida") }
-
-            OutlinedButton(
-                onClick = { onRegistrar(TipoMovimiento.AJUSTE) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = ColorAjuste)
-            ) { Text("Ajuste") }
+            tipos.forEachIndexed { index, tipo ->
+                SegmentedButton(
+                    selected = tipoActivo == tipo,
+                    onClick = { onRegistrar(tipo) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = tipos.size),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = Verde700,
+                        activeContentColor = Color.White,
+                        inactiveContainerColor = Color.Transparent,
+                        inactiveContentColor = Verde700,
+                        activeBorderColor = Verde700,
+                        inactiveBorderColor = Verde400
+                    )
+                ) {
+                    Text(etiquetas[index])
+                }
+            }
         }
 
         Spacer(Modifier.height(8.dp))
