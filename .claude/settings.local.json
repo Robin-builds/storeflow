@@ -6,7 +6,24 @@
       "Bash(./gradlew installDebug)",
       "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -c)",
       "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -d)",
-      "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -d -v time)"
+      "Bash(\"/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat -d -v time)",
+      "mcp__ide__getDiagnostics",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(/mnt/c/Users/Windows 11/AppData/Local/Android/Sdk/platform-tools/adb.exe devices *)",
+      "PowerShell(& \"C:\\\\Users\\\\Windows 11\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" devices)",
+      "Bash(cmd.exe /c \"gradlew.bat assembleDebug\")",
+      "PowerShell(& \"C:\\\\Users\\\\Windows 11\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" -s ZY22DXDQJ5 install -r \"C:\\\\Users\\\\Windows 11\\\\AndroidStudioProjects\\\\StockFlowv00\\\\app\\\\build\\\\outputs\\\\apk\\\\debug\\\\app-debug.apk\")",
+      "Bash(git checkout *)",
+      "Bash(git merge --no-ff develop -m ' *)",
+      "Bash(gradlew.bat assembleDebug)",
+      "Bash(~/AppData/Local/Android/Sdk/platform-tools/adb -s ZY22DXDQJ5 logcat -d -s SYNC)",
+      "Bash(~/AppData/Local/Android/Sdk/platform-tools/adb -s ZY22DXDQJ5 logcat -d -s SyncWorker)",
+      "Bash(~/AppData/Local/Android/Sdk/platform-tools/adb -s ZY22DXDQJ5 logcat -d -s stockflow)",
+      "Bash(~/AppData/Local/Android/Sdk/platform-tools/adb -s ZY22DXDQJ5 logcat -d)",
+      "Read(//mnt/c/Users/Windows 11/AndroidStudioProjects/**)",
+      "Bash(cmd.exe /c \"gradlew.bat clean assembleDebug 2>&1\")",
+      "PowerShell(& \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" devices)",
+      "PowerShell(& \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" install -r \"C:\\\\Users\\\\Windows 11\\\\AndroidStudioProjects\\\\StockFlowv00\\\\app\\\\build\\\\outputs\\\\apk\\\\debug\\\\app-debug.apk\" 2>&1)"
     ]
   }
 }

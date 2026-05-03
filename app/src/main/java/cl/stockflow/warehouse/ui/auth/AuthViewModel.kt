@@ -56,6 +56,15 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun registrarUsuarioEnEmpresa(email: String, password: String, nombre: String, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Cargando
+            val result = authRepository.registrarUsuarioEnEmpresa(email, password, nombre)
+            _uiState.value = AuthUiState.Idle
+            onResult(result)
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()

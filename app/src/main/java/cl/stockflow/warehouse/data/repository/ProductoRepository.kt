@@ -1,19 +1,23 @@
 package cl.stockflow.warehouse.data.repository
 
+import cl.stockflow.warehouse.data.local.dao.AtributoTemplateDao
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.dao.BodegaDao
 import cl.stockflow.warehouse.data.local.dao.MovimientoDao
+import cl.stockflow.warehouse.data.local.dao.ProductoAtributoDao
 import cl.stockflow.warehouse.data.local.dao.ProductoDao
 import cl.stockflow.warehouse.data.local.dao.SyncDao
 import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
 import cl.stockflow.warehouse.data.sync.SyncTrigger
+import cl.stockflow.warehouse.data.sync.productoAtributosSyncItem
 import cl.stockflow.warehouse.data.sync.toSyncDelete
 import cl.stockflow.warehouse.data.sync.toSyncInsert
 import cl.stockflow.warehouse.data.sync.toSyncUpdate
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,7 +29,9 @@ class ProductoRepository @Inject constructor(
     private val authSessionDao: AuthSessionDao,
     private val bodegaDao: BodegaDao,
     private val syncDao: SyncDao,
-    private val syncTrigger: SyncTrigger
+    private val syncTrigger: SyncTrigger,
+    private val productoAtributoDao: ProductoAtributoDao,
+    private val atributoTemplateDao: AtributoTemplateDao
 ) {
     suspend fun obtenerContexto(): Pair<String, String>? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
@@ -33,11 +39,21 @@ class ProductoRepository @Inject constructor(
         return sesion.empresa_id to sesion.bodega_id
     }
 
-    fun observarProductos(bodegaId: String): Flow<List<ProductoConStock>> =
-        productoDao.observarConStock(bodegaId)
+    fun observarProductos(bodegaId: String): Flow<List<Producto>> =
+        productoDao.observarConStock(bodegaId).map { list -> list.map { it.toDomain() } }
 
-    fun observarBajoMinimo(bodegaId: String): Flow<List<ProductoConStock>> =
-        productoDao.observarBajoMinimo(bodegaId)
+    fun observarBajoMinimo(bodegaId: String): Flow<List<Producto>> =
+        productoDao.observarBajoMinimo(bodegaId).map { list -> list.map { it.toDomain() } }
+
+    fun observarProducto(productoId: String): Flow<Producto?> =
+        productoDao.observarProductoConStock(productoId).map { pcs ->
+            if (pcs == null) null
+            else {
+                val atributos = productoAtributoDao.obtenerClavesValores(pcs.id)
+                    .associate { it.clave to it.valor }
+                pcs.toDomain(atributos)
+            }
+        }
 
     suspend fun obtenerPorId(id: String): ProductoEntity? = productoDao.obtenerPorId(id)
 
@@ -49,7 +65,8 @@ class ProductoRepository @Inject constructor(
         sku: String?,
         precio: Int,
         stock_minimo: Int,
-        stock_inicial: Int = 0
+        stock_inicial: Int = 0,
+        atributos: Map<String, String> = emptyMap()
     ): Result<Unit> {
         if (productoDao.contarConNombre(bodega_id, nombre) > 0)
             return Result.failure(Exception("Ya existe un producto con ese nombre en esta bodega"))
@@ -76,6 +93,9 @@ class ProductoRepository @Inject constructor(
                 movimientoDao.insertar(movimiento)
                 syncDao.encolar(movimiento.toSyncInsert())
             }
+            guardarAtributos(producto.id, atributos)
+            if (atributos.any { (_, v) -> v.isNotBlank() })
+                syncDao.encolar(productoAtributosSyncItem(producto.id, atributos))
             syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -83,18 +103,37 @@ class ProductoRepository @Inject constructor(
         }
     }
 
-    suspend fun actualizar(producto: ProductoEntity): Result<Unit> {
+    suspend fun actualizar(
+        producto: ProductoEntity,
+        atributos: Map<String, String> = emptyMap()
+    ): Result<Unit> {
         if (productoDao.contarConNombre(producto.bodega_id, producto.nombre, producto.id) > 0)
             return Result.failure(Exception("Ya existe un producto con ese nombre en esta bodega"))
         return try {
             val actualizado = producto.copy(synced = false, updated_at = Date())
             productoDao.actualizar(actualizado)
             syncDao.encolar(actualizado.toSyncUpdate())
+            productoAtributoDao.eliminarPorProducto(actualizado.id)
+            guardarAtributos(actualizado.id, atributos)
+            syncDao.encolar(productoAtributosSyncItem(actualizado.id, atributos))
             syncTrigger.trigger()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private suspend fun guardarAtributos(productoId: String, atributos: Map<String, String>) {
+        val entities = atributos
+            .filter { (_, valor) -> valor.isNotBlank() }
+            .map { (templateId, valor) ->
+                cl.stockflow.warehouse.data.local.entity.ProductoAtributoEntity(
+                    producto_id = productoId,
+                    template_id = templateId,
+                    valor = valor.trim()
+                )
+            }
+        if (entities.isNotEmpty()) productoAtributoDao.upsertAll(entities)
     }
 
     suspend fun eliminar(producto: ProductoEntity): Result<Unit> = try {

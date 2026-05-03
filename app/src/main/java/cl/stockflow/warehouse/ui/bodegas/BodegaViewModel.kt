@@ -2,10 +2,9 @@ package cl.stockflow.warehouse.ui.bodegas
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cl.stockflow.warehouse.data.local.entity.BodegaEntity
-import cl.stockflow.warehouse.data.repository.AuthRepository
 import cl.stockflow.warehouse.data.repository.BodegaRepository
-import cl.stockflow.warehouse.domain.model.Rol
+import cl.stockflow.warehouse.data.repository.UsuarioRepository
+import cl.stockflow.warehouse.domain.model.Bodega
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,8 +19,8 @@ import javax.inject.Inject
 sealed class BodegasUiState {
     object Cargando : BodegasUiState()
     data class Listo(
-        val bodegas: List<BodegaEntity>,
-        val activa: BodegaEntity?,
+        val bodegas: List<Bodega>,
+        val activa: Bodega?,
         val esAdmin: Boolean
     ) : BodegasUiState()
     data class Error(val mensaje: String) : BodegasUiState()
@@ -30,7 +29,7 @@ sealed class BodegasUiState {
 @HiltViewModel
 class BodegaViewModel @Inject constructor(
     private val bodegaRepository: BodegaRepository,
-    private val authRepository: AuthRepository
+    private val usuarioRepository: UsuarioRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BodegasUiState>(BodegasUiState.Cargando)
@@ -48,10 +47,10 @@ class BodegaViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 bodegaRepository.observarBodegas(),
-                authRepository.observarSesion()
-            ) { bodegas, sesion ->
-                val activa = bodegas.find { it.id == sesion?.bodega_id }
-                val esAdmin = Rol.fromString(sesion?.rol ?: "OPERADOR") == Rol.ADMIN
+                usuarioRepository.observarUsuarioActual()
+            ) { bodegas, usuario ->
+                val activa = bodegas.find { it.esActiva }
+                val esAdmin = usuario?.esAdmin() ?: false
                 BodegasUiState.Listo(bodegas, activa, esAdmin)
             }.collect { _uiState.value = it }
         }

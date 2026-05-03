@@ -11,6 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import cl.stockflow.warehouse.ui.theme.Rojo600
+import cl.stockflow.warehouse.ui.theme.Verde700
 import cl.stockflow.warehouse.ui.alertas.AlertasUiState
 import cl.stockflow.warehouse.ui.alertas.AlertasViewModel
 import cl.stockflow.warehouse.ui.bodegas.BodegaViewModel
@@ -22,6 +26,8 @@ fun DashboardScreen(
     onIrAProductos: () -> Unit,
     onIrAAlerta: () -> Unit,
     onIrABodegas: () -> Unit,
+    onIrAAtributos: () -> Unit,
+    onIrAUsuarios: () -> Unit,
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     bodegaViewModel: BodegaViewModel = hiltViewModel()
 ) {
@@ -29,6 +35,7 @@ fun DashboardScreen(
     val bodegasState by bodegaViewModel.uiState.collectAsState()
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
+    val esAdmin = (bodegasState as? BodegasUiState.Listo)?.esAdmin ?: false
 
     Column(
         modifier = Modifier
@@ -86,20 +93,56 @@ fun DashboardScreen(
 
         Button(
             onClick = onIrAProductos,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
         ) {
             Text("Productos")
         }
         Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(
+        ElevatedButton(
             onClick = onIrABodegas,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+            elevation = ButtonDefaults.elevatedButtonElevation(defaultElevation = 3.dp),
+            colors = ButtonDefaults.elevatedButtonColors(
+                containerColor = Color.White,
+                contentColor = Verde700
+            )
         ) {
             Text("Gestionar bodegas")
         }
+        if (esAdmin) {
+            Spacer(modifier = Modifier.height(12.dp))
+            ElevatedButton(
+                onClick = onIrAAtributos,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                elevation = ButtonDefaults.elevatedButtonElevation(defaultElevation = 3.dp),
+                colors = ButtonDefaults.elevatedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Verde700
+                )
+            ) {
+                Text("Configurar atributos")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            ElevatedButton(
+                onClick = onIrAUsuarios,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                elevation = ButtonDefaults.elevatedButtonElevation(defaultElevation = 3.dp),
+                colors = ButtonDefaults.elevatedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Verde700
+                )
+            ) {
+                Text("Gestionar usuarios")
+            }
+        }
         Spacer(modifier = Modifier.height(12.dp))
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-            Text("Cerrar sesión")
+        TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+            Text("Cerrar sesión", color = Rojo600)
         }
     }
 }

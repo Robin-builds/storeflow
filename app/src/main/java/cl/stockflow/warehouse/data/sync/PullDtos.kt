@@ -1,6 +1,14 @@
 package cl.stockflow.warehouse.data.sync
 
-import cl.stockflow.warehouse.data.local.entity.*
+import cl.stockflow.warehouse.data.local.entity.AtributoTemplateEntity
+import cl.stockflow.warehouse.data.local.entity.BodegaEntity
+import cl.stockflow.warehouse.data.local.entity.EmpresaEntity
+import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
+import cl.stockflow.warehouse.data.local.entity.ProductoAtributoEntity
+import cl.stockflow.warehouse.data.local.entity.ProductoEntity
+import cl.stockflow.warehouse.data.local.entity.ProveedorEntity
+import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
+import cl.stockflow.warehouse.data.local.entity.UsuarioEntity
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.OffsetDateTime
@@ -96,6 +104,40 @@ data class ProductoDto(
         precio = precio.toInt(), stock_minimo = stockMinimo,
         synced = true, synced_at = Date(),
         created_at = parseFecha(createdAt), updated_at = parseFecha(updatedAt)
+    )
+}
+
+@Serializable
+data class AtributoTemplateDto(
+    val id: String,
+    @SerialName("empresa_id") val empresaId: String,
+    val clave: String,
+    val etiqueta: String,
+    val tipo: String = "TEXT",
+    val obligatorio: Boolean = false,
+    val orden: Int = 0,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+) {
+    fun toEntity() = AtributoTemplateEntity(
+        id = id, empresa_id = empresaId,
+        clave = clave, etiqueta = etiqueta,
+        tipo = tipo, obligatorio = obligatorio, orden = orden,
+        synced = true, synced_at = Date(),
+        created_at = parseFecha(createdAt), updated_at = parseFecha(updatedAt)
+    )
+}
+
+@Serializable
+data class ProductoAtributoDto(
+    @SerialName("producto_id") val productoId: String,
+    @SerialName("template_id") val templateId: String,
+    val valor: String
+) {
+    fun toEntity() = ProductoAtributoEntity(
+        producto_id = productoId,
+        template_id = templateId,
+        valor = valor
     )
 }
 

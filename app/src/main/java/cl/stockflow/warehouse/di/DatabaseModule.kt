@@ -28,7 +28,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_1_2,
                 AppDatabase.MIGRATION_2_3,
                 AppDatabase.MIGRATION_3_4,
-                AppDatabase.MIGRATION_4_5
+                AppDatabase.MIGRATION_4_5,
+                AppDatabase.MIGRATION_5_6
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
@@ -46,4 +47,6 @@ object DatabaseModule {
     @Provides fun provideMovimientoDao(db: AppDatabase) = db.movimientoDao()
     @Provides fun provideSyncDao(db: AppDatabase) = db.syncDao()
     @Provides fun provideAuthSessionDao(db: AppDatabase) = db.authSessionDao()
+    @Provides fun provideAtributoTemplateDao(db: AppDatabase) = db.atributoTemplateDao()
+    @Provides fun provideProductoAtributoDao(db: AppDatabase) = db.productoAtributoDao()
 }

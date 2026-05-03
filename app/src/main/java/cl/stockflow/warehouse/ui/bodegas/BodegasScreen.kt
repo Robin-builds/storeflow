@@ -5,7 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.graphics.Color
+import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.theme.Verde700
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -16,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import cl.stockflow.warehouse.data.local.entity.BodegaEntity
+import cl.stockflow.warehouse.domain.model.Bodega
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +30,7 @@ fun BodegasScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var mostrarDialogCrear by remember { mutableStateOf(false) }
-    var bodegaAEliminar by remember { mutableStateOf<BodegaEntity?>(null) }
+    var bodegaAEliminar by remember { mutableStateOf<Bodega?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.navegarADashboard.collect { onBodegaCambiada() }
@@ -41,17 +43,21 @@ fun BodegasScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Bodegas") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if ((uiState as? BodegasUiState.Listo)?.esAdmin == true) {
-                FloatingActionButton(onClick = { mostrarDialogCrear = true }) {
+                FloatingActionButton(
+                    onClick = { mostrarDialogCrear = true },
+                    containerColor = Verde700,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 2.dp
+                    )
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Nueva bodega")
                 }
             }
@@ -78,16 +84,14 @@ fun BodegasScreen(
                 } else {
                     LazyColumn(contentPadding = padding) {
                         items(state.bodegas, key = { it.id }) { bodega ->
-                            val esActiva = bodega.id == state.activa?.id
                             val puedeEliminar = state.esAdmin &&
                                     state.bodegas.size > 1 &&
-                                    !esActiva
+                                    !bodega.esActiva
                             BodegaItem(
                                 bodega = bodega,
-                                esActiva = esActiva,
                                 puedeEliminar = puedeEliminar,
                                 onSeleccionar = {
-                                    if (!esActiva) viewModel.cambiarBodegaActiva(bodega.id)
+                                    if (!bodega.esActiva) viewModel.cambiarBodegaActiva(bodega.id)
                                 },
                                 onEliminar = { bodegaAEliminar = bodega }
                             )
@@ -138,8 +142,7 @@ fun BodegasScreen(
 
 @Composable
 private fun BodegaItem(
-    bodega: BodegaEntity,
-    esActiva: Boolean,
+    bodega: Bodega,
     puedeEliminar: Boolean,
     onSeleccionar: () -> Unit,
     onEliminar: () -> Unit
@@ -149,9 +152,9 @@ private fun BodegaItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = bodega.nombre,
-                    fontWeight = if (esActiva) FontWeight.SemiBold else FontWeight.Normal
+                    fontWeight = if (bodega.esActiva) FontWeight.SemiBold else FontWeight.Normal
                 )
-                if (esActiva) {
+                if (bodega.esActiva) {
                     Spacer(Modifier.width(8.dp))
                     SuggestionChip(
                         onClick = {},
@@ -181,7 +184,7 @@ private fun BodegaItem(
                 }
             }
         },
-        modifier = Modifier.clickable(enabled = !esActiva, onClick = onSeleccionar)
+        modifier = Modifier.clickable(enabled = !bodega.esActiva, onClick = onSeleccionar)
     )
     HorizontalDivider()
 }

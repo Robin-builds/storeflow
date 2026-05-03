@@ -3,6 +3,8 @@ package cl.stockflow.warehouse.data.repository
 import cl.stockflow.warehouse.data.local.AppDatabase
 import cl.stockflow.warehouse.data.local.dao.AuthSessionDao
 import cl.stockflow.warehouse.data.local.entity.AuthSessionEntity
+import cl.stockflow.warehouse.data.remote.SUPABASE_ANON_KEY
+import cl.stockflow.warehouse.data.remote.SUPABASE_URL
 import cl.stockflow.warehouse.data.remote.supabaseClient
 import cl.stockflow.warehouse.data.sync.PullTrigger
 import cl.stockflow.warehouse.domain.model.Rol
@@ -11,11 +13,18 @@ import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import io.ktor.client.*
+import io.ktor.client.engine.android.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import timber.log.Timber
@@ -208,6 +217,50 @@ class AuthRepository @Inject constructor(
                 else -> "Error al registrar: ${e.message}"
             }
             Result.failure(Exception(mensaje))
+        }
+    }
+
+    suspend fun registrarUsuarioEnEmpresa(
+        email: String,
+        password: String,
+        nombre: String
+    ): Result<String> {
+        val sesion = authSessionDao.obtenerSesion()
+            ?: return Result.failure(Exception("Sin sesión activa"))
+        val httpClient = HttpClient(Android) { expectSuccess = false }
+        return try {
+            Timber.d("AUTH: registrarUsuarioEnEmpresa email=$email")
+            val body = buildJsonObject {
+                put("email", email.trim())
+                put("password", password)
+                put("nombre", nombre.trim())
+            }.toString()
+            val response = httpClient.post("$SUPABASE_URL/functions/v1/registrar-usuario-empresa") {
+                headers {
+                    append("apikey", SUPABASE_ANON_KEY)
+                    append("Authorization", "Bearer ${sesion.access_token}")
+                    append("Content-Type", "application/json")
+                }
+                setBody(body)
+            }
+            val responseBody = response.bodyAsText()
+            Timber.d("AUTH: registrarUsuarioEnEmpresa HTTP ${response.status.value} — $responseBody")
+            if (!response.status.isSuccess()) {
+                val msg = try {
+                    Json.parseToJsonElement(responseBody).jsonObject["error"]?.jsonPrimitive?.content
+                        ?: responseBody
+                } catch (e: Exception) { responseBody }
+                Result.failure(Exception(msg))
+            } else {
+                val userId = Json.parseToJsonElement(responseBody).jsonObject["user_id"]?.jsonPrimitive?.content
+                    ?: return Result.failure(Exception("Respuesta inesperada del servidor"))
+                Result.success(userId)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "AUTH: error en registrarUsuarioEnEmpresa")
+            Result.failure(Exception("Error de conexión: ${e.message}"))
+        } finally {
+            httpClient.close()
         }
     }
 

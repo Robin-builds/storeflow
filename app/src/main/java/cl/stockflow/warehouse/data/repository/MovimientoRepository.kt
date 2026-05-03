@@ -7,8 +7,9 @@ import cl.stockflow.warehouse.data.local.entity.MovimientoEntity
 import cl.stockflow.warehouse.data.local.entity.TipoMovimiento
 import cl.stockflow.warehouse.data.sync.SyncTrigger
 import cl.stockflow.warehouse.data.sync.toSyncInsert
-import cl.stockflow.warehouse.domain.model.ProductoConStock
+import cl.stockflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,8 +20,8 @@ class MovimientoRepository @Inject constructor(
     private val syncDao: SyncDao,
     private val syncTrigger: SyncTrigger
 ) {
-    fun observarProductoConStock(productoId: String): Flow<ProductoConStock?> =
-        productoDao.observarProductoConStock(productoId)
+    fun observarProducto(productoId: String): Flow<Producto?> =
+        productoDao.observarProductoConStock(productoId).map { it?.toDomain() }
 
     fun observarMovimientos(productoId: String): Flow<List<MovimientoEntity>> =
         movimientoDao.observarPorProducto(productoId)
