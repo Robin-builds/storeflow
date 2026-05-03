@@ -88,4 +88,10 @@ interface ProductoDao {
 
     @Query("UPDATE productos SET bodega_id = :bodegaIdDestino, updated_at = :ahora WHERE bodega_id = :bodegaIdOrigen")
     suspend fun transferirABodega(bodegaIdOrigen: String, bodegaIdDestino: String, ahora: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM productos WHERE id IN (:ids)")
+    suspend fun obtenerPorIds(ids: List<String>): List<ProductoEntity>
+
+    @Query("UPDATE productos SET bodega_id = :bodegaDestino, updated_at = :ahora, synced = 0 WHERE id IN (:ids)")
+    suspend fun transferirSeleccionadosABodega(ids: List<String>, bodegaDestino: String, ahora: Long = System.currentTimeMillis())
 }

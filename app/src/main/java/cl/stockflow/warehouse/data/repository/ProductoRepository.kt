@@ -144,4 +144,27 @@ class ProductoRepository @Inject constructor(
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    suspend fun eliminarVarios(ids: List<String>): Result<Unit> = try {
+        val productos = productoDao.obtenerPorIds(ids)
+        productos.forEach { producto ->
+            productoDao.eliminar(producto)
+            syncDao.encolar(producto.toSyncDelete())
+        }
+        syncTrigger.trigger()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    suspend fun transferirSeleccionados(ids: List<String>, bodegaDestino: String): Result<Unit> = try {
+        val ahora = System.currentTimeMillis()
+        productoDao.transferirSeleccionadosABodega(ids, bodegaDestino, ahora)
+        val productos = productoDao.obtenerPorIds(ids)
+        productos.forEach { syncDao.encolar(it.toSyncUpdate()) }
+        syncTrigger.trigger()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
 }

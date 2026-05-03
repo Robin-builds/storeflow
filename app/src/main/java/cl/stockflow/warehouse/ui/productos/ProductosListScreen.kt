@@ -1,7 +1,8 @@
 package cl.stockflow.warehouse.ui.productos
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.domain.model.AtributoTemplate
@@ -45,10 +48,15 @@ fun ProductosListScreen(
     val productosFiltrados by viewModel.productosFiltrados.collectAsState()
     val templates by viewModel.templates.collectAsState()
     val productoEditando by viewModel.productoEditando.collectAsState()
+    val seleccionados by viewModel.seleccionados.collectAsState()
+    val modoSeleccion by viewModel.modoSeleccion.collectAsState()
+    val bodegas by viewModel.bodegas.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var mostrarFormCrear by remember { mutableStateOf(false) }
+    var mostrarConfirmarEliminarMasivo by remember { mutableStateOf(false) }
+    var mostrarTransferirDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(formState) {
         if (formState is FormUiState.Guardado) {
@@ -60,25 +68,78 @@ fun ProductosListScreen(
         }
     }
 
+    val bodegasDestino = remember(bodegas) { bodegas.filter { !it.esActiva } }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Productos") },
-                navigationIcon = { BackButton(onClick = onVolver) }
-            )
+            if (modoSeleccion) {
+                TopAppBar(
+                    title = {
+                        Text("${seleccionados.size} seleccionado${if (seleccionados.size != 1) "s" else ""}")
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.limpiarSeleccion() }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Cancelar selección")
+                        }
+                    },
+                    actions = {
+                        val todosSeleccionados = productosFiltrados.isNotEmpty() &&
+                                seleccionados.size == productosFiltrados.size
+                        TextButton(onClick = {
+                            if (todosSeleccionados) viewModel.limpiarSeleccion()
+                            else viewModel.seleccionarTodos()
+                        }) {
+                            Text(if (todosSeleccionados) "Ninguno" else "Todos")
+                        }
+                    }
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Productos") },
+                    navigationIcon = { BackButton(onClick = onVolver) }
+                )
+            }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { mostrarFormCrear = true },
-                containerColor = Verde700,
-                contentColor = Color.White,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = 6.dp,
-                    pressedElevation = 2.dp
-                )
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Nuevo producto")
+            if (!modoSeleccion) {
+                FloatingActionButton(
+                    onClick = { mostrarFormCrear = true },
+                    containerColor = Verde700,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 2.dp
+                    )
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Nuevo producto")
+                }
+            }
+        },
+        bottomBar = {
+            if (modoSeleccion && seleccionados.isNotEmpty()) {
+                BottomAppBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (bodegasDestino.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = { mostrarTransferirDialog = true },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Transferir") }
+                        }
+                        Button(
+                            onClick = { mostrarConfirmarEliminarMasivo = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Eliminar") }
+                    }
+                }
             }
         }
     ) { padding ->
@@ -125,7 +186,13 @@ fun ProductosListScreen(
                             items(productosFiltrados, key = { it.id }) { producto ->
                                 ProductoItem(
                                     producto = producto,
-                                    onClick = { onVerMovimientos(producto.id) }
+                                    seleccionado = producto.id in seleccionados,
+                                    modoSeleccion = modoSeleccion,
+                                    onClick = { onVerMovimientos(producto.id) },
+                                    onLongPress = {
+                                        viewModel.toggleSeleccion(producto.id)
+                                    },
+                                    onToggleSeleccion = { viewModel.toggleSeleccion(producto.id) }
                                 )
                             }
                         }
@@ -133,6 +200,56 @@ fun ProductosListScreen(
                 }
             }
         }
+    }
+
+    if (mostrarConfirmarEliminarMasivo) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmarEliminarMasivo = false },
+            title = { Text("¿Eliminar ${seleccionados.size} producto${if (seleccionados.size != 1) "s" else ""}?") },
+            text = { Text("Se eliminarán los productos y todos sus movimientos. Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmarEliminarMasivo = false
+                        viewModel.eliminarSeleccionados()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmarEliminarMasivo = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (mostrarTransferirDialog) {
+        AlertDialog(
+            onDismissRequest = { mostrarTransferirDialog = false },
+            title = { Text("Transferir a bodega") },
+            text = {
+                Column {
+                    bodegasDestino.forEach { bodega ->
+                        TextButton(
+                            onClick = {
+                                mostrarTransferirDialog = false
+                                viewModel.transferirSeleccionados(bodega.id, bodega.nombre)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = bodega.nombre,
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { mostrarTransferirDialog = false }) { Text("Cancelar") }
+            }
+        )
     }
 
     if (mostrarFormCrear) {
@@ -170,10 +287,15 @@ fun ProductosListScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ProductoItem(
     producto: Producto,
-    onClick: () -> Unit
+    seleccionado: Boolean,
+    modoSeleccion: Boolean,
+    onClick: () -> Unit,
+    onLongPress: () -> Unit,
+    onToggleSeleccion: () -> Unit
 ) {
     val borderColor = when {
         producto.stockActual == 0 -> Rojo600
@@ -183,12 +305,22 @@ private fun ProductoItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (seleccionado) 4.dp else 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (seleccionado)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .height(IntrinsicSize.Min)
+                .combinedClickable(
+                    onClick = if (modoSeleccion) onToggleSeleccion else onClick,
+                    onLongClick = if (!modoSeleccion) onLongPress else null
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -200,7 +332,6 @@ private fun ProductoItem(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onClick)
                     .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
                 Text(
@@ -217,12 +348,16 @@ private fun ProductoItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(
-                onClick = onClick,
-                modifier = Modifier.padding(end = 12.dp)
-            ) {
+            if (modoSeleccion) {
+                Checkbox(
+                    checked = seleccionado,
+                    onCheckedChange = null,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+            } else {
                 Box(
                     modifier = Modifier
+                        .padding(end = 12.dp)
                         .size(32.dp)
                         .background(color = Verde700, shape = CircleShape),
                     contentAlignment = Alignment.Center
@@ -259,7 +394,6 @@ private fun ProductoFormDialog(
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
     var mostrarScanner by remember { mutableStateOf(false) }
 
-    // Map templateId → valor; pre-rellena desde producto.atributos (clave→valor) usando los templates
     val atributosState = remember(templates, productoInicial) {
         mutableStateMapOf<String, String>().also { map ->
             templates.forEach { t ->

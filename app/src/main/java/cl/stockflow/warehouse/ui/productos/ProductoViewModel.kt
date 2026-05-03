@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.stockflow.warehouse.data.local.entity.ProductoEntity
 import cl.stockflow.warehouse.data.repository.AtributoRepository
+import cl.stockflow.warehouse.data.repository.BodegaRepository
 import cl.stockflow.warehouse.data.repository.ProductoRepository
 import cl.stockflow.warehouse.domain.model.AtributoTemplate
+import cl.stockflow.warehouse.domain.model.Bodega
 import cl.stockflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -14,7 +16,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -35,7 +39,8 @@ sealed class FormUiState {
 @HiltViewModel
 class ProductoViewModel @Inject constructor(
     private val repository: ProductoRepository,
-    private val atributoRepository: AtributoRepository
+    private val atributoRepository: AtributoRepository,
+    private val bodegaRepository: BodegaRepository
 ) : ViewModel() {
 
     private var empresa_id = ""
@@ -62,10 +67,19 @@ class ProductoViewModel @Inject constructor(
     private val _templates = MutableStateFlow<List<AtributoTemplate>>(emptyList())
     val templates: StateFlow<List<AtributoTemplate>> = _templates.asStateFlow()
 
-    // Producto que se está editando, cargado con atributos completos
     private val _productoEditando = MutableStateFlow<Producto?>(null)
     val productoEditando: StateFlow<Producto?> = _productoEditando.asStateFlow()
     private var editJob: Job? = null
+
+    private val _seleccionados = MutableStateFlow<Set<String>>(emptySet())
+    val seleccionados: StateFlow<Set<String>> = _seleccionados.asStateFlow()
+
+    val modoSeleccion: StateFlow<Boolean> = _seleccionados
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _bodegas = MutableStateFlow<List<Bodega>>(emptyList())
+    val bodegas: StateFlow<List<Bodega>> = _bodegas.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -86,6 +100,9 @@ class ProductoViewModel @Inject constructor(
         viewModelScope.launch {
             atributoRepository.observarTemplates().collect { _templates.value = it }
         }
+        viewModelScope.launch {
+            bodegaRepository.observarBodegas().collect { _bodegas.value = it }
+        }
     }
 
     fun seleccionarParaEditar(productoId: String) {
@@ -101,6 +118,44 @@ class ProductoViewModel @Inject constructor(
         editJob?.cancel()
         editJob = null
         _productoEditando.value = null
+    }
+
+    fun toggleSeleccion(id: String) {
+        _seleccionados.update { set -> if (id in set) set - id else set + id }
+    }
+
+    fun seleccionarTodos() {
+        _seleccionados.value = _todosLosProductos.value.map { it.id }.toSet()
+    }
+
+    fun limpiarSeleccion() { _seleccionados.value = emptySet() }
+
+    fun eliminarSeleccionados() {
+        val ids = _seleccionados.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _formState.value = FormUiState.Cargando
+            repository.eliminarVarios(ids)
+                .onSuccess {
+                    _seleccionados.value = emptySet()
+                    _formState.value = FormUiState.Guardado("${ids.size} producto${if (ids.size != 1) "s" else ""} eliminado${if (ids.size != 1) "s" else ""}")
+                }
+                .onFailure { _formState.value = FormUiState.Error(it.message ?: "Error al eliminar") }
+        }
+    }
+
+    fun transferirSeleccionados(bodegaDestino: String, nombreBodega: String) {
+        val ids = _seleccionados.value.toList()
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            _formState.value = FormUiState.Cargando
+            repository.transferirSeleccionados(ids, bodegaDestino)
+                .onSuccess {
+                    _seleccionados.value = emptySet()
+                    _formState.value = FormUiState.Guardado("${ids.size} producto${if (ids.size != 1) "s" else ""} transferido${if (ids.size != 1) "s" else ""} a $nombreBodega")
+                }
+                .onFailure { _formState.value = FormUiState.Error(it.message ?: "Error al transferir") }
+        }
     }
 
     fun setBusqueda(query: String) { _busqueda.value = query }
