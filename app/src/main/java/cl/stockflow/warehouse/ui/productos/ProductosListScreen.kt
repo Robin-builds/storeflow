@@ -1,5 +1,6 @@
 package cl.stockflow.warehouse.ui.productos
 
+import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -13,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +37,9 @@ import cl.stockflow.warehouse.ui.theme.Rojo600
 import cl.stockflow.warehouse.ui.theme.Verde400
 import cl.stockflow.warehouse.ui.theme.Verde700
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +58,7 @@ fun ProductosListScreen(
     val modoSeleccion by viewModel.modoSeleccion.collectAsState()
     val bodegas by viewModel.bodegas.collectAsState()
 
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var mostrarFormCrear by remember { mutableStateOf(false) }
@@ -97,7 +104,24 @@ fun ProductosListScreen(
             } else {
                 TopAppBar(
                     title = { Text("Productos") },
-                    navigationIcon = { BackButton(onClick = onVolver) }
+                    navigationIcon = { BackButton(onClick = onVolver) },
+                    actions = {
+                        if (productosFiltrados.isNotEmpty()) {
+                            val bodegaNombre = remember(bodegas) {
+                                bodegas.firstOrNull { it.esActiva }?.nombre ?: ""
+                            }
+                            IconButton(onClick = {
+                                val texto = generarTextoInventario(productosFiltrados, bodegaNombre)
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, texto)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Compartir vía"))
+                            }) {
+                                Icon(Icons.Filled.Share, contentDescription = "Compartir inventario")
+                            }
+                        }
+                    }
                 )
             }
         },
@@ -583,4 +607,18 @@ private fun ProductoFormDialog(
             TextButton(onClick = onDismiss, enabled = !cargando) { Text("Cancelar") }
         }
     )
+}
+
+private fun generarTextoInventario(productos: List<Producto>, bodegaNombre: String): String {
+    val fecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+    return buildString {
+        appendLine("📦 *Inventario completo — StockFlow*")
+        if (bodegaNombre.isNotBlank()) appendLine("Bodega: $bodegaNombre")
+        appendLine(fecha)
+        appendLine()
+        productos.forEach { p ->
+            val alerta = if (p.esBajoStock() || p.stockActual == 0) " ⚠️" else ""
+            appendLine("• ${p.nombre}: ${p.stockActual} uds.$alerta")
+        }
+    }.trimEnd()
 }
