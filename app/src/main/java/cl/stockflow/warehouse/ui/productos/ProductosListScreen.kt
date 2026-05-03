@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.domain.model.AtributoTemplate
 import cl.stockflow.warehouse.domain.model.Producto
 import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.components.BarcodeScannerDialog
 import cl.stockflow.warehouse.ui.theme.Ambar500
 import cl.stockflow.warehouse.ui.theme.Rojo600
 import cl.stockflow.warehouse.ui.theme.Verde400
@@ -256,6 +257,7 @@ private fun ProductoFormDialog(
     var stock_minimo by remember { mutableStateOf(productoInicial?.stockMinimo?.toString() ?: "0") }
     var stock_inicial by remember { mutableStateOf("0") }
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
+    var mostrarScanner by remember { mutableStateOf(false) }
 
     // Map templateId → valor; pre-rellena desde producto.atributos (clave→valor) usando los templates
     val atributosState = remember(templates, productoInicial) {
@@ -280,6 +282,13 @@ private fun ProductoFormDialog(
         .all { t -> (atributosState[t.id] ?: "").isNotBlank() }
     val formularioValido = nombre.isNotBlank() && precioValido && stockMinimoValido &&
             stockInicialValido && !stockInicialMenorQueMinimo && atributosObligatoriosCubiertos
+
+    if (mostrarScanner) {
+        BarcodeScannerDialog(
+            onBarcodeDetected = { valor -> sku = valor },
+            onDismiss = { mostrarScanner = false }
+        )
+    }
 
     if (mostrarConfirmarEliminar) {
         AlertDialog(
@@ -324,14 +333,25 @@ private fun ProductoFormDialog(
                     enabled = !cargando,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = sku,
-                    onValueChange = { sku = it },
-                    label = { Text("SKU") },
-                    singleLine = true,
-                    enabled = !cargando,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = sku,
+                        onValueChange = { sku = it },
+                        label = { Text("SKU") },
+                        singleLine = true,
+                        enabled = !cargando,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedButton(
+                        onClick = { mostrarScanner = true },
+                        enabled = !cargando
+                    ) {
+                        Text("Escanear")
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = precio,
