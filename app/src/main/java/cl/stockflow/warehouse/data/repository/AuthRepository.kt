@@ -274,12 +274,27 @@ class AuthRepository @Inject constructor(
 
     suspend fun checkSession(): AuthSessionEntity? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
-        if (sesion.expires_at.before(Date())) {
-            Timber.d("AUTH: token expirado, limpiando sesión")
+        if (sesion.expires_at.after(Date())) return sesion
+
+        Timber.d("AUTH: token expirado, intentando refresh silencioso")
+        return try {
+            supabaseClient.gotrue.refreshCurrentSession()
+            val nueva = supabaseClient.gotrue.currentSessionOrNull()
+                ?: throw Exception("sesión nula tras refresh")
+            val actualizada = sesion.copy(
+                access_token = nueva.accessToken,
+                refresh_token = nueva.refreshToken,
+                expires_at = Date(nueva.expiresAt.toEpochMilliseconds()),
+                updated_at = Date()
+            )
+            withContext(Dispatchers.IO) { authSessionDao.guardarSesion(actualizada) }
+            Timber.d("AUTH: refresh OK — nueva expiración: ${actualizada.expires_at}")
+            actualizada
+        } catch (e: Exception) {
+            Timber.e(e, "AUTH: refresh fallido, forzando re-login")
             withContext(Dispatchers.IO) { db.clearAllTables() }
-            return null
+            null
         }
-        return sesion
     }
 
     suspend fun obtenerRolActual(): Rol? {
