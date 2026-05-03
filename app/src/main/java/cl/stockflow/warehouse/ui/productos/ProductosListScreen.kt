@@ -1,27 +1,32 @@
 package cl.stockflow.warehouse.ui.productos
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.domain.model.AtributoTemplate
 import cl.stockflow.warehouse.domain.model.Producto
+import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.theme.Ambar500
+import cl.stockflow.warehouse.ui.theme.Rojo600
+import cl.stockflow.warehouse.ui.theme.Verde400
+import cl.stockflow.warehouse.ui.theme.Verde700
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,15 +62,19 @@ fun ProductosListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Productos") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { mostrarFormCrear = true }) {
+            FloatingActionButton(
+                onClick = { mostrarFormCrear = true },
+                containerColor = Verde700,
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 2.dp
+                )
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "Nuevo producto")
             }
         }
@@ -106,7 +115,10 @@ fun ProductosListScreen(
                             )
                         }
                     } else {
-                        LazyColumn {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             items(productosFiltrados, key = { it.id }) { producto ->
                                 ProductoItem(
                                     producto = producto,
@@ -162,38 +174,57 @@ private fun ProductoItem(
     onClick: () -> Unit,
     onVerMovimientos: () -> Unit
 ) {
-    ListItem(
-        headlineContent = { Text(producto.nombre) },
-        supportingContent = {
-            Text(
-                buildString {
-                    append("Stock: ${producto.stockActual}")
-                    if (producto.stockMinimo > 0) append("  ·  Mín: ${producto.stockMinimo}")
-                    if (producto.sku != null) append("  ·  SKU: ${producto.sku}")
-                },
-                style = MaterialTheme.typography.bodySmall
+    val borderColor = when {
+        producto.stockActual == 0 -> Rojo600
+        producto.esBajoStock() -> Ambar500
+        else -> Verde400
+    }
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(color = borderColor)
             )
-        },
-        trailingContent = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (producto.esBajoStock()) {
-                    Icon(
-                        Icons.Filled.Warning,
-                        contentDescription = "Stock bajo",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-                IconButton(onClick = onVerMovimientos) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Ver movimientos"
-                    )
-                }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = producto.nombre,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = buildString {
+                        append("Stock: ${producto.stockActual}")
+                        if (producto.stockMinimo > 0) append("  ·  Mín: ${producto.stockMinimo}")
+                        if (producto.sku != null) append("  ·  SKU: ${producto.sku}")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        },
-        modifier = Modifier.clickable(onClick = onClick)
-    )
-    HorizontalDivider()
+            IconButton(onClick = onVerMovimientos) {
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Ver movimientos",
+                    tint = Verde700
+                )
+            }
+        }
+    }
 }
 
 @Composable

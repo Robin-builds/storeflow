@@ -5,17 +5,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.stockflow.warehouse.domain.model.AtributoTemplate
+import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.theme.Verde700
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,17 +38,21 @@ fun AtributosScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Atributos de productos") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if ((uiState as? AtributosUiState.Listo)?.esAdmin == true) {
-                FloatingActionButton(onClick = { mostrarDialogCrear = true }) {
+                FloatingActionButton(
+                    onClick = { mostrarDialogCrear = true },
+                    containerColor = Verde700,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 2.dp
+                    )
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Nuevo atributo")
                 }
             }

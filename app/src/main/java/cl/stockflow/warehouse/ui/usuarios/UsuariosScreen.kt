@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.graphics.Color
+import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.theme.Verde700
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
@@ -38,17 +40,19 @@ fun UsuariosScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Usuarios") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { if (!operando) mostrarDialogRegistrar = true }
+                onClick = { if (!operando) mostrarDialogRegistrar = true },
+                containerColor = Verde700,
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 2.dp
+                )
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Registrar usuario")
             }

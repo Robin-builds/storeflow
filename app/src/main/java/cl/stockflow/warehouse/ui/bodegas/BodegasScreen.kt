@@ -5,7 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.graphics.Color
+import cl.stockflow.warehouse.ui.components.BackButton
+import cl.stockflow.warehouse.ui.theme.Verde700
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -41,17 +43,21 @@ fun BodegasScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Bodegas") },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                }
+                navigationIcon = { BackButton(onClick = onVolver) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if ((uiState as? BodegasUiState.Listo)?.esAdmin == true) {
-                FloatingActionButton(onClick = { mostrarDialogCrear = true }) {
+                FloatingActionButton(
+                    onClick = { mostrarDialogCrear = true },
+                    containerColor = Verde700,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 2.dp
+                    )
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Nueva bodega")
                 }
             }
