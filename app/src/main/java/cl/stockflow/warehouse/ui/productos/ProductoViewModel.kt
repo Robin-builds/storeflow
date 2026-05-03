@@ -61,7 +61,10 @@ class ProductoViewModel @Inject constructor(
         _todosLosProductos, _busqueda
     ) { lista, query ->
         if (query.isBlank()) lista
-        else lista.filter { it.nombre.contains(query, ignoreCase = true) }
+        else lista.filter {
+            it.nombre.contains(query, ignoreCase = true) ||
+            it.sku?.contains(query, ignoreCase = true) == true
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _templates = MutableStateFlow<List<AtributoTemplate>>(emptyList())
