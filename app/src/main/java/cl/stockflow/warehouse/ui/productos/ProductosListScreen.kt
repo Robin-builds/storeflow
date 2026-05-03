@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
@@ -64,6 +65,7 @@ fun ProductosListScreen(
     var mostrarFormCrear by remember { mutableStateOf(false) }
     var mostrarConfirmarEliminarMasivo by remember { mutableStateOf(false) }
     var mostrarTransferirDialog by remember { mutableStateOf(false) }
+    var mostrarScannerBusqueda by remember { mutableStateOf(false) }
 
     LaunchedEffect(formState) {
         if (formState is FormUiState.Guardado) {
@@ -168,16 +170,41 @@ fun ProductosListScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            OutlinedTextField(
-                value = busqueda,
-                onValueChange = viewModel::setBusqueda,
-                placeholder = { Text("Buscar producto...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                singleLine = true,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = busqueda,
+                    onValueChange = viewModel::setBusqueda,
+                    placeholder = { Text("Buscar por nombre o SKU...") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = if (busqueda.isNotBlank()) {
+                        { IconButton(onClick = { viewModel.setBusqueda("") }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Limpiar búsqueda")
+                        }}
+                    } else null,
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { mostrarScannerBusqueda = true }) {
+                    Icon(
+                        Icons.Filled.QrCodeScanner,
+                        contentDescription = "Escanear código",
+                        tint = Verde700
+                    )
+                }
+            }
+
+            if (mostrarScannerBusqueda) {
+                BarcodeScannerDialog(
+                    onBarcodeDetected = { valor -> viewModel.setBusqueda(valor) },
+                    onDismiss = { mostrarScannerBusqueda = false }
+                )
+            }
 
             when (val state = uiState) {
                 is ProductosUiState.Cargando -> {
