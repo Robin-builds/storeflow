@@ -199,6 +199,7 @@ FASE 7 (Pulido UI):                   ✅ Completa — validada en dispositivo f
 ESCANEO QR/Barcode (SKU):             ✅ Completa — validada en dispositivo físico
 SELECCIÓN MASIVA:                     ✅ Completa — validada en dispositivo físico
 COMPARTIR STOCK (WhatsApp/share):     ✅ Completa — validada en dispositivo físico
+BÚSQUEDA POR SKU/BARCODE:             ✅ Completa — validada en dispositivo físico
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 ```
 
@@ -206,7 +207,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `main`
-**Último commit:** merge: feat/share-stock → main — share inventory and low-stock alerts via system share
+**Último commit:** merge: feat/search-by-sku → main — search by SKU with scan button
 
 ---
 
@@ -340,6 +341,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | Escaneo QR/Barcode | escaneo QR ✅ código barras ✅ campo SKU se llena automático ✅ | ninguno |
 | Selección masiva | long-press ✅ eliminar masivo ✅ transferir entre bodegas ✅ | ninguno |
 | Compartir stock | inventario completo ✅ alertas bajo stock ✅ WhatsApp nativo ✅ | ninguno |
+| Búsqueda por SKU/barcode | filtro por nombre+SKU ✅ botón escaneo en barra ✅ limpiar con X ✅ | ninguno |
 
 ---
 
