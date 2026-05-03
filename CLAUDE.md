@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 10 completa (gestión de usuarios)
+**Última actualización:** Mayo 2026 — Fase 7 completa (pulido UI)
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                 # limpiar build
 
 **Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–10 completas. Siguiente: Fase 7 (Pulido UI).
+**Estado:** Fases 0–10 + Fase 7 completas. Próximo: QR/barcode, JWT refresh, o selección masiva.
 
 ---
 
@@ -187,7 +187,7 @@ FASE 4 (Alertas):                     ✅ Completa
 FASE 5A (Sync push):                  ✅ Completa — validada en dispositivo físico
 FASE 5B (Sync pull):                  ✅ Completa — validada en dispositivo físico (2 cuentas)
 FASE 6 (Multi-bodega + Roles):        ✅ Completa — validada en dispositivo físico
-FASE 7 (Pulido UI):                   ☐ Pendiente
+FASE 7 (Pulido UI):                   ✅ Completa — validada en dispositivo físico
 FASE 8 S1-S5 (Dom. rico + Atributos): ✅ Completa — 50 unit tests verdes
 FASE 9 S1 (Config. atributos UI):     ✅ Completa — validada en dispositivo físico
 FASE 9 S2 (Form. producto atributos): ✅ Completa — 4 unit tests verdes — validada
@@ -195,15 +195,15 @@ FASE 9 S3 (Sync push atributos):      ✅ Completa — validada en dispositivo f
 FASE 9 S4 (Pull atributos):           ✅ Completa — validada en 2 dispositivos (sync demostrado)
 FASE 10 S1 (Reg. usuario en empresa): ✅ Completa — Edge Function deployada + AuthRepository
 FASE 10 S2 (UsuariosScreen ADMIN):    ✅ Completa — validada en 2 dispositivos físicos
-FASE 7 (Pulido UI):                   ☐ Pendiente
+FASE 7 (Pulido UI):                   ✅ Completa — validada en dispositivo físico
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 ```
 
 **Tests unitarios acumulados:** 50/50 verdes
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
-**Rama activa:** `dev-rich-domain`
-**Último commit:** feat: Phase 10 S2 — UsuariosScreen for ADMIN user management
+**Rama activa:** `develop`
+**Último commit:** merge: Phase 7 UI polish into develop
 
 ---
 
@@ -332,6 +332,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 9 S2 Form. producto atributos | crear con atributos ✅ editar pre-llena ✅ obligatorio bloquea ✅ | ninguno |
 | 9 S3 Sync push atributos | template crea/elimina en Supabase ✅ valores producto sincronizan ✅ | ninguno |
 | 10 S2 UsuariosScreen | ADMIN registra OPERADOR ✅ OPERADOR login ✅ rol UI correcto ✅ cambiar rol ✅ eliminar ✅ | ninguno |
+| 7 Pulido UI | FABs ✅ cards productos ✅ botón circular chevron ✅ BackButton ✅ Dashboard ElevatedButton ✅ SegmentedButtonRow ✅ | ChevronRight no en core icons → reemplazado por KeyboardArrowRight |
 
 ---
 
