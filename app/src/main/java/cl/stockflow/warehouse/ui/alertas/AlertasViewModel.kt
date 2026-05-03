@@ -2,6 +2,7 @@ package cl.stockflow.warehouse.ui.alertas
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cl.stockflow.warehouse.data.repository.BodegaRepository
 import cl.stockflow.warehouse.data.repository.ProductoRepository
 import cl.stockflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,14 +19,19 @@ sealed class AlertasUiState {
 
 @HiltViewModel
 class AlertasViewModel @Inject constructor(
-    private val repository: ProductoRepository
+    private val repository: ProductoRepository,
+    private val bodegaRepository: BodegaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AlertasUiState>(AlertasUiState.Cargando)
     val uiState: StateFlow<AlertasUiState> = _uiState.asStateFlow()
 
+    private val _bodegaNombre = MutableStateFlow("")
+    val bodegaNombre: StateFlow<String> = _bodegaNombre.asStateFlow()
+
     init {
         viewModelScope.launch {
+            _bodegaNombre.value = bodegaRepository.obtenerBodegaActiva()?.nombre ?: ""
             val ctx = repository.obtenerContexto()
             if (ctx == null) {
                 _uiState.value = AlertasUiState.Listo(emptyList())
