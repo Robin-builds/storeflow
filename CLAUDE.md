@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Fase 7 completa (pulido UI)
+**Última actualización:** Mayo 2026 — Dashboard web MVP funcional
 
 ---
 
@@ -201,6 +201,7 @@ SELECCIÓN MASIVA:                     ✅ Completa — validada en dispositivo 
 COMPARTIR STOCK (WhatsApp/share):     ✅ Completa — validada en dispositivo físico
 BÚSQUEDA POR SKU/BARCODE:             ✅ Completa — validada en dispositivo físico
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
+DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
 ```
 
 **Tests unitarios acumulados:** 50/50 verdes
@@ -208,6 +209,11 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 
 **Rama activa:** `main`
 **Último commit:** merge: feat/search-by-sku → main — search by SKU with scan button
+
+**Proyecto web:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
+→ Stack: Next.js 16 · TypeScript · Tailwind · @supabase/ssr
+→ Páginas: login, dashboard (resumen), productos, movimientos
+→ Pendiente: filtros, paginación, exportar CSV, responsive mobile
 
 ---
 
@@ -321,7 +327,7 @@ WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Met
 | 💬 Compartir stock | ✅ implementado | Intent ACTION_SEND desde AlertasScreen e inventario completo; sin API Meta |
 | 💬 WhatsApp notif. push | requiere aprobación Meta | Edge Function en Supabase; cero impacto código Android |
 | 🗂️ Selección masiva | ✅ implementado | Long-press → modo selección; eliminar masivo + transferir entre bodegas |
-| 🌐 Dashboard web | Sync completo | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional |
+| 🌐 Dashboard web | 🚧 En progreso | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional. Repo: `C:\Users\Windows 11\Documents\dev\stockflow-web` |
 | 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
 
 ---
