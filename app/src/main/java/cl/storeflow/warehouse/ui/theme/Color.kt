@@ -33,3 +33,29 @@ val ExitoFondo = Verde50
 
 val Azul600  = Color(0xFF185FA5)
 val Azul50   = Color(0xFFE6F1FB)
+
+// ─── OSCURO (🌙 confort nocturno) ─────────────────────────────────────────────
+val OscuroBg          = Color(0xFF1E2030)
+val OscuroSurface     = Color(0xFF262840)
+val OscuroOnBg        = Color(0xFFCDD3E0)
+val OscuroPrimary     = Color(0xFF4DB896)
+val OscuroPrimaryC    = Color(0xFF1A4A38)
+val OscuroVariant     = Color(0xFF2E3050)
+val OscuroOnVariant   = Color(0xFFA0A8BC)
+val OscuroOutline     = Color(0xFF505870)
+val OscuroError       = Color(0xFFCF6679)
+val OscuroErrorC      = Color(0xFF3A1520)
+val OscuroOnErrorC    = Color(0xFFF2A5B0)
+
+// ─── OSCURO++ (🌑 alto contraste moderado) ────────────────────────────────────
+val OscuroPlusBg        = Color(0xFF10121A)
+val OscuroPlusSurface   = Color(0xFF181C28)
+val OscuroPlusOnBg      = Color(0xFFE2E6EF)
+val OscuroPlusPrimary   = Color(0xFF5DCAA5)
+val OscuroPlusPrimaryC  = Color(0xFF0F3A2C)
+val OscuroPlusVariant   = Color(0xFF1E2232)
+val OscuroPlusOnVariant = Color(0xFF8895B0)
+val OscuroPlusOutline   = Color(0xFF404868)
+val OscuroPlusError     = Color(0xFFF28B82)
+val OscuroPlusErrorC    = Color(0xFF2D0F14)
+val OscuroPlusOnErrorC  = Color(0xFFF9BCBE)

@@ -1,4 +1,4 @@
-﻿package cl.storeflow.warehouse
+package cl.storeflow.warehouse
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -25,6 +25,7 @@ import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
 import cl.storeflow.warehouse.ui.productos.ProductosListScreen
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
+import cl.storeflow.warehouse.ui.theme.TemaViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 private object Rutas {
@@ -46,7 +47,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            StoreFlowTheme {
+            val temaViewModel: TemaViewModel = hiltViewModel()
+            val tema by temaViewModel.tema.collectAsState()
+
+            StoreFlowTheme(tema = tema) {
                 Surface(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = hiltViewModel()
@@ -93,6 +97,8 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Rutas.DASHBOARD) {
                             DashboardScreen(
+                                tema = tema,
+                                onCambiarTema = temaViewModel::avanzar,
                                 onLogout = authViewModel::logout,
                                 onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) },
                                 onIrAAlerta = { navController.navigate(Rutas.ALERTAS) },
