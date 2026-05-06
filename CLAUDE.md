@@ -21,7 +21,7 @@ gradlew.bat clean                 # limpiar build
 
 ## 🎯 PROYECTO
 
-**Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
+**Nombre:** StoreFlow (package: `cl.storeflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
 **Estado:** Fases 0–10 + Fase 7 completas. JWT refresh implementado. Próximo: QR/barcode o selección masiva.
 
@@ -200,6 +200,8 @@ ESCANEO QR/Barcode (SKU):             ✅ Completa — validada en dispositivo f
 SELECCIÓN MASIVA:                     ✅ Completa — validada en dispositivo físico
 COMPARTIR STOCK (WhatsApp/share):     ✅ Completa — validada en dispositivo físico
 BÚSQUEDA POR SKU/BARCODE:             ✅ Completa — validada en dispositivo físico
+RENOMBRADO StockFlow→StoreFlow:       ✅ Completo — package cl.storeflow.warehouse
+SISTEMA DE 3 TEMAS (☀️🌙🌑):         ✅ Completo — selector cíclico en Dashboard, persiste en SharedPreferences
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
 ```
