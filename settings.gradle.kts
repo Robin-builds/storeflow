@@ -1,4 +1,4 @@
-pluginManagement {
+﻿pluginManagement {
     repositories {
         google {
             content {
@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "StockFlow.v.0.0"
+rootProject.name = "StoreFlow.v.0.0"
 include(":app")
  
