@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -8,13 +8,13 @@ plugins {
 }
 
 android {
-    namespace = "cl.stockflow.warehouse"
+    namespace = "cl.storeflow.warehouse"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "cl.stockflow.warehouse"
+        applicationId = "cl.storeflow.warehouse"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
