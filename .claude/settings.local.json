@@ -23,7 +23,12 @@
       "Read(//mnt/c/Users/Windows 11/AndroidStudioProjects/**)",
       "Bash(cmd.exe /c \"gradlew.bat clean assembleDebug 2>&1\")",
       "PowerShell(& \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" devices)",
-      "PowerShell(& \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" install -r \"C:\\\\Users\\\\Windows 11\\\\AndroidStudioProjects\\\\StockFlowv00\\\\app\\\\build\\\\outputs\\\\apk\\\\debug\\\\app-debug.apk\" 2>&1)"
+      "PowerShell(& \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\platform-tools\\\\adb.exe\" install -r \"C:\\\\Users\\\\Windows 11\\\\AndroidStudioProjects\\\\StockFlowv00\\\\app\\\\build\\\\outputs\\\\apk\\\\debug\\\\app-debug.apk\" 2>&1)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Windows 11\\\\AndroidStudioProjects\\\\StockFlowv00\\\\app\\\\src\\\\main\\\\res\\\\values\" -File)",
+      "Bash(Select-Object Name)",
+      "Bash(npm run *)"
     ]
   }
 }

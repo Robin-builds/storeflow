@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -8,13 +8,13 @@ plugins {
 }
 
 android {
-    namespace = "cl.stockflow.warehouse"
+    namespace = "cl.storeflow.warehouse"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "cl.stockflow.warehouse"
+        applicationId = "cl.storeflow.warehouse"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation("androidx.compose.ui:ui-text-google-fonts")
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -76,6 +77,12 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.compiler)
     ksp(libs.hilt.androidx.compiler)
+    implementation(libs.datastore.preferences)
+    implementation(libs.mlkit.barcode)
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)

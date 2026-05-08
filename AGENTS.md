@@ -1,7 +1,7 @@
 
-# 🤖 CLAUDE.md — Contexto Persistente del Proyecto
+# 🤖 AGENTS.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Dashboard web MVP funcional
+**Última actualización:** Mayo 2026 — Fase 10 completa (gestión de usuarios)
 
 ---
 
@@ -21,9 +21,9 @@ gradlew.bat clean                 # limpiar build
 
 ## 🎯 PROYECTO
 
-**Nombre:** StoreFlow (package: `cl.storeflow.warehouse`)
+**Nombre:** StockFlow (package: `cl.stockflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–10 + Fase 7 completas. JWT refresh implementado. Próximo: QR/barcode o selección masiva.
+**Estado:** Fases 0–10 completas. Siguiente: Fase 7 (Pulido UI).
 
 ---
 
@@ -187,7 +187,7 @@ FASE 4 (Alertas):                     ✅ Completa
 FASE 5A (Sync push):                  ✅ Completa — validada en dispositivo físico
 FASE 5B (Sync pull):                  ✅ Completa — validada en dispositivo físico (2 cuentas)
 FASE 6 (Multi-bodega + Roles):        ✅ Completa — validada en dispositivo físico
-FASE 7 (Pulido UI):                   ✅ Completa — validada en dispositivo físico
+FASE 7 (Pulido UI):                   ☐ Pendiente
 FASE 8 S1-S5 (Dom. rico + Atributos): ✅ Completa — 50 unit tests verdes
 FASE 9 S1 (Config. atributos UI):     ✅ Completa — validada en dispositivo físico
 FASE 9 S2 (Form. producto atributos): ✅ Completa — 4 unit tests verdes — validada
@@ -195,27 +195,15 @@ FASE 9 S3 (Sync push atributos):      ✅ Completa — validada en dispositivo f
 FASE 9 S4 (Pull atributos):           ✅ Completa — validada en 2 dispositivos (sync demostrado)
 FASE 10 S1 (Reg. usuario en empresa): ✅ Completa — Edge Function deployada + AuthRepository
 FASE 10 S2 (UsuariosScreen ADMIN):    ✅ Completa — validada en 2 dispositivos físicos
-FASE 7 (Pulido UI):                   ✅ Completa — validada en dispositivo físico
-ESCANEO QR/Barcode (SKU):             ✅ Completa — validada en dispositivo físico
-SELECCIÓN MASIVA:                     ✅ Completa — validada en dispositivo físico
-COMPARTIR STOCK (WhatsApp/share):     ✅ Completa — validada en dispositivo físico
-BÚSQUEDA POR SKU/BARCODE:             ✅ Completa — validada en dispositivo físico
-RENOMBRADO StockFlow→StoreFlow:       ✅ Completo — package cl.storeflow.warehouse
-SISTEMA DE 3 TEMAS (☀️🌙🌑):         ✅ Completo — selector cíclico en Dashboard, persiste en SharedPreferences
+FASE 7 (Pulido UI):                   ☐ Pendiente
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
-DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
 ```
 
 **Tests unitarios acumulados:** 50/50 verdes
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
-**Rama activa:** `main`
-**Último commit:** merge: feat/search-by-sku → main — search by SKU with scan button
-
-**Proyecto web:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
-→ Stack: Next.js 16 · TypeScript · Tailwind · @supabase/ssr
-→ Páginas: login, dashboard (resumen), productos, movimientos
-→ Pendiente: filtros, paginación, exportar CSV, responsive mobile
+**Rama activa:** `dev-rich-domain`
+**Último commit:** feat: Phase 10 S2 — UsuariosScreen for ADMIN user management
 
 ---
 
@@ -325,12 +313,11 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 
 | Feature | Prerequisito | Notas clave |
 |---|---|---|
-| 📷 Escaneo QR/barcode | ✅ implementado | ML Kit Barcode + CameraX; botón "Escanear" en campo SKU del form de producto |
-| 💬 Compartir stock | ✅ implementado | Intent ACTION_SEND desde AlertasScreen e inventario completo; sin API Meta |
-| 💬 WhatsApp notif. push | requiere aprobación Meta | Edge Function en Supabase; cero impacto código Android |
-| 🗂️ Selección masiva | ✅ implementado | Long-press → modo selección; eliminar masivo + transferir entre bodegas |
-| 🌐 Dashboard web | 🚧 En progreso | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional. Repo: `C:\Users\Windows 11\Documents\dev\stockflow-web` |
-| 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
+| 📷 Escaneo QR/barcode | ninguno | ML Kit Barcode; integra en campo SKU del form de producto |
+| 💬 WhatsApp notif. | Sync + aprobación Meta | Edge Function en Supabase; cero impacto código Android |
+| 🗂️ Selección masiva | ninguno | Multi-select en `ProductosListScreen`; útil para transferencias entre bodegas |
+| 🌐 Dashboard web | Sync completo | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional |
+| 🔄 JWT refresh | deuda técnica | Refresh token con cliente Supabase; actualmente logout forzado al expirar |
 
 ---
 
@@ -345,15 +332,10 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | 9 S2 Form. producto atributos | crear con atributos ✅ editar pre-llena ✅ obligatorio bloquea ✅ | ninguno |
 | 9 S3 Sync push atributos | template crea/elimina en Supabase ✅ valores producto sincronizan ✅ | ninguno |
 | 10 S2 UsuariosScreen | ADMIN registra OPERADOR ✅ OPERADOR login ✅ rol UI correcto ✅ cambiar rol ✅ eliminar ✅ | ninguno |
-| 7 Pulido UI | FABs ✅ cards productos ✅ botón circular chevron ✅ BackButton ✅ Dashboard ElevatedButton ✅ SegmentedButtonRow ✅ | ChevronRight no en core icons → reemplazado por KeyboardArrowRight |
-| Escaneo QR/Barcode | escaneo QR ✅ código barras ✅ campo SKU se llena automático ✅ | ninguno |
-| Selección masiva | long-press ✅ eliminar masivo ✅ transferir entre bodegas ✅ | ninguno |
-| Compartir stock | inventario completo ✅ alertas bajo stock ✅ WhatsApp nativo ✅ | ninguno |
-| Búsqueda por SKU/barcode | filtro por nombre+SKU ✅ botón escaneo en barra ✅ limpiar con X ✅ | ninguno |
 
 ---
 
-## ✅ INSTRUCCIONES PARA CLAUDE
+## ✅ INSTRUCCIONES PARA Codex
 
 1. **No asumir** nada que no esté en este archivo o en los contratos pegados
 2. **Un archivo por sesión** — si el scope crece, parar y preguntar
