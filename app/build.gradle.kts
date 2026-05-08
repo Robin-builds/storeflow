@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.hilt.work)
     ksp(libs.hilt.compiler)
     ksp(libs.hilt.androidx.compiler)
+    implementation(libs.datastore.preferences)
     implementation(libs.mlkit.barcode)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)

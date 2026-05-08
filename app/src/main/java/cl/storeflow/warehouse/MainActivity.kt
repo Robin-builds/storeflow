@@ -20,6 +20,7 @@ import cl.storeflow.warehouse.ui.auth.RegistroScreen
 import cl.storeflow.warehouse.ui.alertas.AlertasScreen
 import cl.storeflow.warehouse.ui.atributos.AtributosScreen
 import cl.storeflow.warehouse.ui.bodegas.BodegasScreen
+import cl.storeflow.warehouse.ui.configuracion.ConfiguracionScreen
 import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
 import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
@@ -37,6 +38,7 @@ private object Rutas {
     const val BODEGAS = "bodegas"
     const val ATRIBUTOS = "atributos"
     const val USUARIOS = "usuarios"
+    const val CONFIGURACION = "configuracion"
     const val MOVIMIENTOS = "movimientos/{productoId}"
     fun movimientos(productoId: String) = "movimientos/$productoId"
 }
@@ -97,14 +99,20 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Rutas.DASHBOARD) {
                             DashboardScreen(
-                                tema = tema,
-                                onCambiarTema = temaViewModel::avanzar,
+                                onIrAConfiguracion = { navController.navigate(Rutas.CONFIGURACION) },
                                 onLogout = authViewModel::logout,
                                 onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) },
                                 onIrAAlerta = { navController.navigate(Rutas.ALERTAS) },
                                 onIrABodegas = { navController.navigate(Rutas.BODEGAS) },
                                 onIrAAtributos = { navController.navigate(Rutas.ATRIBUTOS) },
                                 onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) }
+                            )
+                        }
+                        composable(Rutas.CONFIGURACION) {
+                            ConfiguracionScreen(
+                                tema = tema,
+                                onSetTema = temaViewModel::setTema,
+                                onVolver = { navController.popBackStack() }
                             )
                         }
                         composable(Rutas.ALERTAS) {
