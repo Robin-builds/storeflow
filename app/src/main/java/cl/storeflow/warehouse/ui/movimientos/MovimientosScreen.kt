@@ -5,9 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import cl.storeflow.warehouse.ui.components.BackButton
-import cl.storeflow.warehouse.ui.theme.Verde400
-import cl.storeflow.warehouse.ui.theme.Verde700
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +18,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.TipoMovimiento
 import cl.storeflow.warehouse.domain.model.Producto
+import cl.storeflow.warehouse.ui.components.BackButton
+import cl.storeflow.warehouse.ui.theme.Verde400
+import cl.storeflow.warehouse.ui.theme.Verde700
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -262,7 +262,6 @@ private fun MovimientoDialog(
     var cantidad by remember { mutableStateOf("") }
     var nota by remember { mutableStateOf("") }
 
-    val esAjuste = tipo == TipoMovimiento.AJUSTE
     val cargando = formState is MovFormState.Cargando
     val errorMensaje = (formState as? MovFormState.Error)?.mensaje
 
@@ -278,6 +277,7 @@ private fun MovimientoDialog(
             "No puede superar el stock disponible ($stockActual)"
         else -> null
     }
+    val puedeGuardar = cantidadValida && notaValida
 
     AlertDialog(
         onDismissRequest = { if (!cargando) onDismiss() },
@@ -299,6 +299,7 @@ private fun MovimientoDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 OutlinedTextField(
                     value = nota,
                     onValueChange = { nota = it },
@@ -340,7 +341,7 @@ private fun MovimientoDialog(
             } else {
                 Button(
                     onClick = { onRegistrar(cantidadInt ?: 0, nota.trim().ifBlank { null }) },
-                    enabled = cantidadValida && notaValida
+                    enabled = puedeGuardar
                 ) { Text("Guardar") }
             }
         },
@@ -348,4 +349,5 @@ private fun MovimientoDialog(
             TextButton(onClick = onDismiss, enabled = !cargando) { Text("Cancelar") }
         }
     )
+
 }

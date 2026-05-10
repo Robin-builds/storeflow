@@ -100,7 +100,6 @@ class MainActivity : ComponentActivity() {
                         composable(Rutas.DASHBOARD) {
                             DashboardScreen(
                                 onIrAConfiguracion = { navController.navigate(Rutas.CONFIGURACION) },
-                                onLogout = authViewModel::logout,
                                 onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) },
                                 onIrAAlerta = { navController.navigate(Rutas.ALERTAS) },
                                 onIrABodegas = { navController.navigate(Rutas.BODEGAS) },
@@ -112,7 +111,8 @@ class MainActivity : ComponentActivity() {
                             ConfiguracionScreen(
                                 tema = tema,
                                 onSetTema = temaViewModel::setTema,
-                                onVolver = { navController.popBackStack() }
+                                onVolver = { navController.popBackStack() },
+                                onLogout = authViewModel::logout
                             )
                         }
                         composable(Rutas.ALERTAS) {
