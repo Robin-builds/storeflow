@@ -21,7 +21,7 @@ import cl.storeflow.warehouse.data.local.entity.*
         AtributoTemplateEntity::class,
         ProductoAtributoEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -100,6 +100,12 @@ abstract class AppDatabase : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_producto_atributos_producto_id ON producto_atributos (producto_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_producto_atributos_template_id ON producto_atributos (template_id)")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE auth_sessions ADD COLUMN correo TEXT NOT NULL DEFAULT ''")
             }
         }
 

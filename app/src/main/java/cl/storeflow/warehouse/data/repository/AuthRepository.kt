@@ -89,7 +89,8 @@ class AuthRepository @Inject constructor(
                     empresa_id = empresa_id,
                     bodega_id = bodega_id,
                     rol = rol,
-                    expires_at = Date(expires_ms)
+                    expires_at = Date(expires_ms),
+                    correo = correo.trim()
                 )
             )
             Timber.d("AUTH: sesion guardada en Room OK")
@@ -194,7 +195,8 @@ class AuthRepository @Inject constructor(
                     empresa_id = empresa_id,
                     bodega_id = bodega_id,
                     rol = Rol.ADMIN.name,   // registrar_empresa siempre crea ADMIN
-                    expires_at = Date(expires_ms)
+                    expires_at = Date(expires_ms),
+                    correo = correo.trim()
                 )
             )
 

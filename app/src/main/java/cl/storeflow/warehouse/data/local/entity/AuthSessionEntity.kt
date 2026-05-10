@@ -14,6 +14,7 @@ data class AuthSessionEntity(
     val bodega_id: String = "",
     val rol: String = "ADMIN",
     val expires_at: Date,
+    val correo: String = "",
     val created_at: Date = Date(),
     val updated_at: Date = Date()
 )

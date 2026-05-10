@@ -106,6 +106,7 @@ di/             → DatabaseModule
 - `Usuario.rol` se lee de `AuthSessionEntity` (login value) — no de `UsuarioEntity` (pull value, puede divergir)
 - MVP de atributos: solo tipo `TEXT` — `NUMBER` y `DATE` existen en enum pero no en UI
 - `UsuarioRepository.eliminar/cambiarRol` usan REST directo (Ktor PATCH/DELETE) sin pasar por SyncWorker — operaciones síncronas críticas que no admiten cola offline
+- `AuthUiState.SesionCerrada` es un estado distinto de `Idle` — `logout()` emite `SesionCerrada`; `Idle` lo usan `limpiarError()` y `registrarUsuarioEnEmpresa()`. **Bug original:** `Idle` solo redirigía al login si la ruta activa era `DASHBOARD`; al cerrar sesión desde `ConfiguracionScreen` la ruta era `"configuracion"` → condición falsa → nunca navegaba al login
 
 ---
 
@@ -200,6 +201,7 @@ ESCANEO QR/Barcode (SKU):             ✅ Completa — validada en dispositivo f
 SELECCIÓN MASIVA:                     ✅ Completa — validada en dispositivo físico
 COMPARTIR STOCK (WhatsApp/share):     ✅ Completa — validada en dispositivo físico
 BÚSQUEDA POR SKU/BARCODE:             ✅ Completa — validada en dispositivo físico
+LOGIN UX TECLADO:                     ✅ Completo — form sobre centro + imePadding — validado en dispositivo físico
 RENOMBRADO StockFlow→StoreFlow:       ✅ Completo — package cl.storeflow.warehouse
 SISTEMA DE 3 TEMAS (☀️🌙🌑):         ✅ Completo — selector cíclico en Dashboard, persiste en SharedPreferences
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
@@ -209,8 +211,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 **Tests unitarios acumulados:** 50/50 verdes
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
-**Rama activa:** `main`
-**Último commit:** merge: feat/search-by-sku → main — search by SKU with scan button
+**Rama activa:** `develop`
+**Último commit:** merge: feat/login-ux-keyboard → develop — login form shifted above center + imePadding for keyboard UX
 
 **Proyecto web:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
 → Stack: Next.js 16 · TypeScript · Tailwind · @supabase/ssr
@@ -331,6 +333,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | 🗂️ Selección masiva | ✅ implementado | Long-press → modo selección; eliminar masivo + transferir entre bodegas |
 | 🌐 Dashboard web | 🚧 En progreso | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional. Repo: `C:\Users\Windows 11\Documents\dev\stockflow-web` |
 | 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
+| 📊 Card alertas en Dashboard | pendiente | Tarjeta en DashboardScreen con los 3 productos de menor stock + 3 sin movimientos en los últimos 7 días; datos desde Room sin llamada de red extra |
+| 📋 Historial global de movimientos | pendiente | Pantalla/tarjeta con todos los movimientos de productos ordenados del más nuevo al más antiguo; búsqueda simple por nombre de producto (sin barcode); soporte para ordenar |
 
 ---
 
@@ -350,6 +354,9 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | Selección masiva | long-press ✅ eliminar masivo ✅ transferir entre bodegas ✅ | ninguno |
 | Compartir stock | inventario completo ✅ alertas bajo stock ✅ WhatsApp nativo ✅ | ninguno |
 | Búsqueda por SKU/barcode | filtro por nombre+SKU ✅ botón escaneo en barra ✅ limpiar con X ✅ | ninguno |
+| Login UX teclado | form sobre centro ✅ imePadding ✅ | ninguno |
+| Fix logout navegación | cerrar sesión desde ConfiguracionScreen ✅ | ninguno |
+| Nombre usuario en Dashboard | "Hola, Nombre" desde correo@x.cl ✅ migración Room v7 ✅ | ninguno |
 
 ---
 

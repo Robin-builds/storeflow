@@ -35,10 +35,12 @@ fun DashboardScreen(
     bodegaViewModel: BodegaViewModel = hiltViewModel(),
     productoViewModel: ProductoViewModel = hiltViewModel(),
     atributoViewModel: AtributoViewModel = hiltViewModel(),
-    usuariosViewModel: UsuariosViewModel = hiltViewModel()
+    usuariosViewModel: UsuariosViewModel = hiltViewModel(),
+    dashboardViewModel: DashboardViewModel = hiltViewModel()
 ) {
     val alertasState by alertasViewModel.uiState.collectAsState()
     val bodegasState by bodegaViewModel.uiState.collectAsState()
+    val nombreUsuario by dashboardViewModel.nombreUsuario.collectAsState()
     val productosState by productoViewModel.uiState.collectAsState()
     val atributosState by atributoViewModel.uiState.collectAsState()
     val usuariosState by usuariosViewModel.uiState.collectAsState()
@@ -66,6 +68,14 @@ fun DashboardScreen(
         ) {
             Text("StoreFlow", style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(4.dp))
+            if (nombreUsuario.isNotEmpty()) {
+                Text(
+                    text = "Hola, $nombreUsuario",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(2.dp))
+            }
             Text(
                 text = bodegaActiva?.nombre ?: "Cargando...",
                 style = MaterialTheme.typography.bodyMedium,
