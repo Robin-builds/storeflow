@@ -163,6 +163,11 @@ class ProductoViewModel @Inject constructor(
 
     fun setBusqueda(query: String) { _busqueda.value = query }
 
+    private fun skuYaExiste(sku: String, excludeId: String? = null): Boolean =
+        _todosLosProductos.value.any {
+            it.sku?.trim()?.equals(sku.trim(), ignoreCase = true) == true && it.id != excludeId
+        }
+
     fun crear(
         nombre: String,
         descripcion: String?,
@@ -174,6 +179,10 @@ class ProductoViewModel @Inject constructor(
     ) {
         if (stock_inicial > 0 && stock_inicial < stock_minimo) {
             _formState.value = FormUiState.Error("El stock inicial no puede ser menor al stock mínimo ($stock_minimo)")
+            return
+        }
+        if (!sku.isNullOrBlank() && skuYaExiste(sku)) {
+            _formState.value = FormUiState.Error("Ya existe un producto con el SKU \"$sku\"")
             return
         }
         viewModelScope.launch {
@@ -193,6 +202,10 @@ class ProductoViewModel @Inject constructor(
         stock_minimo: Int,
         atributos: Map<String, String> = emptyMap()
     ) {
+        if (!sku.isNullOrBlank() && skuYaExiste(sku, excludeId = producto.id)) {
+            _formState.value = FormUiState.Error("Ya existe un producto con el SKU \"$sku\"")
+            return
+        }
         viewModelScope.launch {
             _formState.value = FormUiState.Cargando
             val entity = ProductoEntity(

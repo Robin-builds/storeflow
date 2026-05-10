@@ -2,9 +2,7 @@ package cl.storeflow.warehouse.ui.dashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -19,13 +17,9 @@ import cl.storeflow.warehouse.ui.alertas.AlertasUiState
 import cl.storeflow.warehouse.ui.alertas.AlertasViewModel
 import cl.storeflow.warehouse.ui.bodegas.BodegaViewModel
 import cl.storeflow.warehouse.ui.bodegas.BodegasUiState
-import cl.storeflow.warehouse.ui.theme.TemaApp
-
 @Composable
 fun DashboardScreen(
-    tema: TemaApp,
-    onCambiarTema: () -> Unit,
-    onLogout: () -> Unit,
+    onIrAConfiguracion: () -> Unit,
     onIrAProductos: () -> Unit,
     onIrAAlerta: () -> Unit,
     onIrABodegas: () -> Unit,
@@ -144,30 +138,17 @@ fun DashboardScreen(
                     Text("Gestionar usuarios")
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-                Text("Cerrar sesión", color = MaterialTheme.colorScheme.error)
-            }
         }
 
-        // Botón "volumen" de tema — top-right corner
         IconButton(
-            onClick = onCambiarTema,
+            onClick = onIrAConfiguracion,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 48.dp, end = 12.dp)
         ) {
             Icon(
-                imageVector = when (tema) {
-                    TemaApp.CLARO       -> Icons.Filled.WbSunny
-                    TemaApp.OSCURO      -> Icons.Filled.NightsStay
-                    TemaApp.OSCURO_PLUS -> Icons.Filled.DarkMode
-                },
-                contentDescription = when (tema) {
-                    TemaApp.CLARO       -> "Modo claro"
-                    TemaApp.OSCURO      -> "Modo oscuro"
-                    TemaApp.OSCURO_PLUS -> "Modo oscuro máximo"
-                },
+                imageVector = Icons.Filled.Settings,
+                contentDescription = "Configuración",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

@@ -1,6 +1,7 @@
 package cl.storeflow.warehouse.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -96,18 +97,25 @@ fun StoreFlowTheme(
     tema: TemaApp = TemaApp.CLARO,
     content: @Composable () -> Unit
 ) {
+    val systemDark = isSystemInDarkTheme()
+    val esOscuro = when (tema) {
+        TemaApp.CLARO       -> false
+        TemaApp.OSCURO      -> true
+        TemaApp.OSCURO_PLUS -> true
+        TemaApp.AUTO        -> systemDark
+    }
     val colorScheme = when (tema) {
         TemaApp.CLARO       -> LightColorScheme
         TemaApp.OSCURO      -> OscuroColorScheme
         TemaApp.OSCURO_PLUS -> OscuroPlusColorScheme
+        TemaApp.AUTO        -> if (systemDark) OscuroColorScheme else LightColorScheme
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                tema == TemaApp.CLARO
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !esOscuro
         }
     }
 

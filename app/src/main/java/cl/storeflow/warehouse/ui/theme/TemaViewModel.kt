@@ -1,11 +1,13 @@
 package cl.storeflow.warehouse.ui.theme
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.repository.TemaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -13,16 +15,14 @@ class TemaViewModel @Inject constructor(
     private val temaRepository: TemaRepository
 ) : ViewModel() {
 
-    private val _tema = MutableStateFlow(temaRepository.getTema())
-    val tema: StateFlow<TemaApp> = _tema.asStateFlow()
+    val tema: StateFlow<TemaApp> = temaRepository.temaFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TemaApp.CLARO)
 
-    fun avanzar() {
-        val siguiente = when (_tema.value) {
-            TemaApp.CLARO       -> TemaApp.OSCURO
-            TemaApp.OSCURO      -> TemaApp.OSCURO_PLUS
-            TemaApp.OSCURO_PLUS -> TemaApp.CLARO
-        }
-        _tema.value = siguiente
-        temaRepository.setTema(siguiente)
+    init {
+        viewModelScope.launch { temaRepository.migrarSiNecesario() }
+    }
+
+    fun setTema(tema: TemaApp) {
+        viewModelScope.launch { temaRepository.setTema(tema) }
     }
 }
