@@ -36,10 +36,12 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.weight(0.38f))
+
         Text(
             text = "StoreFlow",
             style = MaterialTheme.typography.headlineLarge
@@ -141,5 +143,7 @@ fun LoginScreen(
         ) {
             Text("¿No tienes cuenta? Registrar empresa")
         }
+
+        Spacer(modifier = Modifier.weight(0.62f))
     }
 }
