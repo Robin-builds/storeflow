@@ -20,7 +20,6 @@ import cl.storeflow.warehouse.ui.bodegas.BodegasUiState
 @Composable
 fun DashboardScreen(
     onIrAConfiguracion: () -> Unit,
-    onLogout: () -> Unit,
     onIrAProductos: () -> Unit,
     onIrAAlerta: () -> Unit,
     onIrABodegas: () -> Unit,
@@ -138,10 +137,6 @@ fun DashboardScreen(
                 ) {
                     Text("Gestionar usuarios")
                 }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-                Text("Cerrar sesión", color = MaterialTheme.colorScheme.error)
             }
         }
 
