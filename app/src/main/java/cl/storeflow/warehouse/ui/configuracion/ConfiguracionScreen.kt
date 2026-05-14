@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.WbSunny
@@ -23,7 +24,8 @@ fun ConfiguracionScreen(
     tema: TemaApp,
     onSetTema: (TemaApp) -> Unit,
     onVolver: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onIrAReportarError: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -68,6 +70,45 @@ fun ConfiguracionScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Soporte",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+            )
+
+            Card(
+                onClick = onIrAReportarError,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.BugReport,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Reportar problema",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "Enviar capturas y descripción al soporte",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Card(
                 onClick = onLogout,

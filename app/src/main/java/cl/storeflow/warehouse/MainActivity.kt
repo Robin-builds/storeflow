@@ -25,6 +25,7 @@ import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
 import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
 import cl.storeflow.warehouse.ui.productos.ProductosListScreen
+import cl.storeflow.warehouse.ui.reportar.ReportarErrorScreen
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import cl.storeflow.warehouse.ui.theme.TemaViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -40,6 +41,7 @@ private object Rutas {
     const val USUARIOS = "usuarios"
     const val CONFIGURACION = "configuracion"
     const val MOVIMIENTOS = "movimientos/{productoId}"
+    const val REPORTAR_ERROR = "reportar_error"
     fun movimientos(productoId: String) = "movimientos/$productoId"
 }
 
@@ -65,12 +67,9 @@ class MainActivity : ComponentActivity() {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }
-                            is AuthUiState.Idle -> {
-                                val destino_actual = navController.currentDestination?.route
-                                if (destino_actual == Rutas.DASHBOARD) {
-                                    navController.navigate(Rutas.LOGIN) {
-                                        popUpTo(0) { inclusive = true }
-                                    }
+                            is AuthUiState.SesionCerrada -> {
+                                navController.navigate(Rutas.LOGIN) {
+                                    popUpTo(0) { inclusive = true }
                                 }
                             }
                             else -> Unit
@@ -112,8 +111,12 @@ class MainActivity : ComponentActivity() {
                                 tema = tema,
                                 onSetTema = temaViewModel::setTema,
                                 onVolver = { navController.popBackStack() },
-                                onLogout = authViewModel::logout
+                                onLogout = authViewModel::logout,
+                                onIrAReportarError = { navController.navigate(Rutas.REPORTAR_ERROR) }
                             )
+                        }
+                        composable(Rutas.REPORTAR_ERROR) {
+                            ReportarErrorScreen(onVolver = { navController.popBackStack() })
                         }
                         composable(Rutas.ALERTAS) {
                             AlertasScreen(
