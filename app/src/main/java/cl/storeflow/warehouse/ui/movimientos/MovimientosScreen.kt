@@ -202,7 +202,9 @@ private fun ContenidoMovimientos(
         } else {
             LazyColumn {
                 items(movimientos, key = { it.id }) { movimiento ->
-                    MovimientoItem(movimiento)
+                    Box(modifier = Modifier.animateItem()) {
+                        MovimientoItem(movimiento)
+                    }
                 }
             }
         }

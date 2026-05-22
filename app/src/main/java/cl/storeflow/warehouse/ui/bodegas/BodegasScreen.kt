@@ -87,14 +87,16 @@ fun BodegasScreen(
                             val puedeEliminar = state.esAdmin &&
                                     state.bodegas.size > 1 &&
                                     !bodega.esActiva
-                            BodegaItem(
-                                bodega = bodega,
-                                puedeEliminar = puedeEliminar,
-                                onSeleccionar = {
-                                    if (!bodega.esActiva) viewModel.cambiarBodegaActiva(bodega.id)
-                                },
-                                onEliminar = { bodegaAEliminar = bodega }
-                            )
+                            Box(modifier = Modifier.animateItem()) {
+                                BodegaItem(
+                                    bodega = bodega,
+                                    puedeEliminar = puedeEliminar,
+                                    onSeleccionar = {
+                                        if (!bodega.esActiva) viewModel.cambiarBodegaActiva(bodega.id)
+                                    },
+                                    onEliminar = { bodegaAEliminar = bodega }
+                                )
+                            }
                         }
                     }
                 }

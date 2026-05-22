@@ -1,8 +1,17 @@
 package cl.storeflow.warehouse.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -12,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import cl.storeflow.warehouse.domain.model.Producto
 import cl.storeflow.warehouse.ui.alertas.AlertasUiState
 import cl.storeflow.warehouse.ui.alertas.AlertasViewModel
 import cl.storeflow.warehouse.ui.atributos.AtributosUiState
@@ -44,6 +54,7 @@ fun DashboardScreen(
     val productosState by productoViewModel.uiState.collectAsState()
     val atributosState by atributoViewModel.uiState.collectAsState()
     val usuariosState by usuariosViewModel.uiState.collectAsState()
+    val sinMovimientoReciente by dashboardViewModel.sinMovimientoReciente.collectAsState()
 
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
@@ -52,6 +63,7 @@ fun DashboardScreen(
 
     val productos = (productosState as? ProductosUiState.Listo)?.productos ?: emptyList()
     val totalUnidades = productos.sumOf { it.stockActual }
+    val productosMenorStock = productos.sortedBy { it.stockActual }.take(3)
 
     val totalEspecificaciones = (atributosState as? AtributosUiState.Listo)?.templates?.size ?: 0
 
@@ -62,9 +74,10 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(top = 80.dp, bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("StoreFlow", style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(4.dp))
@@ -83,35 +96,41 @@ fun DashboardScreen(
             )
             Spacer(Modifier.height(24.dp))
 
-            if (countAlertas > 0) {
-                Card(
-                    onClick = onIrAAlerta,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            AnimatedVisibility(
+                visible = countAlertas > 0,
+                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+            ) {
+                Column {
+                    Card(
+                        onClick = onIrAAlerta,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
                     ) {
-                        Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "$countAlertas producto${if (countAlertas > 1) "s" else ""} bajo stock mínimo",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Text(
-                                "Toca para ver el detalle",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "$countAlertas producto${if (countAlertas > 1) "s" else ""} bajo stock mínimo",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    "Toca para ver el detalle",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
                         }
                     }
+                    Spacer(Modifier.height(16.dp))
                 }
-                Spacer(Modifier.height(16.dp))
             }
 
             Row(
@@ -144,37 +163,80 @@ fun DashboardScreen(
                 )
             }
 
-            if (esAdmin) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Max)
-                ) {
-                    NavCard(
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        title = "Especificaciones",
-                        icon = Icons.Filled.Tune,
-                        lines = listOf(
-                            if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
-                            else "Sin definir",
-                            "Características"
-                        ),
-                        warningText = null,
-                        onClick = onIrAAtributos
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    NavCard(
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        title = "Usuarios",
-                        icon = Icons.Filled.Group,
-                        lines = if (usuarios.isNotEmpty()) listOf(
-                            "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
-                            "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
-                        ) else listOf("Sin usuarios"),
-                        warningText = null,
-                        onClick = onIrAUsuarios
-                    )
+            AnimatedVisibility(
+                visible = esAdmin,
+                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+            ) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
+                    ) {
+                        NavCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            title = "Especificaciones",
+                            icon = Icons.Filled.Tune,
+                            lines = listOf(
+                                if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
+                                else "Sin definir",
+                                "Características"
+                            ),
+                            warningText = null,
+                            onClick = onIrAAtributos
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        NavCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            title = "Usuarios",
+                            icon = Icons.Filled.Group,
+                            lines = if (usuarios.isNotEmpty()) listOf(
+                                "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
+                                "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
+                            ) else listOf("Sin usuarios"),
+                            warningText = null,
+                            onClick = onIrAUsuarios
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = productos.isNotEmpty(),
+                enter = fadeIn(tween(400)) + expandVertically(tween(400)),
+                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+            ) {
+                Column {
+                    Spacer(Modifier.height(20.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
+                    ) {
+                        AlertInfoCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            title = "Menor stock",
+                            icon = Icons.AutoMirrored.Filled.TrendingDown,
+                            items = productosMenorStock,
+                            itemLabel = { p -> p.nombre },
+                            itemSublabel = { p -> "${p.stockActual} uds" },
+                            emptyText = "Sin productos",
+                            onClick = onIrAProductos
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        AlertInfoCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            title = "Sin actividad — 7d",
+                            icon = Icons.Filled.HourglassEmpty,
+                            items = sinMovimientoReciente,
+                            itemLabel = { p -> p.nombre },
+                            itemSublabel = { _ -> "Sin movimientos" },
+                            emptyText = "Todo activo",
+                            onClick = onIrAProductos
+                        )
+                    }
                 }
             }
         }
@@ -235,6 +297,70 @@ private fun NavCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun <T> AlertInfoCard(
+    title: String,
+    icon: ImageVector,
+    items: List<T>,
+    itemLabel: (T) -> String,
+    itemSublabel: (T) -> String,
+    emptyText: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall)
+            }
+            Spacer(Modifier.height(10.dp))
+            if (items.isEmpty()) {
+                Text(
+                    text = emptyText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                items.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = itemLabel(item),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = itemSublabel(item),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
             }
         }
     }

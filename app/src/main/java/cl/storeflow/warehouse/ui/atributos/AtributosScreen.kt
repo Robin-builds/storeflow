@@ -93,11 +93,13 @@ fun AtributosScreen(
                 } else {
                     LazyColumn(contentPadding = padding) {
                         items(state.templates, key = { it.id }) { template ->
-                            AtributoItem(
-                                template = template,
-                                esAdmin = state.esAdmin,
-                                onEliminar = { templateAEliminar = template }
-                            )
+                            Box(modifier = Modifier.animateItem()) {
+                                AtributoItem(
+                                    template = template,
+                                    esAdmin = state.esAdmin,
+                                    onEliminar = { templateAEliminar = template }
+                                )
+                            }
                         }
                     }
                 }
