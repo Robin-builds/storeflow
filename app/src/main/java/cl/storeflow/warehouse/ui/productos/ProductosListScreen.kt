@@ -129,63 +129,9 @@ fun ProductosListScreen(
                 }
             }
         },
-        bottomBar = {
-            if (modoSeleccion) {
-                val todosSeleccionados = productosFiltrados.isNotEmpty() &&
-                        seleccionados.size == productosFiltrados.size
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { viewModel.limpiarSeleccion() },
-                                modifier = Modifier.weight(1f)
-                            ) { Text("Cancelar") }
-                            OutlinedButton(
-                                onClick = {
-                                    if (todosSeleccionados) viewModel.limpiarSeleccion()
-                                    else viewModel.seleccionarTodos()
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) { Text(if (todosSeleccionados) "Ninguno" else "Todos") }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { mostrarTransferirDialog = true },
-                                enabled = seleccionados.isNotEmpty() && bodegasDestino.isNotEmpty(),
-                                modifier = Modifier.weight(1f)
-                            ) { Text("Transferir") }
-                            Button(
-                                onClick = { mostrarConfirmarEliminarMasivo = true },
-                                enabled = seleccionados.isNotEmpty(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                ),
-                                modifier = Modifier.weight(1f)
-                            ) { Text("Eliminar") }
-                        }
-                    }
-                }
-            }
-        }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -247,7 +193,12 @@ fun ProductosListScreen(
                         }
                     } else {
                         LazyColumn(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                bottom = if (modoSeleccion) 160.dp else 8.dp
+                            ),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(productosFiltrados, key = { it.id }) { producto ->
@@ -266,6 +217,63 @@ fun ProductosListScreen(
                     }
                 }
             }
+        }
+
+        // Card de acciones flotante sobre la lista
+        if (modoSeleccion) {
+            val todosSeleccionados = productosFiltrados.isNotEmpty() &&
+                    seleccionados.size == productosFiltrados.size
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.limpiarSeleccion() },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Cancelar") }
+                        OutlinedButton(
+                            onClick = {
+                                if (todosSeleccionados) viewModel.limpiarSeleccion()
+                                else viewModel.seleccionarTodos()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text(if (todosSeleccionados) "Ninguno" else "Todos") }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { mostrarTransferirDialog = true },
+                            enabled = seleccionados.isNotEmpty() && bodegasDestino.isNotEmpty(),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Transferir") }
+                        Button(
+                            onClick = { mostrarConfirmarEliminarMasivo = true },
+                            enabled = seleccionados.isNotEmpty(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Eliminar") }
+                    }
+                }
+            }
+        }
         }
     }
 
@@ -385,18 +393,19 @@ private fun ProductoItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .height(IntrinsicSize.Min)
+                .then(if (modoSeleccion) Modifier.clickable { onToggleSeleccion() } else Modifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Cuerpo izquierdo: tap = editar, long-press = selección
+            // En modo normal: tap = editar, long-press = iniciar selección
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .height(IntrinsicSize.Min)
-                    .combinedClickable(
-                        onClick = if (modoSeleccion) onToggleSeleccion else onEditar,
-                        onLongClick = if (!modoSeleccion) onLongPress else null
-                    ),
+                    .then(if (!modoSeleccion) Modifier.combinedClickable(
+                        onClick = onEditar,
+                        onLongClick = onLongPress
+                    ) else Modifier),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
