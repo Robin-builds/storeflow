@@ -25,8 +25,8 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE bodega_id = :bodegaId ORDER BY nombre ASC")
     fun observarPorBodega(bodegaId: String): Flow<List<ProductoEntity>>
 
-    @Query("SELECT COUNT(*) FROM productos WHERE bodega_id = :bodegaId AND LOWER(nombre) = LOWER(:nombre) AND id != :excludeId")
-    suspend fun contarConNombre(bodegaId: String, nombre: String, excludeId: String = ""): Int
+    @Query("SELECT COUNT(*) FROM productos WHERE empresa_id = :empresaId AND sku IS NOT NULL AND LOWER(sku) = LOWER(:sku) AND id != :excludeId")
+    suspend fun contarConSku(empresaId: String, sku: String, excludeId: String = ""): Int
 
     // stock calculado desde movimientos
     @Query("SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :productoId")
@@ -88,6 +88,26 @@ interface ProductoDao {
 
     @Query("UPDATE productos SET bodega_id = :bodegaIdDestino, updated_at = :ahora WHERE bodega_id = :bodegaIdOrigen")
     suspend fun transferirABodega(bodegaIdOrigen: String, bodegaIdDestino: String, ahora: Long = System.currentTimeMillis())
+
+    @Query("""
+        SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
+               p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               COALESCE(SUM(m.cantidad), 0) AS stock_actual
+        FROM productos p
+        LEFT JOIN movimientos m ON m.producto_id = p.id
+        WHERE p.bodega_id = :bodegaId
+          AND p.id NOT IN (
+            SELECT DISTINCT producto_id FROM movimientos WHERE created_at >= :desde
+          )
+        GROUP BY p.id
+        ORDER BY p.nombre ASC
+        LIMIT :limite
+    """)
+    fun observarSinMovimientoReciente(
+        bodegaId: String,
+        desde: Long,
+        limite: Int = 3
+    ): Flow<List<ProductoConStock>>
 
     @Query("SELECT * FROM productos WHERE id IN (:ids)")
     suspend fun obtenerPorIds(ids: List<String>): List<ProductoEntity>

@@ -3,6 +3,7 @@
 import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.domain.model.AtributoTemplate
@@ -239,10 +241,9 @@ fun ProductosListScreen(
                                     producto = producto,
                                     seleccionado = producto.id in seleccionados,
                                     modoSeleccion = modoSeleccion,
-                                    onClick = { onVerMovimientos(producto.id) },
-                                    onLongPress = {
-                                        viewModel.toggleSeleccion(producto.id)
-                                    },
+                                    onEditar = { viewModel.seleccionarParaEditar(producto.id) },
+                                    onVerMovimientos = { onVerMovimientos(producto.id) },
+                                    onLongPress = { viewModel.toggleSeleccion(producto.id) },
                                     onToggleSeleccion = { viewModel.toggleSeleccion(producto.id) },
                                     modifier = Modifier.animateItem()
                                 )
@@ -345,7 +346,8 @@ private fun ProductoItem(
     producto: Producto,
     seleccionado: Boolean,
     modoSeleccion: Boolean,
-    onClick: () -> Unit,
+    onEditar: () -> Unit,
+    onVerMovimientos: () -> Unit,
     onLongPress: () -> Unit,
     onToggleSeleccion: () -> Unit,
     modifier: Modifier = Modifier
@@ -369,38 +371,56 @@ private fun ProductoItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .combinedClickable(
-                    onClick = if (modoSeleccion) onToggleSeleccion else onClick,
-                    onLongClick = if (!modoSeleccion) onLongPress else null
-                ),
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(color = borderColor)
-            )
-            Column(
+            // Cuerpo izquierdo: tap = editar, long-press = selección
+            Row(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .height(IntrinsicSize.Min)
+                    .combinedClickable(
+                        onClick = if (modoSeleccion) onToggleSeleccion else onEditar,
+                        onLongClick = if (!modoSeleccion) onLongPress else null
+                    ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = producto.nombre,
-                    style = MaterialTheme.typography.bodyLarge
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(color = borderColor)
                 )
-                Text(
-                    text = buildString {
-                        append("Stock: ${producto.stockActual}")
-                        if (producto.stockMinimo > 0) append("  ·  Mín: ${producto.stockMinimo}")
-                        if (producto.sku != null) append("  ·  SKU: ${producto.sku}")
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = producto.nombre,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (!producto.descripcion.isNullOrBlank()) {
+                        Text(
+                            text = producto.descripcion,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Text(
+                        text = buildString {
+                            append("Stock: ${producto.stockActual}")
+                            if (producto.stockMinimo > 0) append("  ·  Mín: ${producto.stockMinimo}")
+                            if (producto.sku != null) append("  ·  SKU: ${producto.sku}")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+            // Botón derecho: checkbox en selección, flecha verde para movimientos en modo normal
             if (modoSeleccion) {
                 Checkbox(
                     checked = seleccionado,
@@ -412,7 +432,8 @@ private fun ProductoItem(
                     modifier = Modifier
                         .padding(end = 12.dp)
                         .size(32.dp)
-                        .background(color = Verde700, shape = CircleShape),
+                        .background(color = Verde700, shape = CircleShape)
+                        .clickable { onVerMovimientos() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -516,7 +537,8 @@ private fun ProductoFormDialog(
                     value = descripcion,
                     onValueChange = { descripcion = it },
                     label = { Text("Descripción") },
-                    singleLine = true,
+                    minLines = 1,
+                    maxLines = 3,
                     enabled = !cargando,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -574,6 +596,16 @@ private fun ProductoFormDialog(
                             stockInicialMenorQueMinimo -> {{ Text("No puede ser menor al stock mínimo ($stockMinimoInt)") }}
                             else -> null
                         },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = (productoInicial?.stockActual ?: 0).toString(),
+                        onValueChange = {},
+                        label = { Text("Stock actual") },
+                        singleLine = true,
+                        enabled = false,
+                        supportingText = { Text("Registra un movimiento para modificarlo") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

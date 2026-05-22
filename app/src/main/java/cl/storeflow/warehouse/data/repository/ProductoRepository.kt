@@ -45,6 +45,12 @@ class ProductoRepository @Inject constructor(
     fun observarBajoMinimo(bodegaId: String): Flow<List<Producto>> =
         productoDao.observarBajoMinimo(bodegaId).map { list -> list.map { it.toDomain() } }
 
+    fun observarSinMovimientoReciente(bodegaId: String, dias: Int = 7): Flow<List<Producto>> {
+        val desde = System.currentTimeMillis() - dias * 24 * 60 * 60 * 1000L
+        return productoDao.observarSinMovimientoReciente(bodegaId, desde, limite = 3)
+            .map { list -> list.map { it.toDomain() } }
+    }
+
     fun observarProducto(productoId: String): Flow<Producto?> =
         productoDao.observarProductoConStock(productoId).map { pcs ->
             if (pcs == null) null
@@ -68,15 +74,16 @@ class ProductoRepository @Inject constructor(
         stock_inicial: Int = 0,
         atributos: Map<String, String> = emptyMap()
     ): Result<Unit> {
-        if (productoDao.contarConNombre(bodega_id, nombre) > 0)
-            return Result.failure(Exception("Ya existe un producto con ese nombre en esta bodega"))
+        val skuTrimmed = sku?.trim()?.ifBlank { null }
+        if (skuTrimmed != null && productoDao.contarConSku(empresa_id, skuTrimmed) > 0)
+            return Result.failure(Exception("Ya existe un producto con ese SKU en la empresa"))
         return try {
             val producto = ProductoEntity(
                 empresa_id = empresa_id,
                 bodega_id = bodega_id,
                 nombre = nombre.trim(),
                 descripcion = descripcion?.trim()?.ifBlank { null },
-                sku = sku?.trim()?.ifBlank { null },
+                sku = skuTrimmed,
                 precio = precio,
                 stock_minimo = stock_minimo,
                 synced = false
@@ -107,8 +114,9 @@ class ProductoRepository @Inject constructor(
         producto: ProductoEntity,
         atributos: Map<String, String> = emptyMap()
     ): Result<Unit> {
-        if (productoDao.contarConNombre(producto.bodega_id, producto.nombre, producto.id) > 0)
-            return Result.failure(Exception("Ya existe un producto con ese nombre en esta bodega"))
+        val skuAct = producto.sku?.trim()?.ifBlank { null }
+        if (skuAct != null && productoDao.contarConSku(producto.empresa_id, skuAct, producto.id) > 0)
+            return Result.failure(Exception("Ya existe un producto con ese SKU en la empresa"))
         return try {
             val actualizado = producto.copy(synced = false, updated_at = Date())
             productoDao.actualizar(actualizado)
