@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Dashboard web MVP funcional
+**Última actualización:** Mayo 2026 — Micro-animaciones UI implementadas y mergeadas a develop
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                 # limpiar build
 
 **Nombre:** StoreFlow (package: `cl.storeflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–10 + Fase 7 completas. JWT refresh implementado. Próximo: QR/barcode o selección masiva.
+**Estado:** Fases 0–10 completas. Features adicionales implementadas. Micro-animaciones UI completas en develop.
 
 ---
 
@@ -67,13 +67,14 @@ ui/
   bodegas/      → BodegasScreen, BodegaViewModel
   atributos/    → AtributosScreen, AtributoViewModel
   usuarios/     → UsuariosScreen, UsuariosViewModel
+  reportar/     → ReportarErrorScreen, ReportarErrorViewModel
 domain/
   model/        → SesionUsuario, Usuario, Bodega, Producto, AtributoTemplate, Rol, TipoAtributo
 data/
   local/
     entity/     → 9 entidades Room (incluye AuthSessionEntity, AtributoTemplateEntity, ProductoAtributoEntity)
     dao/        → 10 DAOs
-    AppDatabase.kt  (versión 6)
+    AppDatabase.kt  (versión 7)
     DateConverters.kt
   remote/       → SupabaseClient
   sync/         → SyncWorker, PullWorker, SyncTrigger, PullTrigger, SyncPayloads, PullDtos
@@ -106,7 +107,7 @@ di/             → DatabaseModule
 - `Usuario.rol` se lee de `AuthSessionEntity` (login value) — no de `UsuarioEntity` (pull value, puede divergir)
 - MVP de atributos: solo tipo `TEXT` — `NUMBER` y `DATE` existen en enum pero no en UI
 - `UsuarioRepository.eliminar/cambiarRol` usan REST directo (Ktor PATCH/DELETE) sin pasar por SyncWorker — operaciones síncronas críticas que no admiten cola offline
-- `AuthUiState.SesionCerrada` es un estado distinto de `Idle` — `logout()` emite `SesionCerrada`; `Idle` lo usan `limpiarError()` y `registrarUsuarioEnEmpresa()`. **Bug original:** `Idle` solo redirigía al login si la ruta activa era `DASHBOARD`; al cerrar sesión desde `ConfiguracionScreen` la ruta era `"configuracion"` → condición falsa → nunca navegaba al login
+- **Auth navigation (MainActivity):** actualmente usa `AuthUiState.Idle` con comprobación de destino actual (`currentDestination?.route == DASHBOARD`). **Precaución:** esto replica el bug original donde cerrar sesión desde ConfiguracionScreen no redirigía al login — si se detecta esa regresión, revisar si `AuthUiState.SesionCerrada` fue eliminado de `AuthUiState` en `feat/dashboard-alert-cards` o restituirlo.
 
 ---
 
@@ -204,6 +205,9 @@ BÚSQUEDA POR SKU/BARCODE:             ✅ Completa — validada en dispositivo 
 LOGIN UX TECLADO:                     ✅ Completo — form sobre centro + imePadding — validado en dispositivo físico
 RENOMBRADO StockFlow→StoreFlow:       ✅ Completo — package cl.storeflow.warehouse
 SISTEMA DE 3 TEMAS (☀️🌙🌑):         ✅ Completo — selector cíclico en Dashboard, persiste en SharedPreferences
+REPORTAR PROBLEMA:                    ⚠️  Pantallas creadas y en develop (commit f68b585) — MainActivity + ConfiguracionScreen + Manifest revertidos por linter; pendiente re-wiring y validación física
+CARD ALERTAS EN DASHBOARD:            🚧 En progreso — rama feat/dashboard-alert-cards, cambios sin commit (DashboardScreen, DashboardViewModel, ProductoDao, ProductoRepository, AuthViewModel, BarcodeScannerDialog, schema v8?)
+MICRO-ANIMACIONES UI:                 ✅ Completo — rama feat/ui-animations mergeada a develop (commit 83c4a18)
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
 ```
@@ -212,7 +216,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `develop`
-**Último commit:** merge: feat/login-ux-keyboard → develop — login form shifted above center + imePadding for keyboard UX
+**Último commit:** `83c4a18` merge: feat/ui-animations → develop — micro-animations on transitions, lists and dashboard
+**Working tree:** limpio en los archivos de animaciones. Aún hay cambios sin commit de feat/dashboard-alert-cards: ProductoDao, ProductoRepository, AuthViewModel, BarcodeScannerDialog, DashboardViewModel + schema 7.json sin trackear
 
 **Proyecto web:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
 → Stack: Next.js 16 · TypeScript · Tailwind · @supabase/ssr
@@ -333,7 +338,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | 🗂️ Selección masiva | ✅ implementado | Long-press → modo selección; eliminar masivo + transferir entre bodegas |
 | 🌐 Dashboard web | 🚧 En progreso | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional. Repo: `C:\Users\Windows 11\Documents\dev\stockflow-web` |
 | 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
-| 📊 Card alertas en Dashboard | pendiente | Tarjeta en DashboardScreen con los 3 productos de menor stock + 3 sin movimientos en los últimos 7 días; datos desde Room sin llamada de red extra |
+| 🐛 Reportar problema | ⚠️ re-wiring pendiente | `ui/reportar/` committed; falta reconectar MainActivity + ConfiguracionScreen + permisos Manifest (revertidos por linter); sin validación física |
+| 📊 Card alertas en Dashboard | 🚧 en progreso | rama feat/dashboard-alert-cards; cambios en DashboardScreen + DashboardViewModel + ProductoDao sin commit |
 | 📋 Historial global de movimientos | pendiente | Pantalla/tarjeta con todos los movimientos de productos ordenados del más nuevo al más antiguo; búsqueda simple por nombre de producto (sin barcode); soporte para ordenar |
 
 ---
