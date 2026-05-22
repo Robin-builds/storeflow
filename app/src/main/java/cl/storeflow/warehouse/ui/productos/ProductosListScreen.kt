@@ -88,21 +88,6 @@ fun ProductosListScreen(
                 TopAppBar(
                     title = {
                         Text("${seleccionados.size} seleccionado${if (seleccionados.size != 1) "s" else ""}")
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { viewModel.limpiarSeleccion() }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Cancelar selección")
-                        }
-                    },
-                    actions = {
-                        val todosSeleccionados = productosFiltrados.isNotEmpty() &&
-                                seleccionados.size == productosFiltrados.size
-                        TextButton(onClick = {
-                            if (todosSeleccionados) viewModel.limpiarSeleccion()
-                            else viewModel.seleccionarTodos()
-                        }) {
-                            Text(if (todosSeleccionados) "Ninguno" else "Todos")
-                        }
                     }
                 )
             } else {
@@ -145,27 +130,56 @@ fun ProductosListScreen(
             }
         },
         bottomBar = {
-            if (modoSeleccion && seleccionados.isNotEmpty()) {
-                BottomAppBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    Row(
+            if (modoSeleccion) {
+                val todosSeleccionados = productosFiltrados.isNotEmpty() &&
+                        seleccionados.size == productosFiltrados.size
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (bodegasDestino.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { viewModel.limpiarSeleccion() },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Cancelar") }
+                            OutlinedButton(
+                                onClick = {
+                                    if (todosSeleccionados) viewModel.limpiarSeleccion()
+                                    else viewModel.seleccionarTodos()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text(if (todosSeleccionados) "Ninguno" else "Todos") }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             OutlinedButton(
                                 onClick = { mostrarTransferirDialog = true },
+                                enabled = seleccionados.isNotEmpty() && bodegasDestino.isNotEmpty(),
                                 modifier = Modifier.weight(1f)
                             ) { Text("Transferir") }
+                            Button(
+                                onClick = { mostrarConfirmarEliminarMasivo = true },
+                                enabled = seleccionados.isNotEmpty(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Eliminar") }
                         }
-                        Button(
-                            onClick = { mostrarConfirmarEliminarMasivo = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Eliminar") }
                     }
                 }
             }
