@@ -598,6 +598,16 @@ private fun ProductoFormDialog(
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
+                } else {
+                    OutlinedTextField(
+                        value = (productoInicial?.stockActual ?: 0).toString(),
+                        onValueChange = {},
+                        label = { Text("Stock actual") },
+                        singleLine = true,
+                        enabled = false,
+                        supportingText = { Text("Registra un movimiento para modificarlo") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 if (templates.isNotEmpty()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
