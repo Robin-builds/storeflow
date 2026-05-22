@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Nombres duplicados permitidos, SKU único por empresa, descripción en card, edición de producto funcional, stock inmutable en form
+**Última actualización:** Mayo 2026 — Nombres duplicados, descripción en card, edición funcional, stock inmutable, selección masiva con card overlay flotante
 
 ---
 
@@ -23,7 +23,7 @@ gradlew.bat clean                 # limpiar build
 
 **Nombre:** StoreFlow (package: `cl.storeflow.warehouse`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
-**Estado:** Fases 0–10 completas. Features adicionales implementadas. Micro-animaciones UI completas en develop.
+**Estado:** Fases 0–10 completas. Features adicionales implementadas y validadas en dispositivo físico.
 
 ---
 
@@ -207,8 +207,20 @@ RENOMBRADO StockFlow→StoreFlow:       ✅ Completo — package cl.storeflow.wa
 SISTEMA DE 3 TEMAS (☀️🌙🌑):         ✅ Completo — selector cíclico en Dashboard, persiste en SharedPreferences
 REPORTAR PROBLEMA:                    ⚠️  Pantallas creadas y en develop (commit f68b585) — MainActivity + ConfiguracionScreen + Manifest revertidos por linter; pendiente re-wiring y validación física
 CARD ALERTAS EN DASHBOARD:            🚧 En progreso — rama feat/dashboard-alert-cards, cambios sin commit (DashboardScreen, DashboardViewModel, ProductoDao, ProductoRepository, AuthViewModel, BarcodeScannerDialog, schema v8?)
-MICRO-ANIMACIONES UI:                 ✅ Completo — rama feat/ui-animations mergeada a develop (commit 83c4a18)
-NOMBRES DUPLICADOS + DESCRIPCIÓN:     ✅ Completo — nombres repetidos permitidos, SKU único por empresa, descripción visible en card (3 líneas), edición de producto accesible con tap en card body, stock inmutable como campo disabled en form — mergeado a develop
+MICRO-ANIMACIONES UI:                 ✅ Completo — mergeado a develop (commit 83c4a18)
+NOMBRES DUPLICADOS + DESCRIPCIÓN:     ✅ Completo — validado en dispositivo físico
+                                         · Nombres de producto pueden repetirse (distintos proveedores)
+                                         · SKU único por empresa (check en DAO + repositorio)
+                                         · Descripción visible en card del listado (max 3 líneas, ellipsis)
+                                         · Formulario descripción multiline (1–3 líneas)
+                                         · Tap en card body abre edición (flecha verde sigue yendo a movimientos)
+                                         · Stock actual aparece como campo disabled en form de edición
+SELECCIÓN MASIVA (mejorada):          ✅ Completo — validado en dispositivo físico
+                                         · Card flotante con 4 botones en 2 filas (Cancelar/Todos arriba, Transferir/Eliminar abajo)
+                                         · Card es overlay sobre la lista — scroll pasa por detrás
+                                         · LazyColumn con bottom padding 160dp para ver ítems bajo la card
+                                         · Tap en cualquier zona de la card-ítem (incl. checkbox) alterna selección
+                                         · Deseleccionar el último ítem cierra el modo selección automáticamente
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
 ```
@@ -217,8 +229,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `develop`
-**Último commit:** merge: feat/product-nombre-duplicados-descripcion → develop
-**Working tree:** cambios sin commit de feat/dashboard-alert-cards: AuthViewModel, BarcodeScannerDialog, DashboardViewModel + schema 7.json sin trackear
+**Último commit:** `bb9a936` merge: feat/seleccion-overlay-card → develop
+**Working tree:** cambios sin commit de feat/dashboard-alert-cards pendiente: AuthViewModel, BarcodeScannerDialog, DashboardViewModel + schema 7.json sin trackear
 
 **Proyecto web:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
 → Stack: Next.js 16 · TypeScript · Tailwind · @supabase/ssr
@@ -358,7 +370,9 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | 10 S2 UsuariosScreen | ADMIN registra OPERADOR ✅ OPERADOR login ✅ rol UI correcto ✅ cambiar rol ✅ eliminar ✅ | ninguno |
 | 7 Pulido UI | FABs ✅ cards productos ✅ botón circular chevron ✅ BackButton ✅ Dashboard ElevatedButton ✅ SegmentedButtonRow ✅ | ChevronRight no en core icons → reemplazado por KeyboardArrowRight |
 | Escaneo QR/Barcode | escaneo QR ✅ código barras ✅ campo SKU se llena automático ✅ | ninguno |
-| Selección masiva | long-press ✅ eliminar masivo ✅ transferir entre bodegas ✅ | ninguno |
+| Selección masiva (original) | long-press ✅ eliminar masivo ✅ transferir entre bodegas ✅ | ninguno |
+| Nombres duplicados + descripción | nombres repetidos ✅ SKU único ✅ descripción en card ✅ edición funcional ✅ stock disabled en form ✅ | ninguno |
+| Selección masiva (overlay card) | card flotante ✅ scroll detrás de card ✅ tap checkbox funciona ✅ deseleccionar cierra modo ✅ | ninguno |
 | Compartir stock | inventario completo ✅ alertas bajo stock ✅ WhatsApp nativo ✅ | ninguno |
 | Búsqueda por SKU/barcode | filtro por nombre+SKU ✅ botón escaneo en barra ✅ limpiar con X ✅ | ninguno |
 | Login UX teclado | form sobre centro ✅ imePadding ✅ | ninguno |
@@ -376,3 +390,4 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 5. **Stock siempre por query** — nunca campo mutable en ProductoEntity
 6. **Si hay duda sobre un contrato** — preguntar antes de asumir
 7. **Validación física obligatoria entre fases** — sugerir pruebas en dispositivo, esperar confirmación antes de proponer la siguiente fase; BUILD SUCCESSFUL no es suficiente
+8. **Cada feature va en su propia rama** — `git checkout -b feat/<nombre>` antes de tocar código; solo trabajar directo en develop si el usuario dice explícitamente "aquí mismo" o "en develop directo"
