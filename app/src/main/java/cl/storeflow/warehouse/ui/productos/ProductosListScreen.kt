@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.domain.model.AtributoTemplate
@@ -391,6 +392,15 @@ private fun ProductoItem(
                     text = producto.nombre,
                     style = MaterialTheme.typography.bodyLarge
                 )
+                if (!producto.descripcion.isNullOrBlank()) {
+                    Text(
+                        text = producto.descripcion,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     text = buildString {
                         append("Stock: ${producto.stockActual}")
@@ -516,7 +526,8 @@ private fun ProductoFormDialog(
                     value = descripcion,
                     onValueChange = { descripcion = it },
                     label = { Text("Descripción") },
-                    singleLine = true,
+                    minLines = 1,
+                    maxLines = 3,
                     enabled = !cargando,
                     modifier = Modifier.fillMaxWidth()
                 )
