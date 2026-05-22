@@ -4,12 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -29,6 +38,25 @@ import cl.storeflow.warehouse.ui.reportar.ReportarErrorScreen
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import cl.storeflow.warehouse.ui.theme.TemaViewModel
 import dagger.hilt.android.AndroidEntryPoint
+
+private val slideEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(tween(300))
+}
+private val slideExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeOut(tween(200))
+}
+private val slidePopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300))
+}
+private val slidePopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(tween(200))
+}
+private val fadeEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    fadeIn(tween(400))
+}
+private val fadeExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    fadeOut(tween(300))
+}
 
 private object Rutas {
     const val LOGIN = "login"
@@ -80,7 +108,13 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = Rutas.LOGIN
                     ) {
-                        composable(Rutas.LOGIN) {
+                        composable(
+                            Rutas.LOGIN,
+                            enterTransition = fadeEnter,
+                            exitTransition = fadeExit,
+                            popEnterTransition = fadeEnter,
+                            popExitTransition = fadeExit
+                        ) {
                             LoginScreen(
                                 uiState = uiState,
                                 onLogin = authViewModel::login,
@@ -88,7 +122,13 @@ class MainActivity : ComponentActivity() {
                                 onLimpiarError = authViewModel::limpiarError
                             )
                         }
-                        composable(Rutas.REGISTRO) {
+                        composable(
+                            Rutas.REGISTRO,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             RegistroScreen(
                                 uiState = uiState,
                                 onRegistrar = authViewModel::registrar,
@@ -96,7 +136,13 @@ class MainActivity : ComponentActivity() {
                                 onLimpiarError = authViewModel::limpiarError
                             )
                         }
-                        composable(Rutas.DASHBOARD) {
+                        composable(
+                            Rutas.DASHBOARD,
+                            enterTransition = fadeEnter,
+                            exitTransition = fadeExit,
+                            popEnterTransition = fadeEnter,
+                            popExitTransition = fadeExit
+                        ) {
                             DashboardScreen(
                                 onIrAConfiguracion = { navController.navigate(Rutas.CONFIGURACION) },
                                 onIrAProductos = { navController.navigate(Rutas.PRODUCTOS) },
@@ -106,7 +152,13 @@ class MainActivity : ComponentActivity() {
                                 onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) }
                             )
                         }
-                        composable(Rutas.CONFIGURACION) {
+                        composable(
+                            Rutas.CONFIGURACION,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             ConfiguracionScreen(
                                 tema = tema,
                                 onSetTema = temaViewModel::setTema,
@@ -115,10 +167,22 @@ class MainActivity : ComponentActivity() {
                                 onIrAReportarError = { navController.navigate(Rutas.REPORTAR_ERROR) }
                             )
                         }
-                        composable(Rutas.REPORTAR_ERROR) {
+                        composable(
+                            Rutas.REPORTAR_ERROR,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             ReportarErrorScreen(onVolver = { navController.popBackStack() })
                         }
-                        composable(Rutas.ALERTAS) {
+                        composable(
+                            Rutas.ALERTAS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             AlertasScreen(
                                 onVolver = { navController.popBackStack() },
                                 onVerMovimientos = { productoId ->
@@ -126,7 +190,13 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable(Rutas.PRODUCTOS) {
+                        composable(
+                            Rutas.PRODUCTOS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             ProductosListScreen(
                                 onVolver = { navController.popBackStack() },
                                 onVerMovimientos = { productoId ->
@@ -134,7 +204,13 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable(Rutas.BODEGAS) {
+                        composable(
+                            Rutas.BODEGAS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             BodegasScreen(
                                 onVolver = { navController.popBackStack() },
                                 onBodegaCambiada = {
@@ -144,13 +220,31 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable(Rutas.ATRIBUTOS) {
+                        composable(
+                            Rutas.ATRIBUTOS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             AtributosScreen(onVolver = { navController.popBackStack() })
                         }
-                        composable(Rutas.USUARIOS) {
+                        composable(
+                            Rutas.USUARIOS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             UsuariosScreen(onVolver = { navController.popBackStack() })
                         }
-                        composable(Rutas.MOVIMIENTOS) {
+                        composable(
+                            Rutas.MOVIMIENTOS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
                             MovimientosScreen(onVolver = { navController.popBackStack() })
                         }
                     }

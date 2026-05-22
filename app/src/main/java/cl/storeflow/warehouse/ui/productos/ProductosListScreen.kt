@@ -243,7 +243,8 @@ fun ProductosListScreen(
                                     onLongPress = {
                                         viewModel.toggleSeleccion(producto.id)
                                     },
-                                    onToggleSeleccion = { viewModel.toggleSeleccion(producto.id) }
+                                    onToggleSeleccion = { viewModel.toggleSeleccion(producto.id) },
+                                    modifier = Modifier.animateItem()
                                 )
                             }
                         }
@@ -346,7 +347,8 @@ private fun ProductoItem(
     modoSeleccion: Boolean,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
-    onToggleSeleccion: () -> Unit
+    onToggleSeleccion: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val borderColor = when {
         producto.stockActual == 0 -> Rojo600
@@ -354,7 +356,7 @@ private fun ProductoItem(
         else -> Verde400
     }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (seleccionado) 4.dp else 2.dp),
         colors = CardDefaults.cardColors(

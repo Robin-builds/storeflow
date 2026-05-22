@@ -89,10 +89,12 @@ fun AlertasScreen(
                 } else {
                     LazyColumn(contentPadding = padding) {
                         items(state.alertas, key = { it.id }) { producto ->
-                            AlertaItem(
-                                producto = producto,
-                                onVerMovimientos = { onVerMovimientos(producto.id) }
-                            )
+                            Box(modifier = Modifier.animateItem()) {
+                                AlertaItem(
+                                    producto = producto,
+                                    onVerMovimientos = { onVerMovimientos(producto.id) }
+                                )
+                            }
                         }
                     }
                 }

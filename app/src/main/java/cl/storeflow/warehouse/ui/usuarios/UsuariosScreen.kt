@@ -83,14 +83,16 @@ fun UsuariosScreen(
                             val esSelf = usuario.id == state.usuarioActualId
                             val puedeEliminar = !esSelf
                             val puedeCambiarRol = !esSelf && !(usuario.esAdmin() && adminCount <= 1)
-                            UsuarioItem(
-                                usuario = usuario,
-                                esSelf = esSelf,
-                                puedeEliminar = puedeEliminar,
-                                puedeCambiarRol = puedeCambiarRol,
-                                onEliminar = { usuarioAEliminar = usuario },
-                                onCambiarRol = { usuarioCambiarRol = usuario }
-                            )
+                            Box(modifier = Modifier.animateItem()) {
+                                UsuarioItem(
+                                    usuario = usuario,
+                                    esSelf = esSelf,
+                                    puedeEliminar = puedeEliminar,
+                                    puedeCambiarRol = puedeCambiarRol,
+                                    onEliminar = { usuarioAEliminar = usuario },
+                                    onCambiarRol = { usuarioCambiarRol = usuario }
+                                )
+                            }
                         }
                     }
                 }
