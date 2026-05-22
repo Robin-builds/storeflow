@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Micro-animaciones UI implementadas y mergeadas a develop
+**Última actualización:** Mayo 2026 — Nombres duplicados permitidos, SKU único por empresa, descripción en card, edición de producto funcional, stock inmutable en form
 
 ---
 
@@ -208,6 +208,7 @@ SISTEMA DE 3 TEMAS (☀️🌙🌑):         ✅ Completo — selector cíclico 
 REPORTAR PROBLEMA:                    ⚠️  Pantallas creadas y en develop (commit f68b585) — MainActivity + ConfiguracionScreen + Manifest revertidos por linter; pendiente re-wiring y validación física
 CARD ALERTAS EN DASHBOARD:            🚧 En progreso — rama feat/dashboard-alert-cards, cambios sin commit (DashboardScreen, DashboardViewModel, ProductoDao, ProductoRepository, AuthViewModel, BarcodeScannerDialog, schema v8?)
 MICRO-ANIMACIONES UI:                 ✅ Completo — rama feat/ui-animations mergeada a develop (commit 83c4a18)
+NOMBRES DUPLICADOS + DESCRIPCIÓN:     ✅ Completo — nombres repetidos permitidos, SKU único por empresa, descripción visible en card (3 líneas), edición de producto accesible con tap en card body, stock inmutable como campo disabled en form — mergeado a develop
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
 DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
 ```
@@ -216,8 +217,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 → Fase 8 S1: Usuario (12) · S2: Bodega (9) · S3+S4: Producto (14) · S5: Atributos (10) · Fase 9 S2: Form (4) + ExampleUnit (1)
 
 **Rama activa:** `develop`
-**Último commit:** `83c4a18` merge: feat/ui-animations → develop — micro-animations on transitions, lists and dashboard
-**Working tree:** limpio en los archivos de animaciones. Aún hay cambios sin commit de feat/dashboard-alert-cards: ProductoDao, ProductoRepository, AuthViewModel, BarcodeScannerDialog, DashboardViewModel + schema 7.json sin trackear
+**Último commit:** merge: feat/product-nombre-duplicados-descripcion → develop
+**Working tree:** cambios sin commit de feat/dashboard-alert-cards: AuthViewModel, BarcodeScannerDialog, DashboardViewModel + schema 7.json sin trackear
 
 **Proyecto web:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
 → Stack: Next.js 16 · TypeScript · Tailwind · @supabase/ssr
