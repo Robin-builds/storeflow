@@ -1,5 +1,6 @@
 package cl.storeflow.warehouse.ui.configuracion
 
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -9,14 +10,18 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import cl.storeflow.warehouse.ui.theme.TemaApp
+
+private const val DASHBOARD_URL = "https://stockflow-web-eight.vercel.app"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,16 +32,15 @@ fun ConfiguracionScreen(
     onLogout: () -> Unit,
     onIrAReportarError: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Apariencia") },
+                title = { Text("Configuración") },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
@@ -46,70 +50,61 @@ fun ConfiguracionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Tema de la aplicación",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-            )
-
-            TemaApp.entries.forEach { opcion ->
-                TemaOpcionFila(
-                    opcion = opcion,
-                    seleccionada = opcion == tema,
-                    onSeleccionar = { onSetTema(opcion) }
-                )
-                if (opcion != TemaApp.entries.last()) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Soporte",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-            )
-
-            Card(
-                onClick = onIrAReportarError,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.BugReport,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Reportar problema",
-                            style = MaterialTheme.typography.bodyLarge
+            // --- Tema ---
+            SeccionLabel("Tema de la aplicación")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    TemaApp.entries.forEachIndexed { index, opcion ->
+                        TemaOpcionFila(
+                            opcion = opcion,
+                            seleccionada = opcion == tema,
+                            onSeleccionar = { onSetTema(opcion) }
                         )
-                        Text(
-                            text = "Enviar capturas y descripción al soporte",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (index < TemaApp.entries.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // --- Soporte ---
+            SeccionLabel("Soporte")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ConfigFilaItem(
+                    icon = Icons.Filled.BugReport,
+                    titulo = "Reportar problema",
+                    subtitulo = "Enviar capturas y descripción al soporte",
+                    onClick = onIrAReportarError
+                )
+            }
 
+            // --- Dashboard web ---
+            SeccionLabel("Dashboard web")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ConfigFilaItem(
+                    icon = Icons.Filled.Share,
+                    titulo = "Compartir Dashboard",
+                    subtitulo = "Enviar el enlace del panel web por WhatsApp, email u otro",
+                    onClick = {
+                        val texto = "Accede al panel de inventario de StoreFlow desde tu PC:\n$DASHBOARD_URL"
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, texto)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Compartir Dashboard"))
+                    }
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // --- Cerrar sesión ---
             Card(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
@@ -136,6 +131,49 @@ fun ConfiguracionScreen(
                     )
                 }
             }
+
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun SeccionLabel(texto: String) {
+    Text(
+        text = texto,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp)
+    )
+}
+
+@Composable
+private fun ConfigFilaItem(
+    icon: ImageVector,
+    titulo: String,
+    subtitulo: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(text = titulo, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = subtitulo,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -150,7 +188,7 @@ private fun TemaOpcionFila(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onSeleccionar)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
+            .padding(vertical = 8.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = seleccionada, onClick = onSeleccionar)

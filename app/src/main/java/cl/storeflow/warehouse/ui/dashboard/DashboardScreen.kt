@@ -16,11 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.domain.model.Producto
@@ -58,7 +56,6 @@ fun DashboardScreen(
     val usuariosState by usuariosViewModel.uiState.collectAsState()
     val sinMovimientoReciente by dashboardViewModel.sinMovimientoReciente.collectAsState()
 
-    val context = LocalContext.current
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
     val esAdmin = (bodegasState as? BodegasUiState.Listo)?.esAdmin ?: false
@@ -243,19 +240,6 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-            OutlinedButton(
-                onClick = { compartirDashboard(context) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Share,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Compartir Dashboard web")
-            }
         }
 
         IconButton(
@@ -271,16 +255,6 @@ fun DashboardScreen(
             )
         }
     }
-}
-
-private fun compartirDashboard(context: android.content.Context) {
-    val url = "https://stockflow-web-eight.vercel.app"
-    val texto = "Accede al panel de inventario de StoreFlow desde tu PC:\n$url"
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, texto)
-    }
-    context.startActivity(Intent.createChooser(intent, "Compartir Dashboard"))
 }
 
 @Composable
