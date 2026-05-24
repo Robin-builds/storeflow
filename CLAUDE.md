@@ -1,7 +1,7 @@
 
 # 🤖 CLAUDE.md — Contexto Persistente del Proyecto
 **Pegar al inicio de CADA sesión de implementación.**
-**Última actualización:** Mayo 2026 — Nombres duplicados, descripción en card, edición funcional, stock inmutable, selección masiva con card overlay flotante
+**Última actualización:** Mayo 2026 — ConfiguracionScreen reorganizada en cards, Dashboard web en producción, compartir dashboard
 
 ---
 
@@ -222,7 +222,19 @@ SELECCIÓN MASIVA (mejorada):          ✅ Completo — validado en dispositivo 
                                          · Tap en cualquier zona de la card-ítem (incl. checkbox) alterna selección
                                          · Deseleccionar el último ítem cierra el modo selección automáticamente
 WHATSAPP (Notif.):                    ☐ Pendiente — requiere aprobación Meta
-DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente iteraciones UI
+CONFIGURACION SCREEN (cards):         ✅ Completo — validado en dispositivo físico
+                                         · Título cambiado a "Configuración"
+                                         · 3 cards separadas: Tema / Soporte / Dashboard web
+                                         · Cerrar sesión anclado al fondo
+DASHBOARD WEB:                        ✅ En producción — https://stockflow-web-eight.vercel.app
+                                         · Filtro por bodega en Productos
+                                         · Paginación 25/página en Movimientos
+                                         · Exportar CSV (productos y movimientos) con BOM UTF-8
+                                         · Fecha y Hora en columnas separadas
+                                         · Nombre StoreFlow corregido
+COMPARTIR DASHBOARD:                  ✅ Completo — validado en dispositivo físico
+                                         · Botón en ConfiguracionScreen → card "Dashboard web"
+                                         · Share intent con URL de producción (WhatsApp, email, etc.)
 ```
 
 **Tests unitarios acumulados:** 50/50 verdes
@@ -349,9 +361,9 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | 💬 Compartir stock | ✅ implementado | Intent ACTION_SEND desde AlertasScreen e inventario completo; sin API Meta |
 | 💬 WhatsApp notif. push | requiere aprobación Meta | Edge Function en Supabase; cero impacto código Android |
 | 🗂️ Selección masiva | ✅ implementado | Long-press → modo selección; eliminar masivo + transferir entre bodegas |
-| 🌐 Dashboard web | 🚧 En progreso | Next.js + Supabase JS; misma RLS, sin trabajo backend adicional. Repo: `C:\Users\Windows 11\Documents\dev\stockflow-web` |
+| 🌐 Dashboard web | ✅ En producción | Next.js + Supabase JS. URL: `https://stockflow-web-eight.vercel.app`. Repo: `C:\Users\Windows 11\Documents\dev\stockflow-web` |
 | 🔄 JWT refresh | ✅ implementado | gotrue.refreshCurrentSession() en checkSession(); cold start con token expirado aún requiere re-login |
-| 🐛 Reportar problema | ⚠️ re-wiring pendiente | `ui/reportar/` committed; falta reconectar MainActivity + ConfiguracionScreen + permisos Manifest (revertidos por linter); sin validación física |
+| 🐛 Reportar problema | ⚠️ re-wiring pendiente | `ui/reportar/` committed; falta reconectar MainActivity + permisos Manifest (revertidos por linter); ConfiguracionScreen ya tiene el item de soporte cableado |
 | 📊 Card alertas en Dashboard | 🚧 en progreso | rama feat/dashboard-alert-cards; cambios en DashboardScreen + DashboardViewModel + ProductoDao sin commit |
 | 📋 Historial global de movimientos | pendiente | Pantalla/tarjeta con todos los movimientos de productos ordenados del más nuevo al más antiguo; búsqueda simple por nombre de producto (sin barcode); soporte para ordenar |
 
@@ -378,6 +390,8 @@ DASHBOARD WEB (MVP):                  🚧 En progreso — funcional, pendiente 
 | Login UX teclado | form sobre centro ✅ imePadding ✅ | ninguno |
 | Fix logout navegación | cerrar sesión desde ConfiguracionScreen ✅ | ninguno |
 | Nombre usuario en Dashboard | "Hola, Nombre" desde correo@x.cl ✅ migración Room v7 ✅ | ninguno |
+| ConfiguracionScreen cards | Tema ✅ Soporte ✅ Dashboard web ✅ Cerrar sesión ✅ | ninguno |
+| Compartir Dashboard | share intent desde ConfiguracionScreen ✅ abre WhatsApp/email ✅ | ninguno |
 
 ---
 
