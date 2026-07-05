@@ -38,7 +38,7 @@ import cl.storeflow.warehouse.ui.components.BarcodeScannerDialog
 import cl.storeflow.warehouse.ui.theme.Ambar500
 import cl.storeflow.warehouse.ui.theme.Rojo600
 import cl.storeflow.warehouse.ui.theme.Verde400
-import cl.storeflow.warehouse.ui.theme.Verde700
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,6 +63,7 @@ fun ProductosListScreen(
     val seleccionados by viewModel.seleccionados.collectAsState()
     val modoSeleccion by viewModel.modoSeleccion.collectAsState()
     val bodegas by viewModel.bodegas.collectAsState()
+    val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -121,7 +122,7 @@ fun ProductosListScreen(
             if (!modoSeleccion) {
                 FloatingActionButton(
                     onClick = { mostrarFormCrear = true },
-                    containerColor = Verde700,
+                    containerColor = primario,
                     contentColor = Color.White,
                     elevation = FloatingActionButtonDefaults.elevation(
                         defaultElevation = 6.dp,
@@ -159,7 +160,7 @@ fun ProductosListScreen(
                     Icon(
                         Icons.Filled.QrCodeScanner,
                         contentDescription = "Escanear código",
-                        tint = Verde700
+                        tint = primario
                     )
                 }
             }
@@ -430,6 +431,7 @@ private fun ProductoItem(
         producto.esBajoStock() -> Ambar500
         else -> Verde400
     }
+    val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -506,7 +508,7 @@ private fun ProductoItem(
                     modifier = Modifier
                         .padding(end = 12.dp)
                         .size(32.dp)
-                        .background(color = Verde700, shape = CircleShape)
+                        .background(color = primario, shape = CircleShape)
                         .clickable { onVerMovimientos() },
                     contentAlignment = Alignment.Center
                 ) {

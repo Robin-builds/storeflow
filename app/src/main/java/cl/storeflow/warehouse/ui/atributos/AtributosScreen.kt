@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.domain.model.AtributoTemplate
 import cl.storeflow.warehouse.ui.components.BackButton
-import cl.storeflow.warehouse.ui.theme.Verde700
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +29,7 @@ fun AtributosScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var mostrarDialogCrear by remember { mutableStateOf(false) }
     var templateAEliminar by remember { mutableStateOf<AtributoTemplate?>(null) }
+    val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
 
     LaunchedEffect(Unit) {
         viewModel.mensaje.collect { snackbarHostState.showSnackbar(it) }
@@ -46,7 +47,7 @@ fun AtributosScreen(
             if ((uiState as? AtributosUiState.Listo)?.esAdmin == true) {
                 FloatingActionButton(
                     onClick = { mostrarDialogCrear = true },
-                    containerColor = Verde700,
+                    containerColor = primario,
                     contentColor = Color.White,
                     elevation = FloatingActionButtonDefaults.elevation(
                         defaultElevation = 6.dp,

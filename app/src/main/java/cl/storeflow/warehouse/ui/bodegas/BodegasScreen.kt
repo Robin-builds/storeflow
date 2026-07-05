@@ -7,7 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.Color
 import cl.storeflow.warehouse.ui.components.BackButton
-import cl.storeflow.warehouse.ui.theme.Verde700
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -31,6 +31,7 @@ fun BodegasScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var mostrarDialogCrear by remember { mutableStateOf(false) }
     var bodegaAEliminar by remember { mutableStateOf<Bodega?>(null) }
+    val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
 
     LaunchedEffect(Unit) {
         viewModel.navegarADashboard.collect { onBodegaCambiada() }
@@ -51,7 +52,7 @@ fun BodegasScreen(
             if ((uiState as? BodegasUiState.Listo)?.esAdmin == true) {
                 FloatingActionButton(
                     onClick = { mostrarDialogCrear = true },
-                    containerColor = Verde700,
+                    containerColor = primario,
                     contentColor = Color.White,
                     elevation = FloatingActionButtonDefaults.elevation(
                         defaultElevation = 6.dp,

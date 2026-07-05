@@ -1,128 +1,121 @@
 package cl.storeflow.warehouse.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColorScheme = lightColorScheme(
-    primary             = Verde700,
-    onPrimary           = Color.White,
-    primaryContainer    = Verde50,
-    onPrimaryContainer  = Verde900,
+fun crearColorScheme(
+    paleta: PaletaAcento,
+    oscuridad: NivelOscuridad
+): ColorScheme = darkColorScheme(
+    primary = paleta.primario,
+    onPrimary = Color.White,
+    primaryContainer = paleta.primarioClaro,
+    onPrimaryContainer = oscuridad.fondoBottom,
 
-    secondary             = Verde600,
-    onSecondary           = Color.White,
-    secondaryContainer    = Verde200,
-    onSecondaryContainer  = Verde800,
+    secondary = paleta.neutro,
+    onSecondary = Color.White,
+    secondaryContainer = paleta.neutroOscuro,
+    onSecondaryContainer = paleta.neutroClaro,
 
-    background       = Slate50,
-    onBackground     = Slate900,
-    surface          = Color.White,
-    onSurface        = Slate900,
-    surfaceVariant   = Slate100,
-    onSurfaceVariant = Slate700,
+    tertiary = paleta.primarioSuave,
+    onTertiary = oscuridad.fondoBottom,
 
-    outline        = Slate300,
-    outlineVariant = Slate100,
+    background = oscuridad.fondoTop,
+    onBackground = oscuridad.textoPrimario,
 
-    error            = Rojo600,
-    onError          = Color.White,
-    errorContainer   = Rojo50,
-    onErrorContainer = Rojo700,
+    surface = oscuridad.superficie,
+    onSurface = oscuridad.textoPrimario,
+    surfaceVariant = oscuridad.superficieVariante,
+    onSurfaceVariant = oscuridad.textoSecundario,
+
+    error = paleta.alerta,
+    onError = Color.White,
+    errorContainer = paleta.alertaClaro,
+    onErrorContainer = paleta.alertaSuave,
+
+    outline = oscuridad.textoDesactivado,
+    outlineVariant = Color.White.copy(alpha = oscuridad.borderAlpha),
 )
 
-private val OscuroColorScheme = darkColorScheme(
-    primary             = OscuroPrimary,
-    onPrimary           = Color(0xFF002919),
-    primaryContainer    = OscuroPrimaryC,
-    onPrimaryContainer  = Verde200,
+data class StoreFlowColoresExtendidos(
+    val paleta: PaletaAcento,
+    val oscuridad: NivelOscuridad,
 
-    secondary             = OscuroPrimary,
-    onSecondary           = Color(0xFF002919),
-    secondaryContainer    = Color(0xFF1A3A30),
-    onSecondaryContainer  = Verde200,
+    val fondoGradiente: List<Color>,
 
-    background       = OscuroBg,
-    onBackground     = OscuroOnBg,
-    surface          = OscuroSurface,
-    onSurface        = OscuroOnBg,
-    surfaceVariant   = OscuroVariant,
-    onSurfaceVariant = OscuroOnVariant,
+    val cardGradienteTop: Color,
+    val cardGradienteBottom: Color,
+    val cardBorde: Color,
 
-    outline        = OscuroOutline,
-    outlineVariant = Color(0xFF383A52),
-
-    error            = OscuroError,
-    onError          = Color(0xFF2D0009),
-    errorContainer   = OscuroErrorC,
-    onErrorContainer = OscuroOnErrorC,
+    val sombraPrimario: Color,
+    val sombraNeutro: Color,
 )
 
-private val OscuroPlusColorScheme = darkColorScheme(
-    primary             = OscuroPlusPrimary,
-    onPrimary           = Color(0xFF002919),
-    primaryContainer    = OscuroPlusPrimaryC,
-    onPrimaryContainer  = Verde200,
+val LocalStoreFlowColors = staticCompositionLocalOf<StoreFlowColoresExtendidos> {
+    error("StoreFlowColoresExtendidos no proporcionados. Envolver en StoreFlowTheme.")
+}
 
-    secondary             = OscuroPlusPrimary,
-    onSecondary           = Color(0xFF002919),
-    secondaryContainer    = Color(0xFF0F2820),
-    onSecondaryContainer  = Verde200,
+object StoreFlowTheme {
+    val coloresExtendidos: StoreFlowColoresExtendidos
+        @Composable
+        get() = LocalStoreFlowColors.current
+}
 
-    background       = OscuroPlusBg,
-    onBackground     = OscuroPlusOnBg,
-    surface          = OscuroPlusSurface,
-    onSurface        = OscuroPlusOnBg,
-    surfaceVariant   = OscuroPlusVariant,
-    onSurfaceVariant = OscuroPlusOnVariant,
-
-    outline        = OscuroPlusOutline,
-    outlineVariant = Color(0xFF2A2E40),
-
-    error            = OscuroPlusError,
-    onError          = Color(0xFF2D0009),
-    errorContainer   = OscuroPlusErrorC,
-    onErrorContainer = OscuroPlusOnErrorC,
+fun crearColoresExtendidos(
+    paleta: PaletaAcento,
+    oscuridad: NivelOscuridad
+): StoreFlowColoresExtendidos = StoreFlowColoresExtendidos(
+    paleta = paleta,
+    oscuridad = oscuridad,
+    fondoGradiente = listOf(
+        oscuridad.fondoTop,
+        oscuridad.fondoMid,
+        oscuridad.fondoBottom
+    ),
+    cardGradienteTop = Color.White.copy(alpha = oscuridad.cardAlpha),
+    cardGradienteBottom = Color.White.copy(alpha = oscuridad.cardAlpha * 0.25f),
+    cardBorde = Color.White.copy(alpha = oscuridad.borderAlpha),
+    sombraPrimario = paleta.primario.copy(alpha = 0.3f),
+    sombraNeutro = paleta.neutro.copy(alpha = 0.2f),
 )
 
 @Composable
 fun StoreFlowTheme(
-    tema: TemaApp = TemaApp.CLARO,
+    paleta: PaletaAcento = PaletaBunker,
+    oscuridad: NivelOscuridad = Nocturno,
     content: @Composable () -> Unit
 ) {
-    val systemDark = isSystemInDarkTheme()
-    val esOscuro = when (tema) {
-        TemaApp.CLARO       -> false
-        TemaApp.OSCURO      -> true
-        TemaApp.OSCURO_PLUS -> true
-        TemaApp.AUTO        -> systemDark
+    val colorScheme = remember(paleta, oscuridad) {
+        crearColorScheme(paleta, oscuridad)
     }
-    val colorScheme = when (tema) {
-        TemaApp.CLARO       -> LightColorScheme
-        TemaApp.OSCURO      -> OscuroColorScheme
-        TemaApp.OSCURO_PLUS -> OscuroPlusColorScheme
-        TemaApp.AUTO        -> if (systemDark) OscuroColorScheme else LightColorScheme
+    val coloresExtendidos = remember(paleta, oscuridad) {
+        crearColoresExtendidos(paleta, oscuridad)
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !esOscuro
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = StoreFlowTypography,
-        shapes      = StoreFlowShapes,
-        content     = content
-    )
+    CompositionLocalProvider(LocalStoreFlowColors provides coloresExtendidos) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = StoreFlowTypography,
+            shapes = StoreFlowShapes,
+            content = content
+        )
+    }
 }

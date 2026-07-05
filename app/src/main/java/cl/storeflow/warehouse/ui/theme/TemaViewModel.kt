@@ -15,14 +15,17 @@ class TemaViewModel @Inject constructor(
     private val temaRepository: TemaRepository
 ) : ViewModel() {
 
-    val tema: StateFlow<TemaApp> = temaRepository.temaFlow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, TemaApp.CLARO)
+    val paletaSeleccionada: StateFlow<PaletaId> = temaRepository.paletaFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ThemePreferences.PALETA_DEFAULT)
 
-    init {
-        viewModelScope.launch { temaRepository.migrarSiNecesario() }
+    val oscuridadSeleccionada: StateFlow<OscuridadId> = temaRepository.oscuridadFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ThemePreferences.OSCURIDAD_DEFAULT)
+
+    fun cambiarPaleta(paleta: PaletaId) {
+        viewModelScope.launch { temaRepository.setPaleta(paleta) }
     }
 
-    fun setTema(tema: TemaApp) {
-        viewModelScope.launch { temaRepository.setTema(tema) }
+    fun cambiarOscuridad(oscuridad: OscuridadId) {
+        viewModelScope.launch { temaRepository.setOscuridad(oscuridad) }
     }
 }

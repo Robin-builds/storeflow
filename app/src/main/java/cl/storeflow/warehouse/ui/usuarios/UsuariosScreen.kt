@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.Color
 import cl.storeflow.warehouse.ui.components.BackButton
-import cl.storeflow.warehouse.ui.theme.Verde700
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
@@ -31,6 +31,7 @@ fun UsuariosScreen(
     var mostrarDialogRegistrar by remember { mutableStateOf(false) }
     var usuarioAEliminar by remember { mutableStateOf<Usuario?>(null) }
     var usuarioCambiarRol by remember { mutableStateOf<Usuario?>(null) }
+    val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
 
     LaunchedEffect(Unit) {
         viewModel.mensaje.collect { snackbarHostState.showSnackbar(it) }
@@ -47,7 +48,7 @@ fun UsuariosScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { if (!operando) mostrarDialogRegistrar = true },
-                containerColor = Verde700,
+                containerColor = primario,
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,

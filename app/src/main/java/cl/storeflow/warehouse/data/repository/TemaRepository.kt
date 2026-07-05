@@ -1,47 +1,41 @@
 package cl.storeflow.warehouse.data.repository
 
-import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.stringPreferencesKey
-import cl.storeflow.warehouse.ui.theme.TemaApp
+import cl.storeflow.warehouse.ui.theme.OscuridadId
+import cl.storeflow.warehouse.ui.theme.PaletaId
+import cl.storeflow.warehouse.ui.theme.ThemePreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TemaRepository @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
-    private val legacyPrefs: SharedPreferences
+    private val dataStore: DataStore<Preferences>
 ) {
-    companion object {
-        private val KEY_TEMA = stringPreferencesKey("tema_app")
-        private const val LEGACY_KEY = "tema_app"
-    }
-
-    val temaFlow: Flow<TemaApp> = dataStore.data
+    val paletaFlow: Flow<PaletaId> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { prefs ->
-            val nombre = prefs[KEY_TEMA] ?: TemaApp.CLARO.name
-            runCatching { TemaApp.valueOf(nombre) }.getOrDefault(TemaApp.CLARO)
+            val nombre = prefs[ThemePreferences.PALETA_KEY]
+            PaletaId.entries.find { it.name == nombre } ?: ThemePreferences.PALETA_DEFAULT
         }
 
-    suspend fun setTema(tema: TemaApp) {
-        dataStore.edit { it[KEY_TEMA] = tema.name }
+    val oscuridadFlow: Flow<OscuridadId> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs ->
+            val nombre = prefs[ThemePreferences.OSCURIDAD_KEY]
+            OscuridadId.entries.find { it.name == nombre } ?: ThemePreferences.OSCURIDAD_DEFAULT
+        }
+
+    suspend fun setPaleta(paleta: PaletaId) {
+        dataStore.edit { it[ThemePreferences.PALETA_KEY] = paleta.name }
     }
 
-    // Migración única desde SharedPreferences → DataStore
-    suspend fun migrarSiNecesario() {
-        val prefs = dataStore.data.first()
-        if (prefs[KEY_TEMA] != null) return
-        val legacyValue = legacyPrefs.getString(LEGACY_KEY, null) ?: return
-        val legacyTema = runCatching { TemaApp.valueOf(legacyValue) }.getOrNull() ?: return
-        setTema(legacyTema)
-        legacyPrefs.edit().remove(LEGACY_KEY).apply()
+    suspend fun setOscuridad(oscuridad: OscuridadId) {
+        dataStore.edit { it[ThemePreferences.OSCURIDAD_KEY] = oscuridad.name }
     }
 }

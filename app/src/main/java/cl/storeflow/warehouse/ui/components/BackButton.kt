@@ -13,11 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cl.storeflow.warehouse.ui.theme.Verde50
-import cl.storeflow.warehouse.ui.theme.Verde700
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 
 @Composable
 fun BackButton(onClick: () -> Unit) {
+    val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
     IconButton(
         onClick = onClick,
         modifier = Modifier.padding(start = 8.dp)
@@ -25,13 +25,13 @@ fun BackButton(onClick: () -> Unit) {
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(color = Verde50, shape = CircleShape),
+                .background(color = primario.copy(alpha = 0.12f), shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Volver",
-                tint = Verde700,
+                tint = primario,
                 modifier = Modifier.size(20.dp)
             )
         }

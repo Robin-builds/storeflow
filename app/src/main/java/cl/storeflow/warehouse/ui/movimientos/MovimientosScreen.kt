@@ -19,8 +19,7 @@ import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.TipoMovimiento
 import cl.storeflow.warehouse.domain.model.Producto
 import cl.storeflow.warehouse.ui.components.BackButton
-import cl.storeflow.warehouse.ui.theme.Verde400
-import cl.storeflow.warehouse.ui.theme.Verde700
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -116,6 +115,7 @@ private fun ContenidoMovimientos(
     modifier: Modifier = Modifier
 ) {
     val stockBajo = producto.esBajoStock()
+    val paleta = StoreFlowTheme.coloresExtendidos.paleta
 
     Column(modifier = modifier.fillMaxSize()) {
         // Tarjeta de stock
@@ -174,12 +174,12 @@ private fun ContenidoMovimientos(
                     onClick = { onRegistrar(tipo) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = tipos.size),
                     colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = Verde700,
+                        activeContainerColor = paleta.primario,
                         activeContentColor = Color.White,
                         inactiveContainerColor = Color.Transparent,
-                        inactiveContentColor = Verde700,
-                        activeBorderColor = Verde700,
-                        inactiveBorderColor = Verde400
+                        inactiveContentColor = paleta.primario,
+                        activeBorderColor = paleta.primario,
+                        inactiveBorderColor = paleta.primarioClaro
                     )
                 ) {
                     Text(etiquetas[index])

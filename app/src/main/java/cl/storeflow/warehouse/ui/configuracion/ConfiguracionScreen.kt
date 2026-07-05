@@ -1,33 +1,41 @@
 package cl.storeflow.warehouse.ui.configuracion
 
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import cl.storeflow.warehouse.ui.theme.TemaApp
+import cl.storeflow.warehouse.ui.theme.NivelOscuridad
+import cl.storeflow.warehouse.ui.theme.OscuridadId
+import cl.storeflow.warehouse.ui.theme.PaletaAcento
+import cl.storeflow.warehouse.ui.theme.PaletaId
 
 private const val DASHBOARD_URL = "https://stockflow-web-eight.vercel.app"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfiguracionScreen(
-    tema: TemaApp,
-    onSetTema: (TemaApp) -> Unit,
+    paletaSeleccionada: PaletaId,
+    oscuridadSeleccionada: OscuridadId,
+    onSetPaleta: (PaletaId) -> Unit,
+    onSetOscuridad: (OscuridadId) -> Unit,
     onVolver: () -> Unit,
     onLogout: () -> Unit,
     onIrAReportarError: () -> Unit
@@ -53,26 +61,6 @@ fun ConfiguracionScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // --- Tema ---
-            SeccionLabel("Tema de la aplicación")
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    TemaApp.entries.forEachIndexed { index, opcion ->
-                        TemaOpcionFila(
-                            opcion = opcion,
-                            seleccionada = opcion == tema,
-                            onSeleccionar = { onSetTema(opcion) }
-                        )
-                        if (index < TemaApp.entries.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                        }
-                    }
-                }
-            }
-
             // --- Soporte ---
             SeccionLabel("Soporte")
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -102,6 +90,24 @@ fun ConfiguracionScreen(
                 )
             }
 
+            // --- Apariencia ---
+            SeccionLabel("Apariencia")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SelectorPaleta(
+                        seleccionada = paletaSeleccionada,
+                        onSeleccionar = onSetPaleta
+                    )
+                    SelectorOscuridad(
+                        seleccionada = oscuridadSeleccionada,
+                        onSeleccionar = onSetOscuridad
+                    )
+                }
+            }
+
             Spacer(Modifier.weight(1f))
 
             // --- Cerrar sesión ---
@@ -109,7 +115,7 @@ fun ConfiguracionScreen(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
+                    containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
                 Row(
@@ -121,13 +127,13 @@ fun ConfiguracionScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Logout,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
+                        tint = Color.White
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
                         text = "Cerrar sesión",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
+                        color = Color.White
                     )
                 }
             }
@@ -179,61 +185,128 @@ private fun ConfigFilaItem(
 }
 
 @Composable
-private fun TemaOpcionFila(
-    opcion: TemaApp,
-    seleccionada: Boolean,
-    onSeleccionar: () -> Unit
+private fun SelectorPaleta(
+    seleccionada: PaletaId,
+    onSeleccionar: (PaletaId) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onSeleccionar)
-            .padding(vertical = 8.dp, horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        RadioButton(selected = seleccionada, onClick = onSeleccionar)
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            imageVector = opcion.icono,
-            contentDescription = null,
-            tint = if (seleccionada) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = opcion.etiqueta,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (seleccionada) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = opcion.descripcion,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        PaletaId.entries.forEach { paletaId ->
+            PaletaCard(
+                paleta = paletaId.paleta,
+                seleccionada = seleccionada == paletaId,
+                onClick = { onSeleccionar(paletaId) },
+                modifier = Modifier.weight(1f)
             )
         }
     }
 }
 
-private val TemaApp.etiqueta: String get() = when (this) {
-    TemaApp.CLARO       -> "Claro"
-    TemaApp.OSCURO      -> "Oscuro"
-    TemaApp.OSCURO_PLUS -> "Oscuro máximo"
-    TemaApp.AUTO        -> "Automático"
+@Composable
+private fun PaletaCard(
+    paleta: PaletaAcento,
+    seleccionada: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bordeColor = if (seleccionada) paleta.primarioClaro
+                      else MaterialTheme.colorScheme.outlineVariant
+
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (seleccionada) paleta.primario.copy(alpha = 0.12f)
+                              else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = BorderStroke(width = if (seleccionada) 2.dp else 1.dp, color = bordeColor)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(Modifier.size(16.dp).clip(CircleShape).background(paleta.primario))
+                Box(Modifier.size(16.dp).clip(CircleShape).background(paleta.neutro))
+                Box(Modifier.size(16.dp).clip(CircleShape).background(paleta.alerta))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = paleta.nombre,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (seleccionada) paleta.primarioClaro
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
-private val TemaApp.descripcion: String get() = when (this) {
-    TemaApp.CLARO       -> "Fondo blanco, texto oscuro"
-    TemaApp.OSCURO      -> "Fondo oscuro, confort nocturno"
-    TemaApp.OSCURO_PLUS -> "Alto contraste moderado"
-    TemaApp.AUTO        -> "Sigue la configuración del sistema"
+@Composable
+private fun SelectorOscuridad(
+    seleccionada: OscuridadId,
+    onSeleccionar: (OscuridadId) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OscuridadId.entries.forEach { oscuridadId ->
+            OscuridadCard(
+                oscuridad = oscuridadId.oscuridad,
+                seleccionada = seleccionada == oscuridadId,
+                onClick = { onSeleccionar(oscuridadId) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
 }
 
-private val TemaApp.icono: ImageVector get() = when (this) {
-    TemaApp.CLARO       -> Icons.Filled.WbSunny
-    TemaApp.OSCURO      -> Icons.Filled.NightsStay
-    TemaApp.OSCURO_PLUS -> Icons.Filled.DarkMode
-    TemaApp.AUTO        -> Icons.Filled.AutoAwesome
+@Composable
+private fun OscuridadCard(
+    oscuridad: NivelOscuridad,
+    seleccionada: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bordeColor = if (seleccionada) MaterialTheme.colorScheme.primary
+                      else MaterialTheme.colorScheme.outlineVariant
+
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(width = if (seleccionada) 2.dp else 1.dp, color = bordeColor)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(oscuridad.fondoTop, oscuridad.fondoMid, oscuridad.fondoBottom)
+                        )
+                    )
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = oscuridad.nombre,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (seleccionada) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

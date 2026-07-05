@@ -80,9 +80,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val temaViewModel: TemaViewModel = hiltViewModel()
-            val tema by temaViewModel.tema.collectAsState()
+            val paletaSeleccionada by temaViewModel.paletaSeleccionada.collectAsState()
+            val oscuridadSeleccionada by temaViewModel.oscuridadSeleccionada.collectAsState()
 
-            StoreFlowTheme(tema = tema) {
+            StoreFlowTheme(
+                paleta = paletaSeleccionada.paleta,
+                oscuridad = oscuridadSeleccionada.oscuridad
+            ) {
                 Surface(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = hiltViewModel()
@@ -160,8 +164,10 @@ class MainActivity : ComponentActivity() {
                             popExitTransition = slidePopExit
                         ) {
                             ConfiguracionScreen(
-                                tema = tema,
-                                onSetTema = temaViewModel::setTema,
+                                paletaSeleccionada = paletaSeleccionada,
+                                oscuridadSeleccionada = oscuridadSeleccionada,
+                                onSetPaleta = temaViewModel::cambiarPaleta,
+                                onSetOscuridad = temaViewModel::cambiarOscuridad,
                                 onVolver = { navController.popBackStack() },
                                 onLogout = authViewModel::logout,
                                 onIrAReportarError = { navController.navigate(Rutas.REPORTAR_ERROR) }

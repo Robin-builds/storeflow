@@ -6,22 +6,40 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Warehouse
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.domain.model.Producto
+import cl.storeflow.warehouse.domain.model.Rol
 import cl.storeflow.warehouse.ui.alertas.AlertasUiState
 import cl.storeflow.warehouse.ui.alertas.AlertasViewModel
 import cl.storeflow.warehouse.ui.atributos.AtributosUiState
@@ -30,6 +48,8 @@ import cl.storeflow.warehouse.ui.bodegas.BodegaViewModel
 import cl.storeflow.warehouse.ui.bodegas.BodegasUiState
 import cl.storeflow.warehouse.ui.productos.ProductoViewModel
 import cl.storeflow.warehouse.ui.productos.ProductosUiState
+import cl.storeflow.warehouse.ui.theme.StoreFlowColoresExtendidos
+import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import cl.storeflow.warehouse.ui.usuarios.UsuariosUiState
 import cl.storeflow.warehouse.ui.usuarios.UsuariosViewModel
 
@@ -48,9 +68,12 @@ fun DashboardScreen(
     usuariosViewModel: UsuariosViewModel = hiltViewModel(),
     dashboardViewModel: DashboardViewModel = hiltViewModel()
 ) {
+    val colores = StoreFlowTheme.coloresExtendidos
+
     val alertasState by alertasViewModel.uiState.collectAsState()
     val bodegasState by bodegaViewModel.uiState.collectAsState()
     val nombreUsuario by dashboardViewModel.nombreUsuario.collectAsState()
+    val rolActual by dashboardViewModel.rolActual.collectAsState()
     val productosState by productoViewModel.uiState.collectAsState()
     val atributosState by atributoViewModel.uiState.collectAsState()
     val usuariosState by usuariosViewModel.uiState.collectAsState()
@@ -70,30 +93,58 @@ fun DashboardScreen(
     val usuarios = (usuariosState as? UsuariosUiState.Listo)?.usuarios ?: emptyList()
     val totalAdmins = usuarios.count { it.esAdmin() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(colores.fondoGradiente))
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = 80.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(top = 56.dp, bottom = 24.dp)
         ) {
-            Text("StoreFlow", style = MaterialTheme.typography.headlineLarge)
-            Spacer(Modifier.height(4.dp))
-            if (nombreUsuario.isNotEmpty()) {
-                Text(
-                    text = "Hola, $nombreUsuario",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.Top) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "STOREFLOW",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            letterSpacing = 1.5.sp
+                        ),
+                        color = colores.oscuridad.textoDesactivado
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = bodegaActiva?.nombre ?: "Cargando...",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = colores.oscuridad.textoPrimario
+                    )
+                    if (nombreUsuario.isNotEmpty()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "$nombreUsuario · ${if (rolActual == Rol.ADMIN) "Administrador" else "Operador"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.paleta.primarioSuave
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.05f))
+                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                ) {
+                    IconButton(onClick = onIrAConfiguracion) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = "Configuración",
+                            tint = colores.oscuridad.textoSecundario
+                        )
+                    }
+                }
             }
-            Text(
-                text = bodegaActiva?.nombre ?: "Cargando...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
             Spacer(Modifier.height(24.dp))
 
             AnimatedVisibility(
@@ -105,26 +156,28 @@ fun DashboardScreen(
                     Card(
                         onClick = onIrAAlerta,
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+                            containerColor = colores.paleta.alerta.copy(alpha = 0.12f)
+                        ),
+                        border = BorderStroke(1.dp, colores.paleta.alerta.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Outlined.Warning, contentDescription = null, tint = colores.paleta.alerta)
                             Spacer(Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     "$countAlertas producto${if (countAlertas > 1) "s" else ""} bajo stock mínimo",
                                     style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                    color = colores.oscuridad.textoPrimario
                                 )
                                 Text(
                                     "Toca para ver el detalle",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                    color = colores.oscuridad.textoSecundario
                                 )
                             }
                         }
@@ -141,7 +194,7 @@ fun DashboardScreen(
                 NavCard(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     title = "Productos",
-                    icon = Icons.Filled.Inventory,
+                    icon = Icons.Outlined.Inventory,
                     lines = listOf(
                         "${productos.size} productos",
                         "$totalUnidades unidades"
@@ -153,7 +206,7 @@ fun DashboardScreen(
                 NavCard(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     title = "Bodegas",
-                    icon = Icons.Filled.Warehouse,
+                    icon = Icons.Outlined.Warehouse,
                     lines = listOfNotNull(
                         "${todasLasBodegas.size} bodegas",
                         bodegaActiva?.let { "Activa: ${it.nombre}" }
@@ -178,7 +231,7 @@ fun DashboardScreen(
                         NavCard(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             title = "Especificaciones",
-                            icon = Icons.Filled.Tune,
+                            icon = Icons.Outlined.Tune,
                             lines = listOf(
                                 if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
                                 else "Sin definir",
@@ -191,7 +244,7 @@ fun DashboardScreen(
                         NavCard(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             title = "Usuarios",
-                            icon = Icons.Filled.Group,
+                            icon = Icons.Outlined.Group,
                             lines = if (usuarios.isNotEmpty()) listOf(
                                 "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
                                 "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
@@ -218,7 +271,7 @@ fun DashboardScreen(
                         AlertInfoCard(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             title = "Menor stock",
-                            icon = Icons.AutoMirrored.Filled.TrendingDown,
+                            icon = Icons.AutoMirrored.Outlined.TrendingDown,
                             items = productosMenorStock,
                             itemLabel = { p -> p.nombre },
                             itemSublabel = { p -> "${p.stockActual} uds" },
@@ -229,7 +282,7 @@ fun DashboardScreen(
                         AlertInfoCard(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             title = "Sin actividad — 7d",
-                            icon = Icons.Filled.HourglassEmpty,
+                            icon = Icons.Outlined.HourglassEmpty,
                             items = sinMovimientoReciente,
                             itemLabel = { p -> p.nombre },
                             itemSublabel = { _ -> "Sin movimientos" },
@@ -239,20 +292,6 @@ fun DashboardScreen(
                     }
                 }
             }
-
-        }
-
-        IconButton(
-            onClick = onIrAConfiguracion,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 48.dp, end = 12.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = "Configuración",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -266,37 +305,46 @@ private fun NavCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colores = StoreFlowTheme.coloresExtendidos
+    val acento = colores.paleta.primario
+    val sombra = colores.sombraPrimario
+
     Card(
         onClick = onClick,
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, colores.cardBorde)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(Brush.linearGradient(listOf(colores.cardGradienteTop, colores.cardGradienteBottom)))
                 .padding(16.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
+                tint = acento,
+                modifier = Modifier
+                    .size(28.dp)
+                    .shadow(elevation = 8.dp, ambientColor = sombra, spotColor = sombra)
             )
             Spacer(Modifier.height(10.dp))
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = colores.oscuridad.textoPrimario)
             Spacer(Modifier.height(6.dp))
             lines.forEach { line ->
                 Text(
                     text = line,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colores.oscuridad.textoTerciario
                 )
             }
             if (warningText != null) {
                 Text(
                     text = warningText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = colores.paleta.alerta
                 )
             }
         }
@@ -314,32 +362,37 @@ private fun <T> AlertInfoCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colores = StoreFlowTheme.coloresExtendidos
+
     Card(
         onClick = onClick,
         modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, colores.cardBorde)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(Brush.linearGradient(listOf(colores.cardGradienteTop, colores.cardGradienteBottom)))
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
+                    tint = colores.paleta.primario,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(title, style = MaterialTheme.typography.titleSmall, color = colores.oscuridad.textoPrimario)
             }
             Spacer(Modifier.height(10.dp))
             if (items.isEmpty()) {
                 Text(
                     text = emptyText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colores.oscuridad.textoTerciario
                 )
             } else {
                 items.forEach { item ->
@@ -350,6 +403,7 @@ private fun <T> AlertInfoCard(
                         Text(
                             text = itemLabel(item),
                             style = MaterialTheme.typography.bodySmall,
+                            color = colores.oscuridad.textoSecundario,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -357,7 +411,7 @@ private fun <T> AlertInfoCard(
                         Text(
                             text = itemSublabel(item),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = colores.oscuridad.textoTerciario
                         )
                     }
                     Spacer(Modifier.height(4.dp))
