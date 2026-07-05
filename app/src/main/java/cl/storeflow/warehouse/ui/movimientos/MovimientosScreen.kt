@@ -19,6 +19,7 @@ import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.TipoMovimiento
 import cl.storeflow.warehouse.domain.model.Producto
 import cl.storeflow.warehouse.ui.components.BackButton
+import cl.storeflow.warehouse.ui.components.BotonAyuda
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -163,6 +164,31 @@ private fun ContenidoMovimientos(
         // Botones de acción
         val tipos = listOf(TipoMovimiento.ENTRADA, TipoMovimiento.SALIDA, TipoMovimiento.AJUSTE)
         val etiquetas = listOf("Entrada", "Salida", "Ajuste")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Tipo de movimiento",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            BotonAyuda(
+                titulo = "Tipo de movimiento",
+                explicacion = "Cada movimiento cambia el stock del producto:\n\n" +
+                    "• ENTRADA: suma stock. Usa cuando llega mercadería del proveedor o recibes una " +
+                    "devolución.\n\n" +
+                    "• SALIDA: resta stock. Usa cuando vendes, entregas, o se pierde/daña un " +
+                    "producto.\n\n" +
+                    "• AJUSTE: corrige el stock. Usa cuando haces conteo físico y la cantidad real no " +
+                    "coincide con el sistema. Puede ser positivo (sobra) o negativo (falta).",
+                ejemplo = "Llegan 50 kg de Harina del proveedor → ENTRADA 50. Vendes 10 kg → SALIDA " +
+                    "10. Haces conteo y faltan 2 kg → AJUSTE -2."
+            )
+        }
         SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .fillMaxWidth()

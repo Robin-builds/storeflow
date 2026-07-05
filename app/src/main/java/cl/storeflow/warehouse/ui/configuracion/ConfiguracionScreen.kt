@@ -12,8 +12,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import cl.storeflow.warehouse.ui.ayuda.AyudaViewModel
+import cl.storeflow.warehouse.ui.ayuda.abrirGuiaPdf
+import cl.storeflow.warehouse.ui.components.BotonAyuda
 import cl.storeflow.warehouse.ui.theme.NivelOscuridad
 import cl.storeflow.warehouse.ui.theme.OscuridadId
 import cl.storeflow.warehouse.ui.theme.PaletaAcento
@@ -38,9 +46,11 @@ fun ConfiguracionScreen(
     onSetOscuridad: (OscuridadId) -> Unit,
     onVolver: () -> Unit,
     onLogout: () -> Unit,
-    onIrAReportarError: () -> Unit
+    onIrAReportarError: () -> Unit,
+    ayudaViewModel: AyudaViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val mostrarTooltips by ayudaViewModel.mostrarTooltips.collectAsState()
 
     Scaffold(
         topBar = {
@@ -73,7 +83,21 @@ fun ConfiguracionScreen(
             }
 
             // --- Dashboard web ---
-            SeccionLabel("Dashboard web")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SeccionLabel("Dashboard web", modifier = Modifier.weight(1f))
+                BotonAyuda(
+                    titulo = "Dashboard Web",
+                    explicacion = "StoreFlow tiene un panel web complementario donde puedes ver tu " +
+                        "inventario desde cualquier computador con navegador.\n\n" +
+                        "El dashboard web es de solo lectura: puedes consultar stock, ver alertas y " +
+                        "revisar movimientos, pero no puedes crear ni modificar datos (eso se hace " +
+                        "desde la app).\n\n" +
+                        "Los datos se sincronizan automáticamente entre la app y el panel web.",
+                    ejemplo = "Estás en la oficina y quieres revisar el stock sin sacar el celular: " +
+                        "abre el navegador en tu computador, ingresa con las mismas credenciales, y " +
+                        "verás el mismo inventario actualizado."
+                )
+            }
             Card(modifier = Modifier.fillMaxWidth()) {
                 ConfigFilaItem(
                     icon = Icons.Filled.Share,
@@ -91,7 +115,23 @@ fun ConfiguracionScreen(
             }
 
             // --- Apariencia ---
-            SeccionLabel("Apariencia")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SeccionLabel("Apariencia", modifier = Modifier.weight(1f))
+                BotonAyuda(
+                    titulo = "Personalizar apariencia",
+                    explicacion = "Puedes personalizar cómo se ve StoreFlow con dos controles " +
+                        "independientes:\n\n" +
+                        "• Paleta de colores: cambia los colores de acento de la app. Forja (ámbar " +
+                        "cálido), Planta (verde industrial), o Búnker (cyan técnico).\n\n" +
+                        "• Oscuridad: qué tan oscuro es el fondo. Penumbra (suave, para ambientes con " +
+                        "luz), Nocturno (estándar), o Abismo (negro puro, ahorra batería en pantallas " +
+                        "OLED).\n\n" +
+                        "Puedes combinar cualquier paleta con cualquier oscuridad. El cambio es " +
+                        "inmediato.",
+                    ejemplo = "Si trabajas en una bodega oscura, prueba Búnker + Abismo. Si prefieres " +
+                        "algo cálido y visible, Forja + Penumbra."
+                )
+            }
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -105,6 +145,64 @@ fun ConfiguracionScreen(
                         seleccionada = oscuridadSeleccionada,
                         onSeleccionar = onSetOscuridad
                     )
+                }
+            }
+
+            // --- Ayuda ---
+            SeccionLabel("Ayuda")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { abrirGuiaPdf(context) }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MenuBook,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Guía rápida de StoreFlow", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = "PDF con toda la documentación de la app",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Outlined.Download,
+                            contentDescription = "Descargar",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Mostrar ayuda contextual", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = "Íconos \"?\" en tarjetas y formularios",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = mostrarTooltips,
+                            onCheckedChange = { ayudaViewModel.toggleTooltips(it) }
+                        )
+                    }
                 }
             }
 
@@ -144,12 +242,12 @@ fun ConfiguracionScreen(
 }
 
 @Composable
-private fun SeccionLabel(texto: String) {
+private fun SeccionLabel(texto: String, modifier: Modifier = Modifier) {
     Text(
         text = texto,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp)
+        modifier = modifier.padding(start = 4.dp)
     )
 }
 

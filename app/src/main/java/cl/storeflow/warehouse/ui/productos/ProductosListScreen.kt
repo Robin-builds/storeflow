@@ -35,6 +35,7 @@ import cl.storeflow.warehouse.domain.model.AtributoTemplate
 import cl.storeflow.warehouse.domain.model.Producto
 import cl.storeflow.warehouse.ui.components.BackButton
 import cl.storeflow.warehouse.ui.components.BarcodeScannerDialog
+import cl.storeflow.warehouse.ui.components.BotonAyuda
 import cl.storeflow.warehouse.ui.theme.Ambar500
 import cl.storeflow.warehouse.ui.theme.Rojo600
 import cl.storeflow.warehouse.ui.theme.Verde400
@@ -656,6 +657,17 @@ private fun ProductoFormDialog(
                         singleLine = true,
                         enabled = !cargando,
                         isError = !stockMinimoValido,
+                        trailingIcon = {
+                            BotonAyuda(
+                                titulo = "Stock mínimo",
+                                explicacion = "Es la cantidad mínima que quieres mantener siempre en " +
+                                    "bodega. Cuando el stock real baje de este número, el producto " +
+                                    "aparecerá en las alertas del dashboard.",
+                                ejemplo = "Si vendes Coca-Cola y no quieres quedarte con menos de 24 " +
+                                    "unidades, pon stock mínimo = 24. Cuando queden 23 o menos, " +
+                                    "StoreFlow te avisará."
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
