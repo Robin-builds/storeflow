@@ -230,7 +230,7 @@ fun DashboardScreen(
                     ) {
                         NavCard(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Especificaciones",
+                            title = "Configurar productos",
                             icon = Icons.Outlined.Tune,
                             lines = listOf(
                                 if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
