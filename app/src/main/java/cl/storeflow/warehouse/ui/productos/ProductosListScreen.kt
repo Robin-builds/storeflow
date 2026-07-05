@@ -55,6 +55,9 @@ fun ProductosListScreen(
     val formState by viewModel.formState.collectAsState()
     val busqueda by viewModel.busqueda.collectAsState()
     val productosFiltrados by viewModel.productosFiltrados.collectAsState()
+    val productosVisibles by viewModel.productosVisibles.collectAsState()
+    val hayMas by viewModel.hayMas.collectAsState()
+    val tamanioPagina by viewModel.tamanioPagina.collectAsState()
     val templates by viewModel.templates.collectAsState()
     val productoEditando by viewModel.productoEditando.collectAsState()
     val seleccionados by viewModel.seleccionados.collectAsState()
@@ -161,6 +164,40 @@ fun ProductosListScreen(
                 }
             }
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                var expandedTamanio by remember { mutableStateOf(false) }
+                Text(
+                    "Mostrar:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Box {
+                    TextButton(onClick = { expandedTamanio = true }) {
+                        Text("$tamanioPagina")
+                    }
+                    DropdownMenu(
+                        expanded = expandedTamanio,
+                        onDismissRequest = { expandedTamanio = false }
+                    ) {
+                        listOf(25, 50, 100).forEach { opcion ->
+                            DropdownMenuItem(
+                                text = { Text("$opcion") },
+                                onClick = {
+                                    expandedTamanio = false
+                                    viewModel.setTamanioPagina(opcion)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             if (mostrarScannerBusqueda) {
                 BarcodeScannerDialog(
                     onBarcodeDetected = { valor -> viewModel.setBusqueda(valor) },
@@ -201,7 +238,7 @@ fun ProductosListScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(productosFiltrados, key = { it.id }) { producto ->
+                            items(productosVisibles, key = { it.id }) { producto ->
                                 ProductoItem(
                                     producto = producto,
                                     seleccionado = producto.id in seleccionados,
@@ -213,6 +250,20 @@ fun ProductosListScreen(
                                     modifier = Modifier.animateItem()
                                 )
                             }
+                            if (hayMas) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        OutlinedButton(onClick = { viewModel.cargarMas() }) {
+                                            Text("Cargar más (${productosVisibles.size} de ${productosFiltrados.size})")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -221,8 +272,8 @@ fun ProductosListScreen(
 
         // Card de acciones flotante sobre la lista
         if (modoSeleccion) {
-            val todosSeleccionados = productosFiltrados.isNotEmpty() &&
-                    seleccionados.size == productosFiltrados.size
+            val todosSeleccionados = productosVisibles.isNotEmpty() &&
+                    seleccionados.size == productosVisibles.size
             Card(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

@@ -67,6 +67,30 @@ class ProductoViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val _tamanioPagina = MutableStateFlow(25)
+    val tamanioPagina: StateFlow<Int> = _tamanioPagina.asStateFlow()
+
+    private val _cantidadVisible = MutableStateFlow(_tamanioPagina.value)
+
+    val productosVisibles: StateFlow<List<Producto>> = combine(
+        productosFiltrados, _cantidadVisible
+    ) { lista, cantidad -> lista.take(cantidad) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val hayMas: StateFlow<Boolean> = combine(
+        productosFiltrados, _cantidadVisible
+    ) { lista, cantidad -> cantidad < lista.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setTamanioPagina(tamanio: Int) {
+        _tamanioPagina.value = tamanio
+        _cantidadVisible.value = tamanio
+    }
+
+    fun cargarMas() {
+        _cantidadVisible.value += _tamanioPagina.value
+    }
+
     private val _templates = MutableStateFlow<List<AtributoTemplate>>(emptyList())
     val templates: StateFlow<List<AtributoTemplate>> = _templates.asStateFlow()
 
@@ -128,7 +152,7 @@ class ProductoViewModel @Inject constructor(
     }
 
     fun seleccionarTodos() {
-        _seleccionados.value = _todosLosProductos.value.map { it.id }.toSet()
+        _seleccionados.value = productosVisibles.value.map { it.id }.toSet()
     }
 
     fun limpiarSeleccion() { _seleccionados.value = emptySet() }
@@ -161,7 +185,10 @@ class ProductoViewModel @Inject constructor(
         }
     }
 
-    fun setBusqueda(query: String) { _busqueda.value = query }
+    fun setBusqueda(query: String) {
+        _busqueda.value = query
+        _cantidadVisible.value = _tamanioPagina.value
+    }
 
     private fun skuYaExiste(sku: String, excludeId: String? = null): Boolean =
         _todosLosProductos.value.any {
