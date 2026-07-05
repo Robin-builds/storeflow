@@ -14,6 +14,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +29,8 @@ import cl.storeflow.warehouse.ui.auth.LoginScreen
 import cl.storeflow.warehouse.ui.auth.RegistroScreen
 import cl.storeflow.warehouse.ui.alertas.AlertasScreen
 import cl.storeflow.warehouse.ui.atributos.AtributosScreen
+import cl.storeflow.warehouse.ui.ayuda.AyudaViewModel
+import cl.storeflow.warehouse.ui.ayuda.LocalMostrarAyuda
 import cl.storeflow.warehouse.ui.bodegas.BodegasScreen
 import cl.storeflow.warehouse.ui.configuracion.ConfiguracionScreen
 import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
@@ -82,11 +85,14 @@ class MainActivity : ComponentActivity() {
             val temaViewModel: TemaViewModel = hiltViewModel()
             val paletaSeleccionada by temaViewModel.paletaSeleccionada.collectAsState()
             val oscuridadSeleccionada by temaViewModel.oscuridadSeleccionada.collectAsState()
+            val ayudaViewModel: AyudaViewModel = hiltViewModel()
+            val mostrarTooltips by ayudaViewModel.mostrarTooltips.collectAsState()
 
             StoreFlowTheme(
                 paleta = paletaSeleccionada.paleta,
                 oscuridad = oscuridadSeleccionada.oscuridad
             ) {
+                CompositionLocalProvider(LocalMostrarAyuda provides mostrarTooltips) {
                 Surface(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     val authViewModel: AuthViewModel = hiltViewModel()
@@ -254,6 +260,7 @@ class MainActivity : ComponentActivity() {
                             MovimientosScreen(onVolver = { navController.popBackStack() })
                         }
                     }
+                }
                 }
             }
         }
