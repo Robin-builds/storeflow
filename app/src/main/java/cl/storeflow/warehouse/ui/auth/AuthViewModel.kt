@@ -14,6 +14,7 @@ sealed class AuthUiState {
     object Idle : AuthUiState()
     object Cargando : AuthUiState()
     object Autenticado : AuthUiState()
+    object SesionCerrada : AuthUiState()
     data class Error(val mensaje: String) : AuthUiState()
 }
 
@@ -68,7 +69,7 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
-            _uiState.value = AuthUiState.Idle
+            _uiState.value = AuthUiState.SesionCerrada
         }
     }
 
