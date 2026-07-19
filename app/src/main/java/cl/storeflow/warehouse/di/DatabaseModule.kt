@@ -32,6 +32,10 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7
             )
+            // Room es caché offline-first (integridad la garantiza Supabase) — un downgrade
+            // de esquema (ej. dispositivo con una build de prueba más nueva) recrea la DB
+            // local en vez de crashear; PullWorker repuebla los datos tras el login
+            .fallbackToDestructiveMigrationOnDowngrade()
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onOpen(db: SupportSQLiteDatabase) {
                     // Room es caché local — integridad referencial la garantiza Supabase
