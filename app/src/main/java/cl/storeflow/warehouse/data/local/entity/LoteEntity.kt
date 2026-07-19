@@ -1,4 +1,4 @@
-﻿package cl.storeflow.warehouse.data.local.entity
+package cl.storeflow.warehouse.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -7,9 +7,8 @@ import androidx.room.PrimaryKey
 import java.util.Date
 import java.util.UUID
 
-// INMUTABLE: nunca actualizar registros existentes, solo insertar nuevos
 @Entity(
-    tableName = "movimientos",
+    tableName = "lotes",
     foreignKeys = [
         ForeignKey(
             entity = ProductoEntity::class,
@@ -18,26 +17,22 @@ import java.util.UUID
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
-            entity = LoteEntity::class,
+            entity = EmpresaEntity::class,
             parentColumns = ["id"],
-            childColumns = ["lote_id"],
-            onDelete = ForeignKey.SET_NULL
+            childColumns = ["empresa_id"],
+            onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("producto_id"), Index("lote_id")]
+    indices = [Index("producto_id"), Index("empresa_id")]
 )
-data class MovimientoEntity(
+data class LoteEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val producto_id: String,
-    val tipo: TipoMovimiento,
-    val cantidad: Int,
-    val nota: String? = null,
-    // null = producto no perecedero, o entrada/ajuste sin lote asociado
-    val lote_id: String? = null,
+    val empresa_id: String,
+    val numero_lote: String? = null,
+    val fecha_caducidad: Date,
     val synced: Boolean = false,
     val synced_at: Date? = null,
     val created_at: Date = Date(),
     val updated_at: Date = Date()
 )
-
-enum class TipoMovimiento { ENTRADA, SALIDA, AJUSTE }
