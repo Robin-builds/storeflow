@@ -1,5 +1,6 @@
 ﻿package cl.storeflow.warehouse.ui.productos
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
@@ -40,7 +41,8 @@ sealed class FormUiState {
 class ProductoViewModel @Inject constructor(
     private val repository: ProductoRepository,
     private val atributoRepository: AtributoRepository,
-    private val bodegaRepository: BodegaRepository
+    private val bodegaRepository: BodegaRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private var empresa_id = ""
@@ -52,7 +54,8 @@ class ProductoViewModel @Inject constructor(
     private val _formState = MutableStateFlow<FormUiState>(FormUiState.Idle)
     val formState: StateFlow<FormUiState> = _formState.asStateFlow()
 
-    private val _busqueda = MutableStateFlow("")
+    // Prellenado opcional al llegar desde la búsqueda global del Dashboard
+    private val _busqueda = MutableStateFlow(savedStateHandle.get<String>("busqueda") ?: "")
     val busqueda: StateFlow<String> = _busqueda.asStateFlow()
 
     private val _todosLosProductos = MutableStateFlow<List<Producto>>(emptyList())
