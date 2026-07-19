@@ -205,7 +205,8 @@ class ProductoViewModel @Inject constructor(
         precio: Int,
         stock_minimo: Int,
         stock_inicial: Int = 0,
-        atributos: Map<String, String> = emptyMap()
+        atributos: Map<String, String> = emptyMap(),
+        es_perecedero: Boolean = false
     ) {
         if (stock_inicial > 0 && stock_inicial < stock_minimo) {
             _formState.value = FormUiState.Error("El stock inicial no puede ser menor al stock mínimo ($stock_minimo)")
@@ -217,7 +218,7 @@ class ProductoViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _formState.value = FormUiState.Cargando
-            repository.crear(empresa_id, bodega_id, nombre, descripcion, sku, precio, stock_minimo, stock_inicial, atributos)
+            repository.crear(empresa_id, bodega_id, nombre, descripcion, sku, precio, stock_minimo, stock_inicial, atributos, es_perecedero)
                 .onSuccess { _formState.value = FormUiState.Guardado("Producto creado") }
                 .onFailure { _formState.value = FormUiState.Error(it.message ?: "Error al guardar") }
         }
@@ -230,7 +231,8 @@ class ProductoViewModel @Inject constructor(
         sku: String?,
         precio: Int,
         stock_minimo: Int,
-        atributos: Map<String, String> = emptyMap()
+        atributos: Map<String, String> = emptyMap(),
+        es_perecedero: Boolean = false
     ) {
         if (!sku.isNullOrBlank() && skuYaExiste(sku, excludeId = producto.id)) {
             _formState.value = FormUiState.Error("Ya existe un producto con el SKU \"$sku\"")
@@ -247,6 +249,7 @@ class ProductoViewModel @Inject constructor(
                 sku = sku?.trim()?.ifBlank { null },
                 precio = precio,
                 stock_minimo = stock_minimo,
+                es_perecedero = es_perecedero,
                 synced = false
             )
             repository.actualizar(entity, atributos)

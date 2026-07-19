@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Warehouse
@@ -81,6 +82,7 @@ fun DashboardScreen(
     val sinMovimientoReciente by dashboardViewModel.sinMovimientoReciente.collectAsState()
     val busquedaGlobal by dashboardViewModel.busquedaGlobal.collectAsState()
     val resultadosBusquedaGlobal by dashboardViewModel.resultadosBusquedaGlobal.collectAsState()
+    val countProximosAVencer by dashboardViewModel.countProximosAVencer.collectAsState()
 
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
@@ -159,39 +161,31 @@ fun DashboardScreen(
             Spacer(Modifier.height(16.dp))
 
             AnimatedVisibility(
-                visible = countAlertas > 0,
+                visible = countAlertas > 0 || countProximosAVencer > 0,
                 enter = fadeIn(tween(300)) + expandVertically(tween(300)),
                 exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
             ) {
                 Column {
-                    Card(
-                        onClick = onIrAAlerta,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = colores.paleta.alerta.copy(alpha = 0.12f)
-                        ),
-                        border = BorderStroke(1.dp, colores.paleta.alerta.copy(alpha = 0.3f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Outlined.Warning, contentDescription = null, tint = colores.paleta.alerta)
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "$countAlertas producto${if (countAlertas > 1) "s" else ""} bajo stock mínimo",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = colores.oscuridad.textoPrimario
-                                )
-                                Text(
-                                    "Toca para ver el detalle",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colores.oscuridad.textoSecundario
-                                )
-                            }
-                        }
+                        AlertaMiniCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            icon = Icons.Outlined.Warning,
+                            count = countAlertas,
+                            etiqueta = "bajo stock mínimo",
+                            onClick = onIrAAlerta
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        AlertaMiniCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            icon = Icons.Outlined.Schedule,
+                            count = countProximosAVencer,
+                            etiqueta = "próximos a vencer",
+                            onClick = onIrAAlerta
+                        )
                     }
                     Spacer(Modifier.height(16.dp))
                 }
@@ -303,6 +297,48 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AlertaMiniCard(
+    icon: ImageVector,
+    count: Int,
+    etiqueta: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colores = StoreFlowTheme.coloresExtendidos
+    val activa = count > 0
+
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (activa) colores.paleta.alerta.copy(alpha = 0.12f) else Color.Transparent
+        ),
+        border = BorderStroke(1.dp, if (activa) colores.paleta.alerta.copy(alpha = 0.3f) else colores.cardBorde)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (activa) colores.paleta.alerta else colores.oscuridad.textoTerciario
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "$count",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (activa) colores.oscuridad.textoPrimario else colores.oscuridad.textoTerciario
+            )
+            Text(
+                text = etiqueta,
+                style = MaterialTheme.typography.bodySmall,
+                color = colores.oscuridad.textoSecundario
+            )
         }
     }
 }

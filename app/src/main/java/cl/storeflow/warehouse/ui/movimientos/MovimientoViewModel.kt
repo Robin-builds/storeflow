@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
 
 sealed class MovimientosUiState {
@@ -53,10 +54,10 @@ class MovimientoViewModel @Inject constructor(
         }
     }
 
-    fun registrarEntrada(cantidad: Int, nota: String?) {
+    fun registrarEntrada(cantidad: Int, nota: String?, fechaCaducidad: Date? = null, numeroLote: String? = null) {
         viewModelScope.launch {
             _formState.value = MovFormState.Cargando
-            repository.registrarEntrada(productoId, cantidad, nota)
+            repository.registrarEntrada(productoId, cantidad, nota, fechaCaducidad, numeroLote)
                 .onSuccess { _formState.value = MovFormState.Guardado("Entrada registrada") }
                 .onFailure { _formState.value = MovFormState.Error(it.message ?: "Error") }
         }

@@ -31,7 +31,8 @@ class PullWorker @AssistedInject constructor(
     private val productoDao: ProductoDao,
     private val movimientoDao: MovimientoDao,
     private val atributoTemplateDao: AtributoTemplateDao,
-    private val productoAtributoDao: ProductoAtributoDao
+    private val productoAtributoDao: ProductoAtributoDao,
+    private val loteDao: LoteDao
 ) : CoroutineWorker(context, params) {
 
     private val httpClient = HttpClient(Android) { expectSuccess = false }
@@ -91,9 +92,14 @@ class PullWorker @AssistedInject constructor(
                 productoAtributoDao.upsertAll(dtos.map { it.toEntity() })
                 dtos.size
             }
+            val e9 = pull("lotes", token) { body ->
+                val dtos = json.decodeFromString<List<LoteDto>>(body)
+                loteDao.upsertAll(dtos.map { it.toEntity() })
+                dtos.size
+            }
 
-            val ok = e1 && e2 && e3 && e4 && e5 && e6 && e7 && e8
-            Timber.d("PULL: completado — ${if (ok) "SUCCESS" else "RETRY"} e1=$e1 e2=$e2 e3=$e3 e4=$e4 e5=$e5 e6=$e6 e7=$e7 e8=$e8")
+            val ok = e1 && e2 && e3 && e4 && e5 && e6 && e7 && e8 && e9
+            Timber.d("PULL: completado — ${if (ok) "SUCCESS" else "RETRY"} e1=$e1 e2=$e2 e3=$e3 e4=$e4 e5=$e5 e6=$e6 e7=$e7 e8=$e8 e9=$e9")
             if (ok) Result.success() else Result.retry()
         } finally {
             httpClient.close()

@@ -2,6 +2,7 @@
 
 import cl.storeflow.warehouse.data.local.entity.AtributoTemplateEntity
 import cl.storeflow.warehouse.data.local.entity.BodegaEntity
+import cl.storeflow.warehouse.data.local.entity.LoteEntity
 import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.OperacionSync
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
@@ -48,6 +49,7 @@ private fun ProductoEntity.toSupabaseJson(): String = buildJsonObject {
     put("sku", sku)
     put("precio", precio)
     put("stock_minimo", stock_minimo)
+    put("es_perecedero", es_perecedero)
     put("created_at", isoFmt.format(created_at))
     put("updated_at", isoFmt.format(updated_at))
 }.toString()
@@ -58,6 +60,23 @@ fun MovimientoEntity.toSyncInsert() = SyncEntity(
     operacion = OperacionSync.INSERT,
     payload = toSupabaseJson()
 )
+
+fun LoteEntity.toSyncInsert() = SyncEntity(
+    entidad_tipo = "lotes",
+    entidad_id = id,
+    operacion = OperacionSync.INSERT,
+    payload = toSupabaseJson()
+)
+
+private fun LoteEntity.toSupabaseJson(): String = buildJsonObject {
+    put("id", id)
+    put("producto_id", producto_id)
+    put("empresa_id", empresa_id)
+    numero_lote?.let { put("numero_lote", it) }
+    put("fecha_caducidad", isoFmt.format(fecha_caducidad))
+    put("created_at", isoFmt.format(created_at))
+    put("updated_at", isoFmt.format(updated_at))
+}.toString()
 
 fun BodegaEntity.toSyncInsert() = SyncEntity(
     entidad_tipo = "bodegas",
@@ -136,6 +155,7 @@ private fun MovimientoEntity.toSupabaseJson(): String = buildJsonObject {
     put("tipo", tipo.name)
     put("cantidad", cantidad)
     put("nota", nota)
+    lote_id?.let { put("lote_id", it) }
     put("created_at", isoFmt.format(created_at))
     put("updated_at", isoFmt.format(updated_at))
 }.toString()

@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import cl.storeflow.warehouse.data.local.dao.AtributoTemplateDao
 import cl.storeflow.warehouse.data.local.dao.AuthSessionDao
 import cl.storeflow.warehouse.data.local.dao.BodegaDao
+import cl.storeflow.warehouse.data.local.dao.LoteDao
 import cl.storeflow.warehouse.data.local.dao.MovimientoDao
 import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
@@ -37,7 +38,8 @@ class SyncWorker @AssistedInject constructor(
     private val productoDao: ProductoDao,
     private val movimientoDao: MovimientoDao,
     private val bodegaDao: BodegaDao,
-    private val atributoTemplateDao: AtributoTemplateDao
+    private val atributoTemplateDao: AtributoTemplateDao,
+    private val loteDao: LoteDao
 ) : CoroutineWorker(context, workerParams) {
 
     private val httpClient = HttpClient(Android) { expectSuccess = false }
@@ -198,6 +200,7 @@ class SyncWorker @AssistedInject constructor(
             "bodegas"            -> bodegaDao.marcarSincronizado(item.entidad_id, ahora)
             "atributo_templates" -> atributoTemplateDao.marcarSincronizado(item.entidad_id, ahora)
             "producto_atributos" -> { /* PK compuesta sin campo synced */ }
+            "lotes"              -> loteDao.marcarSincronizado(item.entidad_id, ahora)
         }
     }
 

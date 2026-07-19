@@ -36,6 +36,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id
@@ -61,6 +62,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id
@@ -72,6 +74,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id
@@ -106,6 +109,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id

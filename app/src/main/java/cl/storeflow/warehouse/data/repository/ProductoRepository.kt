@@ -77,7 +77,8 @@ class ProductoRepository @Inject constructor(
         precio: Int,
         stock_minimo: Int,
         stock_inicial: Int = 0,
-        atributos: Map<String, String> = emptyMap()
+        atributos: Map<String, String> = emptyMap(),
+        es_perecedero: Boolean = false
     ): Result<Unit> {
         val skuTrimmed = sku?.trim()?.ifBlank { null }
         if (skuTrimmed != null && productoDao.contarConSku(empresa_id, skuTrimmed) > 0)
@@ -91,6 +92,7 @@ class ProductoRepository @Inject constructor(
                 sku = skuTrimmed,
                 precio = precio,
                 stock_minimo = stock_minimo,
+                es_perecedero = es_perecedero,
                 synced = false
             )
             productoDao.insertar(producto)

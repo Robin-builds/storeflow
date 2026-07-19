@@ -30,7 +30,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_3_4,
                 AppDatabase.MIGRATION_4_5,
                 AppDatabase.MIGRATION_5_6,
-                AppDatabase.MIGRATION_6_7
+                AppDatabase.MIGRATION_6_7,
+                AppDatabase.MIGRATION_7_8
             )
             // Room es caché offline-first (integridad la garantiza Supabase) — un downgrade
             // de esquema (ej. dispositivo con una build de prueba más nueva) recrea la DB
@@ -54,4 +55,5 @@ object DatabaseModule {
     @Provides fun provideAuthSessionDao(db: AppDatabase) = db.authSessionDao()
     @Provides fun provideAtributoTemplateDao(db: AppDatabase) = db.atributoTemplateDao()
     @Provides fun provideProductoAtributoDao(db: AppDatabase) = db.productoAtributoDao()
+    @Provides fun provideLoteDao(db: AppDatabase) = db.loteDao()
 }
