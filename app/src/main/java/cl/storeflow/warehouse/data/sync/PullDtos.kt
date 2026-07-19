@@ -3,6 +3,7 @@
 import cl.storeflow.warehouse.data.local.entity.AtributoTemplateEntity
 import cl.storeflow.warehouse.data.local.entity.BodegaEntity
 import cl.storeflow.warehouse.data.local.entity.EmpresaEntity
+import cl.storeflow.warehouse.data.local.entity.LoteEntity
 import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.ProductoAtributoEntity
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
@@ -95,6 +96,7 @@ data class ProductoDto(
     val sku: String? = null,
     val precio: Double = 0.0,
     @SerialName("stock_minimo") val stockMinimo: Int = 0,
+    @SerialName("es_perecedero") val esPerecedero: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 ) {
@@ -102,6 +104,7 @@ data class ProductoDto(
         id = id, empresa_id = empresaId, bodega_id = bodegaId,
         nombre = nombre, descripcion = descripcion, sku = sku,
         precio = precio.toInt(), stock_minimo = stockMinimo,
+        es_perecedero = esPerecedero,
         synced = true, synced_at = Date(),
         created_at = parseFecha(createdAt), updated_at = parseFecha(updatedAt)
     )
@@ -148,6 +151,7 @@ data class MovimientoDto(
     val tipo: String,
     val cantidad: Int,
     val nota: String? = null,
+    @SerialName("lote_id") val loteId: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 ) {
@@ -155,6 +159,25 @@ data class MovimientoDto(
         id = id, producto_id = productoId,
         tipo = TipoMovimiento.valueOf(tipo),
         cantidad = cantidad, nota = nota,
+        lote_id = loteId,
+        synced = true, synced_at = Date(),
+        created_at = parseFecha(createdAt), updated_at = parseFecha(updatedAt)
+    )
+}
+
+@Serializable
+data class LoteDto(
+    val id: String,
+    @SerialName("producto_id") val productoId: String,
+    @SerialName("empresa_id") val empresaId: String,
+    @SerialName("numero_lote") val numeroLote: String? = null,
+    @SerialName("fecha_caducidad") val fechaCaducidad: String,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+) {
+    fun toEntity() = LoteEntity(
+        id = id, producto_id = productoId, empresa_id = empresaId,
+        numero_lote = numeroLote, fecha_caducidad = parseFecha(fechaCaducidad),
         synced = true, synced_at = Date(),
         created_at = parseFecha(createdAt), updated_at = parseFecha(updatedAt)
     )
