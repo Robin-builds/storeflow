@@ -22,6 +22,7 @@ import cl.storeflow.warehouse.ui.components.BackButton
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 private val ColorEntrada = Color(0xFF2E7D32)
@@ -86,14 +87,16 @@ fun MovimientosScreen(
     }
 
     val stockActual = (uiState as? MovimientosUiState.Listo)?.producto?.stockActual ?: 0
+    val esPerecedero = (uiState as? MovimientosUiState.Listo)?.producto?.esPerecedero ?: false
     tipoSeleccionado?.let { tipo ->
         MovimientoDialog(
             tipo = tipo,
             stockActual = stockActual,
+            esPerecedero = esPerecedero,
             formState = formState,
-            onRegistrar = { cantidad, nota ->
+            onRegistrar = { cantidad, nota, fechaCaducidad, numeroLote ->
                 when (tipo) {
-                    TipoMovimiento.ENTRADA -> viewModel.registrarEntrada(cantidad, nota)
+                    TipoMovimiento.ENTRADA -> viewModel.registrarEntrada(cantidad, nota, fechaCaducidad, numeroLote)
                     TipoMovimiento.SALIDA -> viewModel.registrarSalida(cantidad, nota)
                     TipoMovimiento.AJUSTE -> viewModel.registrarAjuste(cantidad, nota)
                 }
@@ -237,12 +240,14 @@ private fun MovimientoItem(movimiento: MovimientoEntity) {
     HorizontalDivider()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MovimientoDialog(
     tipo: TipoMovimiento,
     stockActual: Int,
+    esPerecedero: Boolean,
     formState: MovFormState,
-    onRegistrar: (cantidad: Int, nota: String?) -> Unit,
+    onRegistrar: (cantidad: Int, nota: String?, fechaCaducidad: Date?, numeroLote: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     val titulo = when (tipo) {
@@ -263,9 +268,14 @@ private fun MovimientoDialog(
 
     var cantidad by remember { mutableStateOf("") }
     var nota by remember { mutableStateOf("") }
+    var fechaCaducidadMillis by remember { mutableStateOf<Long?>(null) }
+    var numeroLote by remember { mutableStateOf("") }
+    var mostrarDatePicker by remember { mutableStateOf(false) }
 
     val cargando = formState is MovFormState.Cargando
     val errorMensaje = (formState as? MovFormState.Error)?.mensaje
+
+    val requiereFechaCaducidad = tipo == TipoMovimiento.ENTRADA && esPerecedero
 
     val cantidadInt = cantidad.toIntOrNull()
     val notaValida = nota.isNotBlank()
@@ -279,7 +289,27 @@ private fun MovimientoDialog(
             "No puede superar el stock disponible ($stockActual)"
         else -> null
     }
-    val puedeGuardar = cantidadValida && notaValida
+    val puedeGuardar = cantidadValida && notaValida && (!requiereFechaCaducidad || fechaCaducidadMillis != null)
+
+    if (mostrarDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = fechaCaducidadMillis ?: System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    fechaCaducidadMillis = datePickerState.selectedDateMillis
+                    mostrarDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = { if (!cargando) onDismiss() },
@@ -328,6 +358,34 @@ private fun MovimientoDialog(
                     isError = nota.isNotEmpty() && nota.isBlank(),
                     modifier = Modifier.fillMaxWidth()
                 )
+                if (requiereFechaCaducidad) {
+                    val fechaTexto = fechaCaducidadMillis?.let {
+                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                    } ?: ""
+                    OutlinedTextField(
+                        value = fechaTexto,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Fecha de caducidad *") },
+                        placeholder = { Text("Seleccionar fecha") },
+                        trailingIcon = {
+                            TextButton(onClick = { mostrarDatePicker = true }, enabled = !cargando) {
+                                Text("Elegir")
+                            }
+                        },
+                        isError = fechaCaducidadMillis == null,
+                        enabled = !cargando,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = numeroLote,
+                        onValueChange = { numeroLote = it },
+                        label = { Text("Número de lote") },
+                        singleLine = true,
+                        enabled = !cargando,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 if (errorMensaje != null) {
                     Text(
                         text = errorMensaje,
@@ -342,7 +400,14 @@ private fun MovimientoDialog(
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             } else {
                 Button(
-                    onClick = { onRegistrar(cantidadInt ?: 0, nota.trim().ifBlank { null }) },
+                    onClick = {
+                        onRegistrar(
+                            cantidadInt ?: 0,
+                            nota.trim().ifBlank { null },
+                            if (requiereFechaCaducidad) fechaCaducidadMillis?.let { Date(it) } else null,
+                            if (requiereFechaCaducidad) numeroLote.trim().ifBlank { null } else null
+                        )
+                    },
                     enabled = puedeGuardar
                 ) { Text("Guardar") }
             }
