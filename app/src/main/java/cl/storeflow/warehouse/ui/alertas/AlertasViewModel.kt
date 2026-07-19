@@ -3,7 +3,9 @@
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.repository.BodegaRepository
+import cl.storeflow.warehouse.data.repository.LoteRepository
 import cl.storeflow.warehouse.data.repository.ProductoRepository
+import cl.storeflow.warehouse.domain.model.LoteProximoAVencer
 import cl.storeflow.warehouse.domain.model.Producto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +22,8 @@ sealed class AlertasUiState {
 @HiltViewModel
 class AlertasViewModel @Inject constructor(
     private val repository: ProductoRepository,
-    private val bodegaRepository: BodegaRepository
+    private val bodegaRepository: BodegaRepository,
+    private val loteRepository: LoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AlertasUiState>(AlertasUiState.Cargando)
@@ -28,6 +31,9 @@ class AlertasViewModel @Inject constructor(
 
     private val _bodegaNombre = MutableStateFlow("")
     val bodegaNombre: StateFlow<String> = _bodegaNombre.asStateFlow()
+
+    private val _proximosAVencer = MutableStateFlow<List<LoteProximoAVencer>>(emptyList())
+    val proximosAVencer: StateFlow<List<LoteProximoAVencer>> = _proximosAVencer.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -39,6 +45,12 @@ class AlertasViewModel @Inject constructor(
             }
             repository.observarBajoMinimo(ctx.second).collect { lista ->
                 _uiState.value = AlertasUiState.Listo(lista)
+            }
+        }
+        viewModelScope.launch {
+            val ctx = repository.obtenerContexto() ?: return@launch
+            loteRepository.observarProximosAVencer(ctx.second).collect { lista ->
+                _proximosAVencer.value = lista
             }
         }
     }

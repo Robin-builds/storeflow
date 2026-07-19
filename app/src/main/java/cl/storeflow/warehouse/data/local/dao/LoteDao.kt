@@ -3,6 +3,7 @@ package cl.storeflow.warehouse.data.local.dao
 import androidx.room.*
 import cl.storeflow.warehouse.data.local.entity.LoteEntity
 import cl.storeflow.warehouse.domain.model.LoteConStock
+import cl.storeflow.warehouse.domain.model.LoteProximoAVencer
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -48,6 +49,21 @@ interface LoteDao {
         ORDER BY l.fecha_caducidad ASC
     """)
     fun observarConStockPorEmpresa(empresaId: String): Flow<List<LoteConStock>>
+
+    // Lotes con stock > 0 que vencen antes de :hasta, de la bodega indicada (incluye ya vencidos)
+    @Query("""
+        SELECT l.id, l.producto_id, p.nombre AS producto_nombre, l.numero_lote, l.fecha_caducidad,
+               COALESCE(SUM(m.cantidad), 0) AS stock_actual
+        FROM lotes l
+        JOIN productos p ON p.id = l.producto_id
+        LEFT JOIN movimientos m ON m.lote_id = l.id
+        WHERE p.bodega_id = :bodegaId
+          AND l.fecha_caducidad <= :hasta
+        GROUP BY l.id
+        HAVING stock_actual > 0
+        ORDER BY l.fecha_caducidad ASC
+    """)
+    fun observarProximosAVencer(bodegaId: String, hasta: Long): Flow<List<LoteProximoAVencer>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(lotes: List<LoteEntity>)
