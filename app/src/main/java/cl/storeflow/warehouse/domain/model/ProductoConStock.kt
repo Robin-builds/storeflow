@@ -15,7 +15,8 @@ data class ProductoConStock(
     val synced: Boolean,
     val synced_at: Date?,
     val created_at: Date,
-    val updated_at: Date
+    val updated_at: Date,
+    val es_perecedero: Boolean = false
 ) {
     fun toDomain(atributos: Map<String, String> = emptyMap()): Producto = Producto(
         id = id,
@@ -27,6 +28,7 @@ data class ProductoConStock(
         stockActual = stock_actual,
         bodegaId = bodega_id,
         empresaId = empresa_id,
+        esPerecedero = es_perecedero,
         atributos = atributos
     )
 }

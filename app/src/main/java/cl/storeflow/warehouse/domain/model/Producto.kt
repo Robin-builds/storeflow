@@ -10,6 +10,7 @@ data class Producto(
     val stockActual: Int,
     val bodegaId: String,
     val empresaId: String,
+    val esPerecedero: Boolean = false,
     val atributos: Map<String, String> = emptyMap()
 ) {
     fun esBajoStock(): Boolean = stockActual < stockMinimo
