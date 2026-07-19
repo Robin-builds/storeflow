@@ -1,5 +1,6 @@
 package cl.storeflow.warehouse
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,9 +20,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import cl.storeflow.warehouse.ui.auth.AuthUiState
 import cl.storeflow.warehouse.ui.auth.AuthViewModel
 import cl.storeflow.warehouse.ui.auth.LoginScreen
@@ -63,6 +66,8 @@ private object Rutas {
     const val REGISTRO = "registro"
     const val DASHBOARD = "dashboard"
     const val PRODUCTOS = "productos"
+    const val PRODUCTOS_PATTERN = "productos?busqueda={busqueda}"
+    fun productosConBusqueda(query: String) = "productos?busqueda=${Uri.encode(query)}"
     const val ALERTAS = "alertas"
     const val BODEGAS = "bodegas"
     const val ATRIBUTOS = "atributos"
@@ -153,7 +158,10 @@ class MainActivity : ComponentActivity() {
                                 onIrAAlerta = { navController.navigate(Rutas.ALERTAS) },
                                 onIrABodegas = { navController.navigate(Rutas.BODEGAS) },
                                 onIrAAtributos = { navController.navigate(Rutas.ATRIBUTOS) },
-                                onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) }
+                                onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) },
+                                onIrAProductosConBusqueda = { query ->
+                                    navController.navigate(Rutas.productosConBusqueda(query))
+                                }
                             )
                         }
                         composable(
@@ -197,7 +205,11 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(
-                            Rutas.PRODUCTOS,
+                            Rutas.PRODUCTOS_PATTERN,
+                            arguments = listOf(navArgument("busqueda") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }),
                             enterTransition = slideEnter,
                             exitTransition = slideExit,
                             popEnterTransition = slidePopEnter,

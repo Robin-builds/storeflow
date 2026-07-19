@@ -61,6 +61,7 @@ fun DashboardScreen(
     onIrABodegas: () -> Unit,
     onIrAAtributos: () -> Unit,
     onIrAUsuarios: () -> Unit,
+    onIrAProductosConBusqueda: (String) -> Unit,
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     bodegaViewModel: BodegaViewModel = hiltViewModel(),
     productoViewModel: ProductoViewModel = hiltViewModel(),
@@ -78,6 +79,8 @@ fun DashboardScreen(
     val atributosState by atributoViewModel.uiState.collectAsState()
     val usuariosState by usuariosViewModel.uiState.collectAsState()
     val sinMovimientoReciente by dashboardViewModel.sinMovimientoReciente.collectAsState()
+    val busquedaGlobal by dashboardViewModel.busquedaGlobal.collectAsState()
+    val resultadosBusquedaGlobal by dashboardViewModel.resultadosBusquedaGlobal.collectAsState()
 
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
@@ -146,6 +149,14 @@ fun DashboardScreen(
                 }
             }
             Spacer(Modifier.height(24.dp))
+
+            BusquedaProductoCard(
+                busqueda = busquedaGlobal,
+                resultados = resultadosBusquedaGlobal,
+                onBusquedaChange = dashboardViewModel::buscarProductoGlobal,
+                onVerEnProductos = onIrAProductosConBusqueda
+            )
+            Spacer(Modifier.height(16.dp))
 
             AnimatedVisibility(
                 visible = countAlertas > 0,
