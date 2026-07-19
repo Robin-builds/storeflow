@@ -22,6 +22,7 @@ gradlew.bat clean                 # limpiar build
 ## 🎯 PROYECTO
 
 **Nombre:** StoreFlow (package: `cl.storeflow.warehouse`)
+**Repo remoto:** `https://github.com/Robin-builds/storeflow` (remote `origin`, rama `main`) — creado y pusheado en Julio 2026. Nota de auth: el credential manager de este entorno tenía cacheada una cuenta distinta (`Robinson-dev`, sin acceso de escritura al repo); se limpió con `git credential reject` (protocol=https, host=github.com) y el siguiente `git push` disparó el flujo de login del navegador para autenticarse como `Robin-builds`. Si un push futuro falla con 403, probablemente hay que repetir esa limpieza de credenciales.
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
 **Estado:** Fases 0–10 completas. Features adicionales implementadas y validadas en dispositivo físico.
 **Rama activa:** `main` — todo mergeado: sistema de temas composable, paginación "Cargar más", fix de fallback de downgrade de Room, card de búsqueda de productos en Dashboard (`feat/dashboard-buscar-producto`), y la feature completa de trazabilidad de caducidad/lotes (5 sesiones, `feat/lotes-esquema` → `feat/lotes-supabase-sync` → `feat/lotes-ui-producto` → `feat/lotes-ui-movimientos` → `feat/lotes-alertas`).
