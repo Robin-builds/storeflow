@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Inventory
@@ -63,6 +64,7 @@ fun DashboardScreen(
     onIrAAtributos: () -> Unit,
     onIrAUsuarios: () -> Unit,
     onIrAProductosConBusqueda: (String) -> Unit,
+    onIrAHistorial: () -> Unit,
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     bodegaViewModel: BodegaViewModel = hiltViewModel(),
     productoViewModel: ProductoViewModel = hiltViewModel(),
@@ -103,14 +105,16 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(colores.fondoGradiente))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(top = 56.dp, bottom = 24.dp)
-        ) {
-            Row(verticalAlignment = Alignment.Top) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Cabecera fija: no se desplaza con el scroll del resto del contenido
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 16.dp, bottom = 16.dp)
+            ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "STOREFLOW",
@@ -150,150 +154,168 @@ fun DashboardScreen(
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
 
-            BusquedaProductoCard(
-                busqueda = busquedaGlobal,
-                resultados = resultadosBusquedaGlobal,
-                onBusquedaChange = dashboardViewModel::buscarProductoGlobal,
-                onVerEnProductos = onIrAProductosConBusqueda
-            )
-            Spacer(Modifier.height(16.dp))
-
-            AnimatedVisibility(
-                visible = countAlertas > 0 || countProximosAVencer > 0,
-                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                    ) {
-                        AlertaMiniCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            icon = Icons.Outlined.Warning,
-                            count = countAlertas,
-                            etiqueta = "bajo stock mínimo",
-                            onClick = onIrAAlerta
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        AlertaMiniCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            icon = Icons.Outlined.Schedule,
-                            count = countProximosAVencer,
-                            etiqueta = "próximos a vencer",
-                            onClick = onIrAAlerta
-                        )
-                    }
-                    Spacer(Modifier.height(16.dp))
-                }
-            }
-
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Max)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                    .padding(bottom = 24.dp)
             ) {
-                NavCard(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    title = "Productos",
-                    icon = Icons.Outlined.Inventory,
-                    lines = listOf(
-                        "${productos.size} productos",
-                        "$totalUnidades unidades"
-                    ),
-                    warningText = if (countAlertas > 0) "$countAlertas bajo stock" else null,
-                    onClick = onIrAProductos
+                BusquedaProductoCard(
+                    busqueda = busquedaGlobal,
+                    resultados = resultadosBusquedaGlobal,
+                    onBusquedaChange = dashboardViewModel::buscarProductoGlobal,
+                    onVerEnProductos = onIrAProductosConBusqueda
                 )
-                Spacer(Modifier.width(12.dp))
-                NavCard(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    title = "Bodegas",
-                    icon = Icons.Outlined.Warehouse,
-                    lines = listOfNotNull(
-                        "${todasLasBodegas.size} bodegas",
-                        bodegaActiva?.let { "Activa: ${it.nombre}" }
-                    ),
-                    warningText = null,
-                    onClick = onIrABodegas
-                )
-            }
+                Spacer(Modifier.height(16.dp))
 
-            AnimatedVisibility(
-                visible = esAdmin,
-                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                    ) {
-                        NavCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Configurar productos",
-                            icon = Icons.Outlined.Tune,
-                            lines = listOf(
-                                if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
-                                else "Sin definir",
-                                "Características"
-                            ),
-                            warningText = null,
-                            onClick = onIrAAtributos
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        NavCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Usuarios",
-                            icon = Icons.Outlined.Group,
-                            lines = if (usuarios.isNotEmpty()) listOf(
-                                "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
-                                "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
-                            ) else listOf("Sin usuarios"),
-                            warningText = null,
-                            onClick = onIrAUsuarios
-                        )
+                AnimatedVisibility(
+                    visible = countAlertas > 0 || countProximosAVencer > 0,
+                    enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                        ) {
+                            AlertaMiniCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                icon = Icons.Outlined.Warning,
+                                count = countAlertas,
+                                etiqueta = "bajo stock mínimo",
+                                onClick = onIrAAlerta
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            AlertaMiniCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                icon = Icons.Outlined.Schedule,
+                                count = countProximosAVencer,
+                                etiqueta = "próximos a vencer",
+                                onClick = onIrAAlerta
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
-            }
 
-            AnimatedVisibility(
-                visible = productos.isNotEmpty(),
-                enter = fadeIn(tween(400)) + expandVertically(tween(400)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
-            ) {
-                Column {
-                    Spacer(Modifier.height(20.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                    ) {
-                        AlertInfoCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Menor stock",
-                            icon = Icons.AutoMirrored.Outlined.TrendingDown,
-                            items = productosMenorStock,
-                            itemLabel = { p -> p.nombre },
-                            itemSublabel = { p -> "${p.stockActual} uds" },
-                            emptyText = "Sin productos",
-                            onClick = onIrAProductos
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        AlertInfoCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Sin actividad — 7d",
-                            icon = Icons.Outlined.HourglassEmpty,
-                            items = sinMovimientoReciente,
-                            itemLabel = { p -> p.nombre },
-                            itemSublabel = { _ -> "Sin movimientos" },
-                            emptyText = "Todo activo",
-                            onClick = onIrAProductos
-                        )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max)
+                ) {
+                    NavCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        title = "Productos",
+                        icon = Icons.Outlined.Inventory,
+                        lines = listOf(
+                            "${productos.size} productos",
+                            "$totalUnidades unidades"
+                        ),
+                        warningText = if (countAlertas > 0) "$countAlertas bajo stock" else null,
+                        onClick = onIrAProductos
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    NavCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        title = "Bodegas",
+                        icon = Icons.Outlined.Warehouse,
+                        lines = listOfNotNull(
+                            "${todasLasBodegas.size} bodegas",
+                            bodegaActiva?.let { "Activa: ${it.nombre}" }
+                        ),
+                        warningText = null,
+                        onClick = onIrABodegas
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+                NavCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    title = "Historial de movimientos",
+                    icon = Icons.Outlined.History,
+                    lines = listOf("Entradas, salidas y ajustes de toda la empresa"),
+                    warningText = null,
+                    onClick = onIrAHistorial
+                )
+
+                AnimatedVisibility(
+                    visible = esAdmin,
+                    enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                ) {
+                    Column {
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                        ) {
+                            NavCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Configurar productos",
+                                icon = Icons.Outlined.Tune,
+                                lines = listOf(
+                                    if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
+                                    else "Sin definir",
+                                    "Características"
+                                ),
+                                warningText = null,
+                                onClick = onIrAAtributos
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            NavCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Usuarios",
+                                icon = Icons.Outlined.Group,
+                                lines = if (usuarios.isNotEmpty()) listOf(
+                                    "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
+                                    "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
+                                ) else listOf("Sin usuarios"),
+                                warningText = null,
+                                onClick = onIrAUsuarios
+                            )
+                        }
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = productos.isNotEmpty(),
+                    enter = fadeIn(tween(400)) + expandVertically(tween(400)),
+                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                ) {
+                    Column {
+                        Spacer(Modifier.height(20.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                        ) {
+                            AlertInfoCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Menor stock",
+                                icon = Icons.AutoMirrored.Outlined.TrendingDown,
+                                items = productosMenorStock,
+                                itemLabel = { p -> p.nombre },
+                                itemSublabel = { p -> "${p.stockActual} uds" },
+                                emptyText = "Sin productos",
+                                onClick = onIrAProductos
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            AlertInfoCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Sin actividad — 7d",
+                                icon = Icons.Outlined.HourglassEmpty,
+                                items = sinMovimientoReciente,
+                                itemLabel = { p -> p.nombre },
+                                itemSublabel = { _ -> "Sin movimientos" },
+                                emptyText = "Todo activo",
+                                onClick = onIrAProductos
+                            )
+                        }
                     }
                 }
             }

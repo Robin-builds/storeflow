@@ -7,6 +7,7 @@ import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.TipoMovimiento
 import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.data.sync.toSyncInsert
+import cl.storeflow.warehouse.domain.model.MovimientoConProducto
 import cl.storeflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -27,6 +28,9 @@ class MovimientoRepository @Inject constructor(
 
     fun observarMovimientos(productoId: String): Flow<List<MovimientoEntity>> =
         movimientoDao.observarPorProducto(productoId)
+
+    fun observarMovimientosDeEmpresa(empresaId: String): Flow<List<MovimientoConProducto>> =
+        movimientoDao.observarPorEmpresa(empresaId)
 
     suspend fun registrarEntrada(
         productoId: String,

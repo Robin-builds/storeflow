@@ -36,6 +36,7 @@ import cl.storeflow.warehouse.ui.configuracion.ConfiguracionScreen
 import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
 import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
+import cl.storeflow.warehouse.ui.movimientos.HistorialMovimientosScreen
 import cl.storeflow.warehouse.ui.productos.ProductosListScreen
 import cl.storeflow.warehouse.ui.reportar.ReportarErrorScreen
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
@@ -75,6 +76,7 @@ private object Rutas {
     const val CONFIGURACION = "configuracion"
     const val MOVIMIENTOS = "movimientos/{productoId}"
     const val REPORTAR_ERROR = "reportar_error"
+    const val HISTORIAL_MOVIMIENTOS = "historial_movimientos"
     fun movimientos(productoId: String) = "movimientos/$productoId"
 }
 
@@ -161,7 +163,8 @@ class MainActivity : ComponentActivity() {
                                 onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) },
                                 onIrAProductosConBusqueda = { query ->
                                     navController.navigate(Rutas.productosConBusqueda(query))
-                                }
+                                },
+                                onIrAHistorial = { navController.navigate(Rutas.HISTORIAL_MOVIMIENTOS) }
                             )
                         }
                         composable(
@@ -264,6 +267,20 @@ class MainActivity : ComponentActivity() {
                             popExitTransition = slidePopExit
                         ) {
                             MovimientosScreen(onVolver = { navController.popBackStack() })
+                        }
+                        composable(
+                            Rutas.HISTORIAL_MOVIMIENTOS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
+                            HistorialMovimientosScreen(
+                                onVolver = { navController.popBackStack() },
+                                onVerProducto = { productoId ->
+                                    navController.navigate(Rutas.movimientos(productoId))
+                                }
+                            )
                         }
                     }
                 }
