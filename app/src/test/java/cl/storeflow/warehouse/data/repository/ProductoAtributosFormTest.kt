@@ -9,7 +9,6 @@ import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
 import cl.storeflow.warehouse.data.sync.SyncTrigger
-import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -43,8 +42,6 @@ class ProductoAtributosFormTest {
         productoAtributoDao = mockk()
         atributoTemplateDao = mockk()
 
-        coEvery { productoDao.contarConNombre(any(), any()) } returns 0
-        coEvery { productoDao.contarConNombre(any(), any(), any()) } returns 0
         coJustRun { productoDao.insertar(any()) }
         coJustRun { productoDao.actualizar(any()) }
         coJustRun { syncDao.encolar(any()) }
