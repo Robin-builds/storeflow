@@ -317,7 +317,16 @@ class AuthRepository @Inject constructor(
             supabaseClient.gotrue.modifyUser {
                 password = nueva
             }
-            Timber.d("AUTH: contraseña cambiada OK")
+            val nuevaSesion = supabaseClient.gotrue.currentSessionOrNull()
+                ?: throw Exception("sesión nula tras cambio de contraseña")
+            val actualizada = sesion.copy(
+                access_token = nuevaSesion.accessToken,
+                refresh_token = nuevaSesion.refreshToken,
+                expires_at = Date(nuevaSesion.expiresAt.toEpochMilliseconds()),
+                updated_at = Date()
+            )
+            withContext(Dispatchers.IO) { authSessionDao.guardarSesion(actualizada) }
+            Timber.d("AUTH: contraseña cambiada OK, sesión actualizada persistida en Room")
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error cambiando password")
