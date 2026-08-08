@@ -1,36 +1,33 @@
 package cl.storeflow.warehouse.ui.configuracion
 
+import cl.storeflow.warehouse.MainDispatcherRule
 import cl.storeflow.warehouse.data.repository.AuthRepository
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 class ConfiguracionViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var authRepository: AuthRepository
     private lateinit var viewModel: ConfiguracionViewModel
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(StandardTestDispatcher())
         authRepository = mockk()
         viewModel = ConfiguracionViewModel(authRepository)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test
@@ -40,13 +37,22 @@ class ConfiguracionViewModelTest {
 
     @Test
     fun `cambiarPassword exitoso emite mensaje y vuelve a Idle`() = runTest {
-        coEvery { authRepository.cambiarPassword("actual123", "nueva12345") } returns Result.success(Unit)
+        coEvery { authRepository.cambiarPassword("actual123", "nueva12345") } coAnswers {
+            yield()
+            Result.success(Unit)
+        }
+
+        val estados = mutableListOf<ConfiguracionUiState>()
+        val estadosJob = launch { viewModel.uiState.collect { estados.add(it) } }
 
         val mensajeDeferred = async { viewModel.mensaje.first() }
         viewModel.cambiarPassword("actual123", "nueva12345")
 
         assertEquals("Contraseña actualizada", mensajeDeferred.await())
         assertEquals(ConfiguracionUiState.Idle, viewModel.uiState.value)
+        assertTrue(estados.contains(ConfiguracionUiState.Operando))
+
+        estadosJob.cancel()
     }
 
     @Test
