@@ -303,4 +303,28 @@ class AuthRepository @Inject constructor(
         val sesion = authSessionDao.obtenerSesion() ?: return null
         return Rol.fromString(sesion.rol)
     }
+
+    suspend fun cambiarPassword(actual: String, nueva: String): Result<Unit> {
+        val sesion = authSessionDao.obtenerSesion()
+            ?: return Result.failure(Exception("Sin sesión activa"))
+        return try {
+            Timber.d("AUTH: verificando contraseña actual para cambio")
+            supabaseClient.gotrue.loginWith(Email) {
+                email = sesion.correo
+                password = actual
+            }
+            Timber.d("AUTH: contraseña actual verificada, aplicando cambio")
+            supabaseClient.gotrue.modifyUser {
+                password = nueva
+            }
+            Timber.d("AUTH: contraseña cambiada OK")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "AUTH: error cambiando password")
+            val mensaje = if (e.message?.contains("Invalid login credentials") == true)
+                "Contraseña actual incorrecta"
+            else "Error al cambiar contraseña: ${e.message}"
+            Result.failure(Exception(mensaje))
+        }
+    }
 }
