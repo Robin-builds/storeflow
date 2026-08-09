@@ -266,6 +266,43 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun resetearPasswordUsuario(userId: String, password: String): Result<Unit> {
+        val sesion = authSessionDao.obtenerSesion()
+            ?: return Result.failure(Exception("Sin sesión activa"))
+        val httpClient = HttpClient(Android) { expectSuccess = false }
+        return try {
+            Timber.d("AUTH: resetearPasswordUsuario userId=$userId")
+            val body = buildJsonObject {
+                put("user_id", userId)
+                put("password", password)
+            }.toString()
+            val response = httpClient.post("$SUPABASE_URL/functions/v1/resetear-password-usuario") {
+                headers {
+                    append("apikey", SUPABASE_ANON_KEY)
+                    append("Authorization", "Bearer ${sesion.access_token}")
+                    append("Content-Type", "application/json")
+                }
+                setBody(body)
+            }
+            val responseBody = response.bodyAsText()
+            Timber.d("AUTH: resetearPasswordUsuario HTTP ${response.status.value} — $responseBody")
+            if (!response.status.isSuccess()) {
+                val msg = try {
+                    Json.parseToJsonElement(responseBody).jsonObject["error"]?.jsonPrimitive?.content
+                        ?: responseBody
+                } catch (e: Exception) { responseBody }
+                Result.failure(Exception(msg))
+            } else {
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "AUTH: error en resetearPasswordUsuario")
+            Result.failure(Exception("Error de conexión: ${e.message}"))
+        } finally {
+            httpClient.close()
+        }
+    }
+
     suspend fun logout() {
         try {
             supabaseClient.gotrue.logout()
