@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -35,11 +36,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import cl.storeflow.warehouse.R
 import cl.storeflow.warehouse.domain.model.Producto
 import cl.storeflow.warehouse.domain.model.Rol
 import cl.storeflow.warehouse.ui.alertas.AlertasUiState
@@ -56,6 +65,9 @@ import cl.storeflow.warehouse.ui.theme.StoreFlowColoresExtendidos
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import cl.storeflow.warehouse.ui.usuarios.UsuariosUiState
 import cl.storeflow.warehouse.ui.usuarios.UsuariosViewModel
+
+private val ColorAcentoCian = Color(0xFF2EC6DA)
+private val ColorAcentoNaranja = Color(0xFFF0921E)
 
 @Composable
 fun DashboardScreen(
@@ -120,14 +132,40 @@ fun DashboardScreen(
                     .padding(top = 16.dp, bottom = 16.dp)
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "STOREFLOW",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_launcher_foreground),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        val densidad = LocalDensity.current
+                        val estiloWordmark = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
-                            letterSpacing = 1.5.sp
-                        ),
-                        color = colores.oscuridad.textoDesactivado
-                    )
+                            letterSpacing = 1.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box {
+                            // Contorno blanco delgado: mismo texto dibujado solo con trazo, detrás del relleno
+                            Text(
+                                text = "STOREFLOW",
+                                style = estiloWordmark.copy(
+                                    color = Color.White,
+                                    drawStyle = Stroke(
+                                        width = with(densidad) { 0.7.dp.toPx() },
+                                        join = StrokeJoin.Round
+                                    )
+                                )
+                            )
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(SpanStyle(color = ColorAcentoCian)) { append("STORE") }
+                                    withStyle(SpanStyle(color = ColorAcentoNaranja)) { append("FLOW") }
+                                },
+                                style = estiloWordmark
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = bodegaActiva?.nombre ?: "Cargando...",

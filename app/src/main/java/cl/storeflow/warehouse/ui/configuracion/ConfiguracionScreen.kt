@@ -2,6 +2,7 @@ package cl.storeflow.warehouse.ui.configuracion
 
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,9 +31,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import cl.storeflow.warehouse.R
 import cl.storeflow.warehouse.ui.ayuda.AyudaViewModel
 import cl.storeflow.warehouse.ui.ayuda.abrirGuiaPdf
 import cl.storeflow.warehouse.ui.components.BotonAyuda
@@ -74,6 +77,15 @@ fun ConfiguracionScreen(
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
+                },
+                actions = {
+                    Image(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .size(30.dp)
+                    )
                 }
             )
         },
