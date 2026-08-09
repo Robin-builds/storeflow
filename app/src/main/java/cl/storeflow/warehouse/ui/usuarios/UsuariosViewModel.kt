@@ -85,4 +85,14 @@ class UsuariosViewModel @Inject constructor(
             _operando.value = false
         }
     }
+
+    fun resetearPassword(usuario: Usuario, nuevaPassword: String) {
+        viewModelScope.launch {
+            _operando.value = true
+            authRepository.resetearPasswordUsuario(usuario.id, nuevaPassword)
+                .onSuccess { _mensaje.emit("Contraseña restablecida") }
+                .onFailure { _mensaje.emit(it.message ?: "Error al restablecer contraseña") }
+            _operando.value = false
+        }
+    }
 }

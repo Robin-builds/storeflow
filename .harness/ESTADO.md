@@ -1,14 +1,27 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 06/08/2026 — Rama `feat/historial-movimientos-android` en curso (sin mergear a `main`). Historial global de movimientos completo y validado en dispositivo. Intento de Proveedores UI revertido — falta definir modelo de datos antes de reintentar.
+> **Última actualización:** 08/08/2026 — Rama `feat/reset-password` completa y validada en dispositivo físico (sin mergear a `main`). Cambio de password auto-servicio + reseteo por ADMIN, con edge function desplegada a producción. `feat/historial-movimientos-android` sigue pausada sin tocar (Proveedores UI bloqueada en definición de modelo).
 
 ---
 
 ## 🌿 RAMA ACTIVA
 
 ```
-feat/historial-movimientos-android — EN CURSO, sin mergear:
+feat/reset-password — COMPLETA, validada en dispositivo, sin mergear:
+  ✅ Cambio de password auto-servicio (Configuración) — AuthRepository.cambiarPassword,
+       ConfiguracionViewModel (TDD), diálogo en ConfiguracionScreen
+  ✅ Reseteo de password por ADMIN (Usuarios) — AuthRepository.resetearPasswordUsuario,
+       UsuariosViewModel.resetearPassword (TDD), diálogo en UsuariosScreen
+       (opción oculta para la propia fila del ADMIN logueado)
+  ✅ Edge Function resetear-password-usuario — mismo patrón que
+       registrar-usuario-empresa, desplegada a quvkxpjstzssivsaqimu
+  Plan completo: docs/plans/2026-08-08-reset-password.md (Tasks 1-8)
+  Gotcha: cuenta del MCP Supabase de esta sesión (proyecto "StockFlow",
+       eygbgykglovbivthyqfb) es distinta al proyecto real de la app
+       (quvkxpjstzssivsaqimu) — deploy se hizo vía `npx supabase` con token manual
+
+feat/historial-movimientos-android — EN CURSO, sin mergear (pausada, sin cambios en 08/08):
   ✅ Historial global de movimientos (Android) — completo, validado en Moto G60
        - MovimientoDao.observarPorEmpresa (JOIN productos), MovimientoConProducto
        - HistorialMovimientosViewModel/Screen (búsqueda + paginación "Cargar más")
@@ -146,3 +159,4 @@ POST-MVP:
 | 10 S2 UsuariosScreen | 2 dispositivos físicos | ✅ | ninguno |
 | Historial global de movimientos | Moto G60 | ✅ | ninguno |
 | Fix edge-to-edge Dashboard (header fijo + insets) | Moto G60 | ✅ | Llave de cierre faltante al mover el header fuera del scroll — corregida antes de instalar |
+| Cambio/reseteo de password (auto-servicio + ADMIN) | Dispositivo físico | ✅ | ninguno |
