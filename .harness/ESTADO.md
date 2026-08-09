@@ -1,7 +1,11 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 09/08/2026 — Sesión de recuperación/limpieza, sin feature nueva de fondo. Se encontraron y mergearon a `main` (pusheado a `origin/main`, commit `bc001d3`) dos ramas de julio que habían quedado huérfanas tras cambios de rama: `feat/guia-usuario-interactiva` (ayuda contextual) y `feat/scanner-busqueda-dashboard` (escaneo QR en buscador global). También se corrigió este documento: `feat/reset-password` y `feat/historial-movimientos-android` ya estaban mergeadas a `main` desde antes, pero seguían listadas acá como pendientes — todas las ramas locales están al día con `main` (`git branch --no-merged main` da vacío).
+> **Última actualización:** 09/08/2026 — Sesión de recuperación/limpieza (sin feature nueva de fondo) + ajustes chicos de ayuda contextual y de idioma, todo directo a `main` (sin rama propia, cambios pequeños de texto/UI):
+> 1. Se encontraron y mergearon a `main` dos ramas de julio que habían quedado huérfanas tras cambios de rama: `feat/guia-usuario-interactiva` (ayuda contextual) y `feat/scanner-busqueda-dashboard` (escaneo QR en buscador global) — commit `bc001d3`.
+> 2. Se corrigió este documento: `feat/reset-password` y `feat/historial-movimientos-android` ya estaban mergeadas a `main` desde antes, pero seguían listadas aquí como pendientes — todas las ramas locales quedaron al día con `main` (`git branch --no-merged main` da vacío) — commit `b4e674e`.
+> 3. Se agregó `BotonAyuda` ("?") junto al switch "Es perecedero" (form de producto) y al campo "Fecha de caducidad" (diálogo de Entrada en Movimientos) — el usuario (dueño del proyecto) no tenía claro dónde se ingresaba la fecha de vencimiento y pidió explicarlo ahí mismo. De paso se corrigieron 2 usos de "acá" (rioplatense) a "aquí" — commit `6c58e42`.
+> 4. Se revisó todo `app/src/main/java/` buscando voseo/argentinismos (público: Chile) — no había más casos. Se agregó la convención "Textos UI: español neutro LatAm" a `CLAUDE.md` para que no se repita.
 
 ---
 
@@ -70,7 +74,7 @@ POST-MVP:
 - 🥫 **Lotes / FEFO** — `es_perecedero` toggle en form de producto. Entrada pide `DatePicker` + número de lote. Salida aplica FEFO automático multi-lote. "Próximos a vencer" en AlertasScreen + card dividida en Dashboard (`AlertaMiniCard`). Sync completo contra Supabase.
 - 📋 **Historial global de movimientos** — `MovimientoDao.observarPorEmpresa` (JOIN productos), `HistorialMovimientosViewModel/Screen` con búsqueda + paginación "Cargar más". Card de entrada en Dashboard (todos los roles).
 - 🔑 **Cambio/reseteo de contraseña** — auto-servicio (`AuthRepository.cambiarPassword`, diálogo en Configuración) + reseteo por ADMIN (`AuthRepository.resetearPasswordUsuario`, Edge Function `resetear-password-usuario`, diálogo en UsuariosScreen, oculto para la propia fila del ADMIN logueado).
-- ❓ **Ayuda contextual** — `BotonAyuda` ("?") en cards de Dashboard (Productos, Bodegas, Historial, alertas stock bajo/próximos a vencer, Configurar productos, Usuarios, Menor stock, Sin actividad) y en Configuración (Dashboard Web, Apariencia). Toggle "Mostrar ayuda contextual" en Configuración → sección Ayuda (`AyudaRepository`/`AyudaViewModel`, persistido en DataStore, expuesto a todo el árbol vía `LocalMostrarAyuda`). Guía PDF descargable (`GuiaPdf.abrirGuiaPdf`, `FileProvider`). `OnboardingDialog` en primer ingreso al Dashboard.
+- ❓ **Ayuda contextual** — `BotonAyuda` ("?") en cards de Dashboard (Productos, Bodegas, Historial, alertas stock bajo/próximos a vencer, Configurar productos, Usuarios, Menor stock, Sin actividad), en Configuración (Dashboard Web, Apariencia), en form de producto (Stock mínimo, Es perecedero) y en el diálogo de Entrada de Movimientos (Fecha de caducidad). Toggle "Mostrar ayuda contextual" en Configuración → sección Ayuda (`AyudaRepository`/`AyudaViewModel`, persistido en DataStore, expuesto a todo el árbol vía `LocalMostrarAyuda`). Guía PDF descargable (`GuiaPdf.abrirGuiaPdf`, `FileProvider`). `OnboardingDialog` en primer ingreso al Dashboard.
 
 ---
 
@@ -124,3 +128,4 @@ POST-MVP:
 | Cambio/reseteo de password (auto-servicio + ADMIN) | Dispositivo físico | ✅ | ninguno |
 | Escaneo QR en buscador global del Dashboard | Moto G60 | ✅ | ninguno |
 | Ayuda contextual ("?" en cards, toggle, guía PDF) | Moto G60 | ✅ | ninguno — recuperada de rama huérfana de julio, revalidada tras merge |
+| Ayuda contextual — "Es perecedero" + "Fecha de caducidad" | Moto G60 | ✅ | ninguno |

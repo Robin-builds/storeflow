@@ -278,6 +278,9 @@ Commits:     inglés semántico (feat:, fix:, refactor:)
 Logs:        Timber (no Log.d)
 Tablas SQL:  plural minúsculas
 PKs:         String UUID (Supabase), excepto auth_sessions (Int fijo = 1)
+Textos UI:   español neutro LatAm (público objetivo: Chile) — tuteo tú/usted,
+             sin voseo ("tenés", "podés", "vos") ni modismos rioplatenses
+             ("acá" → usar "aquí", "dale", "che", "boludo", etc.)
 ```
 
 ---
