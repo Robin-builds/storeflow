@@ -395,8 +395,23 @@ private fun MovimientoDialog(
                         label = { Text("Fecha de caducidad *") },
                         placeholder = { Text("Seleccionar fecha") },
                         trailingIcon = {
-                            TextButton(onClick = { mostrarDatePicker = true }, enabled = !cargando) {
-                                Text("Elegir")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BotonAyuda(
+                                    titulo = "Fecha de caducidad",
+                                    explicacion = "Este producto está marcado como \"Es perecedero\", por " +
+                                        "eso cada ENTRADA de stock pide su propia fecha de vencimiento.\n\n" +
+                                        "Cada entrada crea un lote independiente. Si haces dos entradas del " +
+                                        "mismo producto en fechas distintas, pueden tener vencimientos " +
+                                        "distintos. En la salida, StoreFlow descuenta automáticamente del " +
+                                        "lote que vence primero (FEFO), sin que tengas que elegir cuál.",
+                                    ejemplo = "Entrada del lunes: 20 unidades, vencen el 15/08. Entrada del " +
+                                        "jueves: 15 unidades, vencen el 20/08. Si sacas 25 unidades, " +
+                                        "StoreFlow usa las 20 del lote del 15/08 primero y completa con " +
+                                        "5 del lote del 20/08."
+                                )
+                                TextButton(onClick = { mostrarDatePicker = true }, enabled = !cargando) {
+                                    Text("Elegir")
+                                }
                             }
                         },
                         isError = fechaCaducidadMillis == null,

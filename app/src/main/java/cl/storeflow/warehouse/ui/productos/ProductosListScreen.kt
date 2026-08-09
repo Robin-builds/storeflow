@@ -703,7 +703,24 @@ private fun ProductoFormDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Es perecedero", style = MaterialTheme.typography.bodyMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Es perecedero", style = MaterialTheme.typography.bodyMedium)
+                        BotonAyuda(
+                            titulo = "Es perecedero",
+                            explicacion = "Marca este producto como perecedero si tiene fecha de " +
+                                "vencimiento. Este switch NO te pide la fecha aquí — solo activa el " +
+                                "seguimiento por lotes para este producto.\n\n" +
+                                "La fecha de caducidad se ingresa después, cada vez que registres una " +
+                                "ENTRADA de stock para este producto (en Movimientos), junto con un " +
+                                "número de lote opcional. Cada entrada puede tener su propia fecha, " +
+                                "porque compras distintas del mismo producto pueden vencer en fechas " +
+                                "distintas.",
+                            ejemplo = "Activás \"Es perecedero\" en Yogurt y guardás el producto. Después " +
+                                "vas a Movimientos → Entrada, ingresás 20 unidades, y ahí StoreFlow te " +
+                                "pide la fecha de vencimiento de esa partida. En la salida, el sistema " +
+                                "descuenta automáticamente del lote que vence primero (FEFO)."
+                        )
+                    }
                     Switch(
                         checked = esPerecedero,
                         onCheckedChange = { esPerecedero = it },

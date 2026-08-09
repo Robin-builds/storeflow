@@ -285,7 +285,7 @@ fun DashboardScreen(
                         "Puedes buscar por nombre de producto. Los movimientos son inmutables: una vez " +
                         "registrados, no se pueden editar ni borrar.",
                     ayudaEjemplo = "Si necesitas saber quién sacó 20 unidades de un producto y cuándo, " +
-                        "acá queda el registro completo, sin importar en qué bodega haya ocurrido."
+                        "aquí queda el registro completo, sin importar en qué bodega haya ocurrido."
                 )
 
                 AnimatedVisibility(
