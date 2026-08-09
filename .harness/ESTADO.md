@@ -1,60 +1,14 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 08/08/2026 — Rama `feat/reset-password` completa y validada en dispositivo físico (sin mergear a `main`). Cambio de password auto-servicio + reseteo por ADMIN, con edge function desplegada a producción. `feat/historial-movimientos-android` sigue pausada sin tocar (Proveedores UI bloqueada en definición de modelo).
+> **Última actualización:** 09/08/2026 — Sesión de recuperación/limpieza, sin feature nueva de fondo. Se encontraron y mergearon a `main` (pusheado a `origin/main`, commit `bc001d3`) dos ramas de julio que habían quedado huérfanas tras cambios de rama: `feat/guia-usuario-interactiva` (ayuda contextual) y `feat/scanner-busqueda-dashboard` (escaneo QR en buscador global). También se corrigió este documento: `feat/reset-password` y `feat/historial-movimientos-android` ya estaban mergeadas a `main` desde antes, pero seguían listadas acá como pendientes — todas las ramas locales están al día con `main` (`git branch --no-merged main` da vacío).
 
 ---
 
-## 🌿 RAMA ACTIVA
+## 🌿 RAMAS
 
-```
-feat/reset-password — COMPLETA, validada en dispositivo, sin mergear:
-  ✅ Cambio de password auto-servicio (Configuración) — AuthRepository.cambiarPassword,
-       ConfiguracionViewModel (TDD), diálogo en ConfiguracionScreen
-  ✅ Reseteo de password por ADMIN (Usuarios) — AuthRepository.resetearPasswordUsuario,
-       UsuariosViewModel.resetearPassword (TDD), diálogo en UsuariosScreen
-       (opción oculta para la propia fila del ADMIN logueado)
-  ✅ Edge Function resetear-password-usuario — mismo patrón que
-       registrar-usuario-empresa, desplegada a quvkxpjstzssivsaqimu
-  Plan completo: docs/plans/2026-08-08-reset-password.md (Tasks 1-8)
-  Gotcha: cuenta del MCP Supabase de esta sesión (proyecto "StockFlow",
-       eygbgykglovbivthyqfb) es distinta al proyecto real de la app
-       (quvkxpjstzssivsaqimu) — deploy se hizo vía `npx supabase` con token manual
-
-feat/historial-movimientos-android — EN CURSO, sin mergear (pausada, sin cambios en 08/08):
-  ✅ Historial global de movimientos (Android) — completo, validado en Moto G60
-       - MovimientoDao.observarPorEmpresa (JOIN productos), MovimientoConProducto
-       - HistorialMovimientosViewModel/Screen (búsqueda + paginación "Cargar más")
-       - Card de entrada en Dashboard (todos los roles)
-  ✅ Fix edge-to-edge en Dashboard — header fijo (WindowInsets.statusBars),
-       cards inferiores ya no tapadas por nav bar (WindowInsets.navigationBars)
-  ✅ Fix bug preexistente: ProductoAtributosFormTest referenciaba contarConNombre
-       (método inexistente) — bloqueaba gradlew.bat test completo
-  ⏸️ Proveedores UI — implementado y luego REVERTIDO a pedido del usuario.
-       Motivo: la UI armada era solo un directorio de contactos (nombre+contacto),
-       sin conexión real con productos. Preguntas abiertas antes de reintentar:
-       - Relación producto↔proveedor es N:N (no 1:1) — un producto puede
-         comprarse a varios proveedores y viceversa
-       - Precio de COSTO varía por proveedor — hoy `ProductoEntity.precio` es
-         precio de VENTA, no existe concepto de costo en el modelo actual
-       - Propuesta sobre la mesa: tabla intermedia `producto_proveedores`
-         (producto_id, proveedor_id, precio_compra, sku_proveedor?), mismo
-         patrón que `producto_atributos` (N:N con datos propios de la relación)
-       - Alternativa más simple (sin costo ni multi-sourcing): proveedor_id
-         nullable directo en Producto — descartada si se quiere trazar costos
-       - PENDIENTE: preguntar al usuario si Proveedores es solo agenda de
-         contacto o si necesita trazar costos/comparar proveedores — de eso
-         depende cuál modelo construir
-
-main — todo mergeado (antes de esta rama):
-  ✅ sistema de temas composable
-  ✅ paginación "Cargar más"
-  ✅ fix fallback downgrade Room
-  ✅ card búsqueda productos en Dashboard (feat/dashboard-buscar-producto)
-  ✅ trazabilidad de caducidad/lotes — 5 sesiones completas
-       feat/lotes-esquema → feat/lotes-supabase-sync → feat/lotes-ui-producto
-       → feat/lotes-ui-movimientos → feat/lotes-alertas
-```
+Sin ramas locales pendientes de mergear a `main`. Única feature con diseño abierto
+(no una rama activa): **Proveedores UI** — ver `🗺️ FEATURES FUTURAS / PENDIENTES`.
 
 ---
 
@@ -95,21 +49,28 @@ POST-MVP:
   Fallback downgrade Room              ✅ main (86d69fa)
   Búsqueda productos en Dashboard      ✅ Validada en dispositivo físico, mergeada a main
   Lotes / Trazabilidad caducidad       ✅ Completo (5/5 sesiones) — mergeada a main
+  Historial global de movimientos      ✅ Validada en dispositivo físico — mergeada a main
+  Cambio/reseteo de password           ✅ Validada en dispositivo físico — mergeada a main
+  Ayuda contextual ("?" + PDF + toggle)✅ Validada en dispositivo físico — mergeada a main (09/08)
+  Escaneo QR en buscador de Dashboard  ✅ Validada en dispositivo físico — mergeada a main (09/08)
 ```
 
 ---
 
 ## ✨ FEATURES IMPLEMENTADAS (resumen para contexto)
 
-- 📷 **Escaneo QR/Barcode** — `BarcodeScannerDialog` (ML Kit + CameraX), botón en campo SKU.
+- 📷 **Escaneo QR/Barcode** — `BarcodeScannerDialog` (ML Kit + CameraX). Botón en campo SKU (form de producto), en el buscador de `ProductosListScreen`, y en el buscador global del Dashboard (`BusquedaProductoCard`).
 - 🗂️ **Selección masiva** — `seleccionados: StateFlow<Set<String>>`, `modoSeleccion` derivado, `eliminarSeleccionados()`, `transferirSeleccionados()`. "Seleccionar todos" opera sobre `productosVisibles`.
 - 🎨 **Atributos dinámicos** — solo tipo TEXT en UI (MVP). `NUMBER`/`DATE` en enum, sin UI.
 - 🌗 **Temas composables** — `PaletaId` (Forja/Planta/Búnker) × `OscuridadId` (Penumbra/Nocturno/Abismo). Reemplaza `TemaApp` (eliminado). Persiste en DataStore (dos keys). Selector visual en ConfiguracionScreen.
 - 💬 **Compartir stock** — `ACTION_SEND` desde AlertasScreen, ProductosListScreen y ConfiguracionScreen.
 - 👥 **Gestión de usuarios ADMIN** — Edge Function `registrar-usuario-empresa` con `SUPABASE_SERVICE_ROLE_KEY` server-side (Supabase Admin API no disponible en móvil).
 - 📄 **Paginación "Cargar más"** — en memoria. `tamanioPagina` (25/50/100). Búsqueda resetea ventana visible. "Compartir inventario" sigue operando sobre el total filtrado.
-- 🔍 **Búsqueda global en Dashboard** — por nombre/SKU en **todas las bodegas** (`ProductoDao.observarConStockPorEmpresa`). Solo lectura. "Ver en Productos" navega con búsqueda precargada vía `Rutas.productosConBusqueda()`.
+- 🔍 **Búsqueda global en Dashboard** — por nombre/SKU en **todas las bodegas** (`ProductoDao.observarConStockPorEmpresa`). Solo lectura, con escaneo QR. "Ver en Productos" navega con búsqueda precargada vía `Rutas.productosConBusqueda()`.
 - 🥫 **Lotes / FEFO** — `es_perecedero` toggle en form de producto. Entrada pide `DatePicker` + número de lote. Salida aplica FEFO automático multi-lote. "Próximos a vencer" en AlertasScreen + card dividida en Dashboard (`AlertaMiniCard`). Sync completo contra Supabase.
+- 📋 **Historial global de movimientos** — `MovimientoDao.observarPorEmpresa` (JOIN productos), `HistorialMovimientosViewModel/Screen` con búsqueda + paginación "Cargar más". Card de entrada en Dashboard (todos los roles).
+- 🔑 **Cambio/reseteo de contraseña** — auto-servicio (`AuthRepository.cambiarPassword`, diálogo en Configuración) + reseteo por ADMIN (`AuthRepository.resetearPasswordUsuario`, Edge Function `resetear-password-usuario`, diálogo en UsuariosScreen, oculto para la propia fila del ADMIN logueado).
+- ❓ **Ayuda contextual** — `BotonAyuda` ("?") en cards de Dashboard (Productos, Bodegas, Historial, alertas stock bajo/próximos a vencer, Configurar productos, Usuarios, Menor stock, Sin actividad) y en Configuración (Dashboard Web, Apariencia). Toggle "Mostrar ayuda contextual" en Configuración → sección Ayuda (`AyudaRepository`/`AyudaViewModel`, persistido en DataStore, expuesto a todo el árbol vía `LocalMostrarAyuda`). Guía PDF descargable (`GuiaPdf.abrirGuiaPdf`, `FileProvider`). `OnboardingDialog` en primer ingreso al Dashboard.
 
 ---
 
@@ -118,9 +79,8 @@ POST-MVP:
 | Feature | Estado | Notas |
 |---|---|---|
 | 💬 WhatsApp notif. push | ☐ Pendiente | Edge Function Supabase; requiere aprobación Meta; cero impacto Android |
-| 📋 Historial global movimientos | ✅ Web / ✅ Android | Completo en `feat/historial-movimientos-android`, validado en dispositivo, sin mergear a `main` |
 | Atributos NUMBER/DATE | ☐ Pendiente | Enum listo, sin UI |
-| Proveedores UI | ☐ Pendiente — intento revertido | Rolodex simple insuficiente. Falta definir relación N:N producto↔proveedor y dónde vive el precio de costo (por proveedor, no en `Producto`) antes de reintentar. Ver detalle en RAMA ACTIVA |
+| Proveedores UI | ☐ Pendiente — intento revertido | Rolodex simple insuficiente. Falta definir relación N:N producto↔proveedor y dónde vive el precio de costo (por proveedor, no en `Producto`) antes de reintentar. Es COMPLEJA (migración Room + decisión de diseño abierta) → amerita `docs/plans/*.md`. Ver detalle en `TASKS.md` |
 | Paginación real Supabase (web) | ☐ Pospuesta | Stock no es columna real — requeriría vista SQL en Supabase para ordenar/paginar por stock |
 
 ---
@@ -139,6 +99,8 @@ POST-MVP:
 **Ramas sin mergear a `master`:**
 - `feat/historial-movimientos` — búsqueda + fix badge tipo + fix getRol (commiteada).
 - `feat/importar-productos-csv` — import CSV masivo (en progreso): plantilla descargable con atributos dinámicos, preview/validación, commit en lotes de 300 vía `supabase-js` (sin RPC). Solo creación, no actualiza existentes. Toca `getRol.ts` (mismo fix, sin conflicto esperado) y `productos/page.tsx`.
+
+*(Nota: esto es del repo web, separado del Android. No se tocó en la sesión 09/08.)*
 
 ---
 
@@ -160,3 +122,5 @@ POST-MVP:
 | Historial global de movimientos | Moto G60 | ✅ | ninguno |
 | Fix edge-to-edge Dashboard (header fijo + insets) | Moto G60 | ✅ | Llave de cierre faltante al mover el header fuera del scroll — corregida antes de instalar |
 | Cambio/reseteo de password (auto-servicio + ADMIN) | Dispositivo físico | ✅ | ninguno |
+| Escaneo QR en buscador global del Dashboard | Moto G60 | ✅ | ninguno |
+| Ayuda contextual ("?" en cards, toggle, guía PDF) | Moto G60 | ✅ | ninguno — recuperada de rama huérfana de julio, revalidada tras merge |

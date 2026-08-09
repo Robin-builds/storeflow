@@ -7,20 +7,17 @@
 
 ## 🎯 FEATURE EN PROGRESO
 
-**Nombre:** Cambio y reseteo de contraseña
-**Rama:** `feat/reset-password`
-**Sesión actual:** 08/08 — completada y validada en dispositivo físico
-**Estado:** ✅ Completa — pendiente de decidir merge a `main`
-
-**Nota:** la feature anterior (Proveedores UI, en `feat/historial-movimientos-android`)
-sigue pausada — ver `ESTADO.md` sección RAMA ACTIVA para su contexto, no se tocó en
-esta sesión.
+**Estado:** Sin feature activa. Sesión 09/08 fue de recuperación/merge de trabajo ya
+hecho (ver `ESTADO.md`), no de desarrollo nuevo. Este archivo queda con el contexto
+de la próxima feature candidata (Proveedores UI) para cuando se retome.
 
 ---
 
-## 📌 CONTEXTO DE LA FEATURE
+## 📌 CONTEXTO DE LA PRÓXIMA FEATURE CANDIDATA — Proveedores UI
 
 ```
+Rama: feat/historial-movimientos-android (donde quedó el intento previo, pausado)
+
 Problema: la app necesita gestión de proveedores conectada de verdad al
           inventario, no un directorio de contactos aislado.
 
@@ -51,31 +48,8 @@ Restricciones específicas:
   - Si se opta por producto_proveedores: requiere migración Room
     (versión 9), entidad ProductoProveedorEntity, DAO, y wiring de
     sync (push en SyncWorker/SyncPayloads + pull en PullWorker/DTOs)
-```
-
----
-
-## ✅ DEFINITION OF DONE (esta feature)
-
-- [x] Funciona en dispositivo físico (no solo BUILD SUCCESSFUL) — validado 08/08
-- [x] Tests unitarios relevantes pasan (`gradlew.bat test`) — suite completa verde
-- [x] Sin regresiones en features anteriores
-- [x] Commiteado en rama propia con mensaje semántico (`feat/reset-password`)
-- [x] Edge function `resetear-password-usuario` desplegada a producción (`quvkxpjstzssivsaqimu`)
-
----
-
-## 📝 SUBTAREAS (ver `docs/plans/2026-08-08-reset-password.md`)
-
-```
-[x] Task 1 — AuthRepository.cambiarPassword (auto-servicio)
-[x] Task 2 — ConfiguracionViewModel (TDD)
-[x] Task 3 — UI de auto-servicio en ConfiguracionScreen
-[x] Task 4 — Build de verificación (checkpoint)
-[x] Task 5 — Edge Function resetear-password-usuario
-[x] Task 6 — AuthRepository.resetearPasswordUsuario + UsuariosViewModel.resetearPassword (TDD)
-[x] Task 7 — UI de reseteo en UsuariosScreen
-[x] Task 8 — Build final, deploy de la edge function y validación en dispositivo
+  - Es COMPLEJA según el criterio de CLAUDE.md (migración Room + decisión
+    de diseño abierta) → amerita docs/plans/*.md antes de codear
 ```
 
 ---
@@ -83,32 +57,32 @@ Restricciones específicas:
 ## 🔖 NOTAS DE SESIÓN
 
 ```
-Sesión 08/08 — feat/reset-password:
-  - Hecho: Tasks 6-8 del plan completadas (Tasks 1-5 venían de sesión anterior).
-           Reseteo de password por ADMIN: AuthRepository.resetearPasswordUsuario,
-           UsuariosViewModel.resetearPassword (TDD, UsuariosViewModelTest nuevo),
-           DialogResetearPassword + opción en menú de UsuariosScreen (oculta para
-           la propia fila del ADMIN logueado).
-           Edge function resetear-password-usuario desplegada a producción
-           (quvkxpjstzssivsaqimu) vía `npx supabase functions deploy` con
-           access token temporal (revocado post-deploy).
-           Validado en dispositivo físico: cambio de password auto-servicio +
-           reseteo por ADMIN + re-login con password nueva — todo OK.
-  - Gotcha: CLI de Supabase no soporta npm install global; se usó `npx supabase`.
-            La cuenta conectada al MCP de Supabase de esta sesión (proyecto
-            "StockFlow", eygbgykglovbivthyqfb) NO es el proyecto real de la app
-            (quvkxpjstzssivsaqimu, otra cuenta/org) — verificar SUPABASE_URL en
-            SupabaseClient.kt antes de asumir cuál proyecto tocar.
-  - Pendiente: decidir si mergear feat/reset-password a main.
+Sesión 09/08 — recuperación de ramas huérfanas (sin código nuevo):
+  - Confirmado que feat/reset-password ya estaba mergeada a main (el usuario
+    lo señaló; ESTADO.md tenía la nota vieja "pendiente de decidir merge").
+  - Encontradas y mergeadas a main dos ramas de julio que se habían perdido de
+    vista tras cambios de rama:
+      - feat/guia-usuario-interactiva (ayuda contextual, ver ESTADO.md)
+      - feat/scanner-busqueda-dashboard (escaneo QR en buscador global del
+        Dashboard, feature nueva de esta misma sesión que casi queda fuera
+        del merge — el usuario detectó la omisión antes del push)
+  - Gotcha para recordar: al mergear una rama vieja con `git merge main` y
+    resolver conflictos reescribiendo un archivo entero (DashboardScreen.kt),
+    hay que verificar contra CADA rama sin mergear que toque ese mismo
+    archivo — no alcanza con mirar el diff contra el commit de main en el
+    momento del merge. Antes de mergear a main, correr
+    `git branch --no-merged main` para confirmar que no queda ninguna rama
+    con trabajo validado colgando.
+  - Push a origin/main hecho (bc001d3).
 
-Sesión 06/08 (feature previa, sin tocar en esta sesión — ver ESTADO.md):
+Sesión 06/08 (Proveedores UI, sin tocar desde entonces):
   - Proveedores UI sigue pausada en feat/historial-movimientos-android, bloqueada
-    en definición de modelo de datos (pregunta S0 sin responder).
+    en definición de modelo de datos (pregunta 3 sin responder, ver arriba).
 ```
 
 ---
 
-## ⚠️ DECISIONES TOMADAS EN ESTA FEATURE
+## ⚠️ DECISIONES TOMADAS (Proveedores UI, aún pendiente)
 
 | Decisión | Por qué |
 |---|---|
