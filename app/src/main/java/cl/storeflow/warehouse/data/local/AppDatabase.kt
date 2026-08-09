@@ -19,9 +19,10 @@ import cl.storeflow.warehouse.data.local.entity.*
         SyncEntity::class,
         AuthSessionEntity::class,
         AtributoTemplateEntity::class,
-        ProductoAtributoEntity::class
+        ProductoAtributoEntity::class,
+        LoteEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -36,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun authSessionDao(): AuthSessionDao
     abstract fun atributoTemplateDao(): AtributoTemplateDao
     abstract fun productoAtributoDao(): ProductoAtributoDao
+    abstract fun loteDao(): LoteDao
 
     companion object {
         const val NOMBRE_DB = "storeflow.db"
@@ -106,6 +108,33 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE auth_sessions ADD COLUMN correo TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE productos ADD COLUMN es_perecedero INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS lotes (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        producto_id TEXT NOT NULL,
+                        empresa_id TEXT NOT NULL,
+                        numero_lote TEXT,
+                        fecha_caducidad INTEGER NOT NULL,
+                        synced INTEGER NOT NULL,
+                        synced_at INTEGER,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL,
+                        FOREIGN KEY(producto_id) REFERENCES productos(id) ON DELETE CASCADE ON UPDATE NO ACTION,
+                        FOREIGN KEY(empresa_id) REFERENCES empresas(id) ON DELETE CASCADE ON UPDATE NO ACTION
+                    )
+                """.trimIndent())
+                // REFERENCES inline: SQLite soporta FK en ADD COLUMN (no requiere recrear la tabla).
+                // La tabla lotes debe existir antes de esta línea.
+                db.execSQL("ALTER TABLE movimientos ADD COLUMN lote_id TEXT REFERENCES lotes(id) ON DELETE SET NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_lotes_producto_id ON lotes (producto_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_lotes_empresa_id ON lotes (empresa_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_movimientos_lote_id ON movimientos (lote_id)")
             }
         }
 

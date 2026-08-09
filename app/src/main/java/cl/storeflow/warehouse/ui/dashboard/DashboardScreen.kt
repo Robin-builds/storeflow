@@ -16,9 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Inventory
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Warehouse
@@ -63,6 +65,8 @@ fun DashboardScreen(
     onIrABodegas: () -> Unit,
     onIrAAtributos: () -> Unit,
     onIrAUsuarios: () -> Unit,
+    onIrAProductosConBusqueda: (String) -> Unit,
+    onIrAHistorial: () -> Unit,
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     bodegaViewModel: BodegaViewModel = hiltViewModel(),
     productoViewModel: ProductoViewModel = hiltViewModel(),
@@ -80,6 +84,9 @@ fun DashboardScreen(
     val atributosState by atributoViewModel.uiState.collectAsState()
     val usuariosState by usuariosViewModel.uiState.collectAsState()
     val sinMovimientoReciente by dashboardViewModel.sinMovimientoReciente.collectAsState()
+    val busquedaGlobal by dashboardViewModel.busquedaGlobal.collectAsState()
+    val resultadosBusquedaGlobal by dashboardViewModel.resultadosBusquedaGlobal.collectAsState()
+    val countProximosAVencer by dashboardViewModel.countProximosAVencer.collectAsState()
 
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
@@ -102,14 +109,16 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(colores.fondoGradiente))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(top = 56.dp, bottom = 24.dp)
-        ) {
-            Row(verticalAlignment = Alignment.Top) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Cabecera fija: no se desplaza con el scroll del resto del contenido
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 16.dp, bottom = 16.dp)
+            ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "STOREFLOW",
@@ -149,224 +158,313 @@ fun DashboardScreen(
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
 
-            AnimatedVisibility(
-                visible = countAlertas > 0,
-                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                    .padding(bottom = 24.dp)
             ) {
-                Column {
-                    Card(
-                        onClick = onIrAAlerta,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = colores.paleta.alerta.copy(alpha = 0.12f)
-                        ),
-                        border = BorderStroke(1.dp, colores.paleta.alerta.copy(alpha = 0.3f))
-                    ) {
+                BusquedaProductoCard(
+                    busqueda = busquedaGlobal,
+                    resultados = resultadosBusquedaGlobal,
+                    onBusquedaChange = dashboardViewModel::buscarProductoGlobal,
+                    onVerEnProductos = onIrAProductosConBusqueda
+                )
+                Spacer(Modifier.height(16.dp))
+
+                AnimatedVisibility(
+                    visible = countAlertas > 0 || countProximosAVencer > 0,
+                    enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                ) {
+                    Column {
                         Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
                         ) {
-                            Icon(Icons.Outlined.Warning, contentDescription = null, tint = colores.paleta.alerta)
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "$countAlertas producto${if (countAlertas > 1) "s" else ""} bajo stock mínimo",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = colores.oscuridad.textoPrimario
-                                )
-                                Text(
-                                    "Toca para ver el detalle",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colores.oscuridad.textoSecundario
-                                )
-                            }
-                            BotonAyuda(
-                                titulo = "Alerta de stock bajo",
-                                explicacion = "Este banner aparece cuando uno o más productos tienen " +
+                            AlertaMiniCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                icon = Icons.Outlined.Warning,
+                                count = countAlertas,
+                                etiqueta = "bajo stock mínimo",
+                                onClick = onIrAAlerta,
+                                ayudaTitulo = "Alerta de stock bajo",
+                                ayudaExplicacion = "Este banner aparece cuando uno o más productos tienen " +
                                     "stock por debajo de su stock mínimo configurado.\n\n" +
                                     "Toca el banner para ver la lista completa de productos afectados " +
                                     "con su stock actual vs su stock mínimo.",
-                                ejemplo = "Si dice \"3 productos bajo stock mínimo\", significa que 3 de " +
+                                ayudaEjemplo = "Si dice \"3 productos bajo stock mínimo\", significa que 3 de " +
                                     "tus productos necesitan reposición. Toca para ver cuáles son y " +
                                     "cuánto les falta."
                             )
+                            Spacer(Modifier.width(12.dp))
+                            AlertaMiniCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                icon = Icons.Outlined.Schedule,
+                                count = countProximosAVencer,
+                                etiqueta = "próximos a vencer",
+                                onClick = onIrAAlerta,
+                                ayudaTitulo = "Próximos a vencer",
+                                ayudaExplicacion = "Muestra los lotes de productos perecederos cuya fecha " +
+                                    "de caducidad está a 7 días o menos, o que ya vencieron.\n\n" +
+                                    "Aplica solo a productos marcados como \"Es perecedero\", cuyas " +
+                                    "entradas registran fecha de caducidad y número de lote.",
+                                ayudaEjemplo = "Si tienes un lote de Yogurt que vence en 3 días, aparecerá " +
+                                    "aquí para que lo prioricés en la salida (el sistema usa FEFO: primero " +
+                                    "en vencer, primero en salir)."
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max)
+                ) {
+                    NavCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        title = "Productos",
+                        icon = Icons.Outlined.Inventory,
+                        lines = listOf(
+                            "${productos.size} productos",
+                            "$totalUnidades unidades"
+                        ),
+                        warningText = if (countAlertas > 0) "$countAlertas bajo stock" else null,
+                        onClick = onIrAProductos,
+                        ayudaTitulo = "Productos",
+                        ayudaExplicacion = "Aquí ves todos los productos registrados en la bodega activa. " +
+                            "El número grande es la cantidad total de productos diferentes (SKUs), y abajo " +
+                            "ves la suma de todas las unidades en stock.\n\n" +
+                            "El stock de cada producto se calcula automáticamente sumando todos sus " +
+                            "movimientos de entrada y salida. No se ingresa manualmente.",
+                        ayudaEjemplo = "Si registras una ENTRADA de 100 unidades de Harina y luego una " +
+                            "SALIDA de 30, el stock que verás será 70 unidades. Toca esta tarjeta para ver " +
+                            "la lista completa de productos."
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    NavCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        title = "Bodegas",
+                        icon = Icons.Outlined.Warehouse,
+                        lines = listOfNotNull(
+                            "${todasLasBodegas.size} bodegas",
+                            bodegaActiva?.let { "Activa: ${it.nombre}" }
+                        ),
+                        warningText = null,
+                        onClick = onIrABodegas,
+                        ayudaTitulo = "Bodegas",
+                        ayudaExplicacion = "Una bodega es un almacén o punto de almacenamiento dentro de tu " +
+                            "empresa. Cada bodega contiene sus propios productos y movimientos de forma " +
+                            "independiente.\n\n" +
+                            "La bodega 'Activa' es la que estás usando ahora mismo — todos los productos, " +
+                            "movimientos y alertas que ves en el dashboard corresponden a esta bodega.",
+                        ayudaEjemplo = "Un minimarket podría tener 'Bodega Tienda' (lo que está en la sala " +
+                            "de ventas) y 'Bodega Trasera' (la reserva). Cada una lleva su propio " +
+                            "inventario. Puedes cambiar de bodega activa desde esta tarjeta."
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+                NavCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    title = "Historial de movimientos",
+                    icon = Icons.Outlined.History,
+                    lines = listOf("Entradas, salidas y ajustes de toda la empresa"),
+                    warningText = null,
+                    onClick = onIrAHistorial,
+                    ayudaTitulo = "Historial de movimientos",
+                    ayudaExplicacion = "Lista todos los movimientos (entradas, salidas y ajustes) de todos " +
+                        "los productos y bodegas de la empresa, ordenados del más reciente al más " +
+                        "antiguo.\n\n" +
+                        "Puedes buscar por nombre de producto. Los movimientos son inmutables: una vez " +
+                        "registrados, no se pueden editar ni borrar.",
+                    ayudaEjemplo = "Si necesitas saber quién sacó 20 unidades de un producto y cuándo, " +
+                        "acá queda el registro completo, sin importar en qué bodega haya ocurrido."
+                )
+
+                AnimatedVisibility(
+                    visible = esAdmin,
+                    enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                ) {
+                    Column {
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                        ) {
+                            NavCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Configurar productos",
+                                icon = Icons.Outlined.Tune,
+                                lines = listOf(
+                                    if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
+                                    else "Sin definir",
+                                    "Características"
+                                ),
+                                warningText = null,
+                                onClick = onIrAAtributos,
+                                ayudaTitulo = "Especificaciones",
+                                ayudaExplicacion = "Las especificaciones son características " +
+                                    "personalizadas que puedes agregar a tus productos. Son plantillas " +
+                                    "que defines una vez y luego asignas a los productos que " +
+                                    "correspondan.\n\n" +
+                                    "Esto te permite agregar información extra sin que todos los productos " +
+                                    "tengan los mismos campos. Cada especificación tiene un nombre, un tipo " +
+                                    "(texto) y se aplica solo a los productos que la necesiten.",
+                                ayudaEjemplo = "Si vendes ropa, puedes crear la especificación 'Talla' y " +
+                                    "'Color'. Luego asignas 'Talla=M' y 'Color=Azul' solo a los productos " +
+                                    "de ropa, sin que los productos de ferretería tengan esos campos vacíos."
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            NavCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Usuarios",
+                                icon = Icons.Outlined.Group,
+                                lines = if (usuarios.isNotEmpty()) listOf(
+                                    "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
+                                    "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
+                                ) else listOf("Sin usuarios"),
+                                warningText = null,
+                                onClick = onIrAUsuarios,
+                                ayudaTitulo = "Usuarios",
+                                ayudaExplicacion = "Aquí gestionas las personas que tienen acceso a la " +
+                                    "empresa en StoreFlow. Cada usuario tiene un email, nombre y un rol que " +
+                                    "define qué puede hacer.\n\n" +
+                                    "• Administrador: acceso completo. Puede crear y eliminar productos, " +
+                                    "bodegas, usuarios, configurar especificaciones y ver reportes.\n\n" +
+                                    "• Operador: acceso limitado. Puede registrar movimientos de entrada y " +
+                                    "salida, ver productos y stock, pero no puede crear ni eliminar " +
+                                    "productos, ni gestionar usuarios.",
+                                ayudaEjemplo = "El dueño del negocio usa el rol Administrador. El bodeguero " +
+                                    "o cajero que solo necesita registrar entradas y salidas de mercadería " +
+                                    "usa el rol Operador."
+                            )
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
+                }
+
+                AnimatedVisibility(
+                    visible = productos.isNotEmpty(),
+                    enter = fadeIn(tween(400)) + expandVertically(tween(400)),
+                    exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
+                ) {
+                    Column {
+                        Spacer(Modifier.height(20.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                        ) {
+                            AlertInfoCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Menor stock",
+                                icon = Icons.AutoMirrored.Outlined.TrendingDown,
+                                items = productosMenorStock,
+                                itemLabel = { p -> p.nombre },
+                                itemSublabel = { p -> "${p.stockActual} uds" },
+                                emptyText = "Sin productos",
+                                onClick = onIrAProductos,
+                                ayudaTitulo = "Menor stock",
+                                ayudaExplicacion = "Esta sección muestra los productos que tienen stock " +
+                                    "por debajo de su stock mínimo configurado, o que están en 0 " +
+                                    "unidades.\n\n" +
+                                    "El stock mínimo se define al crear o editar cada producto. Cuando el " +
+                                    "stock calculado (entradas - salidas) cae por debajo de ese valor, el " +
+                                    "producto aparece aquí como alerta.",
+                                ayudaEjemplo = "Si 'Harina' tiene stock mínimo = 5 kg y actualmente tiene " +
+                                    "2 kg (calculado de sus movimientos), aparecerá aquí con '2 uds'."
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            AlertInfoCard(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                title = "Sin actividad — 7d",
+                                icon = Icons.Outlined.HourglassEmpty,
+                                items = sinMovimientoReciente,
+                                itemLabel = { p -> p.nombre },
+                                itemSublabel = { _ -> "Sin movimientos" },
+                                emptyText = "Todo activo",
+                                onClick = onIrAProductos,
+                                ayudaTitulo = "Sin actividad — 7 días",
+                                ayudaExplicacion = "Esta sección muestra productos que no han tenido ningún " +
+                                    "movimiento (ni entrada, ni salida, ni ajuste) en los últimos 7 días.\n\n" +
+                                    "Es útil para detectar productos olvidados en bodega sin rotación, con " +
+                                    "stock desactualizado por falta de registro, o próximos a vencimiento " +
+                                    "por no moverse.\n\n" +
+                                    "No es una alerta de error — es un recordatorio para revisar si ese " +
+                                    "producto necesita atención.",
+                                ayudaEjemplo = "Si 'Adaptador Bluetooth' aparece aquí, puede significar que " +
+                                    "nadie ha vendido ni recibido esas unidades en una semana. Quizás " +
+                                    "necesitas hacer un conteo físico o promocionarlo."
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+}
 
-            Row(
+@Composable
+private fun AlertaMiniCard(
+    icon: ImageVector,
+    count: Int,
+    etiqueta: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    ayudaTitulo: String? = null,
+    ayudaExplicacion: String = "",
+    ayudaEjemplo: String = ""
+) {
+    val colores = StoreFlowTheme.coloresExtendidos
+    val activa = count > 0
+
+    Box(modifier = modifier) {
+        Card(
+            onClick = onClick,
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (activa) colores.paleta.alerta.copy(alpha = 0.12f) else Color.Transparent
+            ),
+            border = BorderStroke(1.dp, if (activa) colores.paleta.alerta.copy(alpha = 0.3f) else colores.cardBorde)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (activa) colores.paleta.alerta else colores.oscuridad.textoTerciario
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (activa) colores.oscuridad.textoPrimario else colores.oscuridad.textoTerciario
+                )
+                Text(
+                    text = etiqueta,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.oscuridad.textoSecundario
+                )
+            }
+        }
+        if (ayudaTitulo != null) {
+            BotonAyuda(
+                titulo = ayudaTitulo,
+                explicacion = ayudaExplicacion,
+                ejemplo = ayudaEjemplo,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Max)
-            ) {
-                NavCard(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    title = "Productos",
-                    icon = Icons.Outlined.Inventory,
-                    lines = listOf(
-                        "${productos.size} productos",
-                        "$totalUnidades unidades"
-                    ),
-                    warningText = if (countAlertas > 0) "$countAlertas bajo stock" else null,
-                    onClick = onIrAProductos,
-                    ayudaTitulo = "Productos",
-                    ayudaExplicacion = "Aquí ves todos los productos registrados en la bodega activa. " +
-                        "El número grande es la cantidad total de productos diferentes (SKUs), y abajo " +
-                        "ves la suma de todas las unidades en stock.\n\n" +
-                        "El stock de cada producto se calcula automáticamente sumando todos sus " +
-                        "movimientos de entrada y salida. No se ingresa manualmente.",
-                    ayudaEjemplo = "Si registras una ENTRADA de 100 unidades de Harina y luego una " +
-                        "SALIDA de 30, el stock que verás será 70 unidades. Toca esta tarjeta para ver " +
-                        "la lista completa de productos."
-                )
-                Spacer(Modifier.width(12.dp))
-                NavCard(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    title = "Bodegas",
-                    icon = Icons.Outlined.Warehouse,
-                    lines = listOfNotNull(
-                        "${todasLasBodegas.size} bodegas",
-                        bodegaActiva?.let { "Activa: ${it.nombre}" }
-                    ),
-                    warningText = null,
-                    onClick = onIrABodegas,
-                    ayudaTitulo = "Bodegas",
-                    ayudaExplicacion = "Una bodega es un almacén o punto de almacenamiento dentro de tu " +
-                        "empresa. Cada bodega contiene sus propios productos y movimientos de forma " +
-                        "independiente.\n\n" +
-                        "La bodega 'Activa' es la que estás usando ahora mismo — todos los productos, " +
-                        "movimientos y alertas que ves en el dashboard corresponden a esta bodega.",
-                    ayudaEjemplo = "Un minimarket podría tener 'Bodega Tienda' (lo que está en la sala " +
-                        "de ventas) y 'Bodega Trasera' (la reserva). Cada una lleva su propio " +
-                        "inventario. Puedes cambiar de bodega activa desde esta tarjeta."
-                )
-            }
-
-            AnimatedVisibility(
-                visible = esAdmin,
-                enter = fadeIn(tween(300)) + expandVertically(tween(300)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                    ) {
-                        NavCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Configurar productos",
-                            icon = Icons.Outlined.Tune,
-                            lines = listOf(
-                                if (totalEspecificaciones > 0) "$totalEspecificaciones definidas"
-                                else "Sin definir",
-                                "Características"
-                            ),
-                            warningText = null,
-                            onClick = onIrAAtributos,
-                            ayudaTitulo = "Especificaciones",
-                            ayudaExplicacion = "Las especificaciones son características " +
-                                "personalizadas que puedes agregar a tus productos. Son plantillas " +
-                                "que defines una vez y luego asignas a los productos que " +
-                                "correspondan.\n\n" +
-                                "Esto te permite agregar información extra sin que todos los productos " +
-                                "tengan los mismos campos. Cada especificación tiene un nombre, un tipo " +
-                                "(texto) y se aplica solo a los productos que la necesiten.",
-                            ayudaEjemplo = "Si vendes ropa, puedes crear la especificación 'Talla' y " +
-                                "'Color'. Luego asignas 'Talla=M' y 'Color=Azul' solo a los productos " +
-                                "de ropa, sin que los productos de ferretería tengan esos campos vacíos."
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        NavCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Usuarios",
-                            icon = Icons.Outlined.Group,
-                            lines = if (usuarios.isNotEmpty()) listOf(
-                                "${usuarios.size} usuario${if (usuarios.size > 1) "s" else ""}",
-                                "$totalAdmins administrador${if (totalAdmins > 1) "es" else ""}"
-                            ) else listOf("Sin usuarios"),
-                            warningText = null,
-                            onClick = onIrAUsuarios,
-                            ayudaTitulo = "Usuarios",
-                            ayudaExplicacion = "Aquí gestionas las personas que tienen acceso a la " +
-                                "empresa en StoreFlow. Cada usuario tiene un email, nombre y un rol que " +
-                                "define qué puede hacer.\n\n" +
-                                "• Administrador: acceso completo. Puede crear y eliminar productos, " +
-                                "bodegas, usuarios, configurar especificaciones y ver reportes.\n\n" +
-                                "• Operador: acceso limitado. Puede registrar movimientos de entrada y " +
-                                "salida, ver productos y stock, pero no puede crear ni eliminar " +
-                                "productos, ni gestionar usuarios.",
-                            ayudaEjemplo = "El dueño del negocio usa el rol Administrador. El bodeguero " +
-                                "o cajero que solo necesita registrar entradas y salidas de mercadería " +
-                                "usa el rol Operador."
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = productos.isNotEmpty(),
-                enter = fadeIn(tween(400)) + expandVertically(tween(400)),
-                exit = fadeOut(tween(200)) + shrinkVertically(tween(300))
-            ) {
-                Column {
-                    Spacer(Modifier.height(20.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                    ) {
-                        AlertInfoCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Menor stock",
-                            icon = Icons.AutoMirrored.Outlined.TrendingDown,
-                            items = productosMenorStock,
-                            itemLabel = { p -> p.nombre },
-                            itemSublabel = { p -> "${p.stockActual} uds" },
-                            emptyText = "Sin productos",
-                            onClick = onIrAProductos,
-                            ayudaTitulo = "Menor stock",
-                            ayudaExplicacion = "Esta sección muestra los productos que tienen stock " +
-                                "por debajo de su stock mínimo configurado, o que están en 0 " +
-                                "unidades.\n\n" +
-                                "El stock mínimo se define al crear o editar cada producto. Cuando el " +
-                                "stock calculado (entradas - salidas) cae por debajo de ese valor, el " +
-                                "producto aparece aquí como alerta.",
-                            ayudaEjemplo = "Si 'Harina' tiene stock mínimo = 5 kg y actualmente tiene " +
-                                "2 kg (calculado de sus movimientos), aparecerá aquí con '2 uds'."
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        AlertInfoCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Sin actividad — 7d",
-                            icon = Icons.Outlined.HourglassEmpty,
-                            items = sinMovimientoReciente,
-                            itemLabel = { p -> p.nombre },
-                            itemSublabel = { _ -> "Sin movimientos" },
-                            emptyText = "Todo activo",
-                            onClick = onIrAProductos,
-                            ayudaTitulo = "Sin actividad — 7 días",
-                            ayudaExplicacion = "Esta sección muestra productos que no han tenido ningún " +
-                                "movimiento (ni entrada, ni salida, ni ajuste) en los últimos 7 días.\n\n" +
-                                "Es útil para detectar productos olvidados en bodega sin rotación, con " +
-                                "stock desactualizado por falta de registro, o próximos a vencimiento " +
-                                "por no moverse.\n\n" +
-                                "No es una alerta de error — es un recordatorio para revisar si ese " +
-                                "producto necesita atención.",
-                            ayudaEjemplo = "Si 'Adaptador Bluetooth' aparece aquí, puede significar que " +
-                                "nadie ha vendido ni recibido esas unidades en una semana. Quizás " +
-                                "necesitas hacer un conteo físico o promocionarlo."
-                        )
-                    }
-                }
-            }
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+            )
         }
     }
 }

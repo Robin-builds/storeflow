@@ -11,13 +11,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import cl.storeflow.warehouse.ui.ayuda.AyudaViewModel
@@ -47,10 +53,18 @@ fun ConfiguracionScreen(
     onVolver: () -> Unit,
     onLogout: () -> Unit,
     onIrAReportarError: () -> Unit,
+    viewModel: ConfiguracionViewModel = hiltViewModel(),
     ayudaViewModel: AyudaViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
     val mostrarTooltips by ayudaViewModel.mostrarTooltips.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var mostrarDialogCambiarPassword by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.mensaje.collect { snackbarHostState.showSnackbar(it) }
+    }
 
     Scaffold(
         topBar = {
@@ -62,7 +76,8 @@ fun ConfiguracionScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -71,6 +86,17 @@ fun ConfiguracionScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // --- Cuenta ---
+            SeccionLabel("Cuenta")
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ConfigFilaItem(
+                    icon = Icons.Filled.Lock,
+                    titulo = "Cambiar contraseña",
+                    subtitulo = "Actualiza tu contraseña de acceso",
+                    onClick = { mostrarDialogCambiarPassword = true }
+                )
+            }
+
             // --- Soporte ---
             SeccionLabel("Soporte")
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -238,6 +264,17 @@ fun ConfiguracionScreen(
 
             Spacer(Modifier.height(8.dp))
         }
+    }
+
+    if (mostrarDialogCambiarPassword) {
+        DialogCambiarPassword(
+            operando = uiState is ConfiguracionUiState.Operando,
+            onConfirmar = { actual, nueva ->
+                viewModel.cambiarPassword(actual, nueva)
+                mostrarDialogCambiarPassword = false
+            },
+            onCancelar = { mostrarDialogCambiarPassword = false }
+        )
     }
 }
 
@@ -407,4 +444,69 @@ private fun OscuridadCard(
             )
         }
     }
+}
+
+@Composable
+private fun DialogCambiarPassword(
+    operando: Boolean,
+    onConfirmar: (actual: String, nueva: String) -> Unit,
+    onCancelar: () -> Unit
+) {
+    var actual by remember { mutableStateOf("") }
+    var nueva by remember { mutableStateOf("") }
+    var confirmar by remember { mutableStateOf("") }
+
+    val nuevaValida = nueva.length >= 8
+    val coincide = nueva == confirmar
+    val puedeConfirmar = actual.isNotBlank() && nuevaValida && coincide && nueva != actual && !operando
+
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text("Cambiar contraseña") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = actual,
+                    onValueChange = { actual = it },
+                    label = { Text("Contraseña actual *") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = nueva,
+                    onValueChange = { nueva = it },
+                    label = { Text("Nueva contraseña *") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    isError = nueva.isNotEmpty() && !nuevaValida,
+                    supportingText = {
+                        if (nueva.isNotEmpty() && !nuevaValida) Text("Mínimo 8 caracteres")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = confirmar,
+                    onValueChange = { confirmar = it },
+                    label = { Text("Confirmar nueva contraseña *") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    isError = confirmar.isNotEmpty() && !coincide,
+                    supportingText = {
+                        if (confirmar.isNotEmpty() && !coincide) Text("No coincide")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirmar(actual, nueva) },
+                enabled = puedeConfirmar
+            ) { Text("Cambiar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) { Text("Cancelar") }
+        }
+    )
 }

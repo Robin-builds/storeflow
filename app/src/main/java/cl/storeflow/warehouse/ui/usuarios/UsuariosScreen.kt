@@ -31,6 +31,7 @@ fun UsuariosScreen(
     var mostrarDialogRegistrar by remember { mutableStateOf(false) }
     var usuarioAEliminar by remember { mutableStateOf<Usuario?>(null) }
     var usuarioCambiarRol by remember { mutableStateOf<Usuario?>(null) }
+    var usuarioResetearPassword by remember { mutableStateOf<Usuario?>(null) }
     val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
 
     LaunchedEffect(Unit) {
@@ -84,14 +85,17 @@ fun UsuariosScreen(
                             val esSelf = usuario.id == state.usuarioActualId
                             val puedeEliminar = !esSelf
                             val puedeCambiarRol = !esSelf && !(usuario.esAdmin() && adminCount <= 1)
+                            val puedeResetearPassword = !esSelf
                             Box(modifier = Modifier.animateItem()) {
                                 UsuarioItem(
                                     usuario = usuario,
                                     esSelf = esSelf,
                                     puedeEliminar = puedeEliminar,
                                     puedeCambiarRol = puedeCambiarRol,
+                                    puedeResetearPassword = puedeResetearPassword,
                                     onEliminar = { usuarioAEliminar = usuario },
-                                    onCambiarRol = { usuarioCambiarRol = usuario }
+                                    onCambiarRol = { usuarioCambiarRol = usuario },
+                                    onResetearPassword = { usuarioResetearPassword = usuario }
                                 )
                             }
                         }
@@ -167,6 +171,18 @@ fun UsuariosScreen(
             }
         )
     }
+
+    usuarioResetearPassword?.let { usuario ->
+        DialogResetearPassword(
+            usuario = usuario,
+            operando = operando,
+            onConfirmar = { nuevaPassword ->
+                viewModel.resetearPassword(usuario, nuevaPassword)
+                usuarioResetearPassword = null
+            },
+            onCancelar = { usuarioResetearPassword = null }
+        )
+    }
 }
 
 @Composable
@@ -175,11 +191,13 @@ private fun UsuarioItem(
     esSelf: Boolean,
     puedeEliminar: Boolean,
     puedeCambiarRol: Boolean,
+    puedeResetearPassword: Boolean,
     onEliminar: () -> Unit,
-    onCambiarRol: () -> Unit
+    onCambiarRol: () -> Unit,
+    onResetearPassword: () -> Unit
 ) {
     var expandedMenu by remember { mutableStateOf(false) }
-    val mostrarMenu = puedeEliminar || puedeCambiarRol
+    val mostrarMenu = puedeEliminar || puedeCambiarRol || puedeResetearPassword
 
     ListItem(
         headlineContent = {
@@ -218,6 +236,12 @@ private fun UsuarioItem(
                                 DropdownMenuItem(
                                     text = { Text("Cambiar rol") },
                                     onClick = { expandedMenu = false; onCambiarRol() }
+                                )
+                            }
+                            if (puedeResetearPassword) {
+                                DropdownMenuItem(
+                                    text = { Text("Restablecer contraseña") },
+                                    onClick = { expandedMenu = false; onResetearPassword() }
                                 )
                             }
                             if (puedeEliminar) {
@@ -286,6 +310,53 @@ private fun DialogRegistrarUsuario(
                 onClick = { onConfirmar(email.trim(), password, nombre.trim()) },
                 enabled = nombre.isNotBlank() && email.isNotBlank() && password.isNotBlank() && !operando
             ) { Text("Registrar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+private fun DialogResetearPassword(
+    usuario: Usuario,
+    operando: Boolean,
+    onConfirmar: (nuevaPassword: String) -> Unit,
+    onCancelar: () -> Unit
+) {
+    var nuevaPassword by remember { mutableStateOf("") }
+    val nuevaValida = nuevaPassword.length >= 8
+
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text("Restablecer contraseña") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Nueva contraseña para ${usuario.nombre.ifBlank { usuario.email }}. " +
+                    "Comunícasela al usuario por fuera de la app.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = nuevaPassword,
+                    onValueChange = { nuevaPassword = it },
+                    label = { Text("Nueva contraseña *") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    isError = nuevaPassword.isNotEmpty() && !nuevaValida,
+                    supportingText = {
+                        if (nuevaPassword.isNotEmpty() && !nuevaValida) Text("Mínimo 8 caracteres")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirmar(nuevaPassword) },
+                enabled = nuevaValida && !operando
+            ) { Text("Restablecer") }
         },
         dismissButton = {
             TextButton(onClick = onCancelar) { Text("Cancelar") }

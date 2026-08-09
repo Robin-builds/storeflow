@@ -1,5 +1,6 @@
 package cl.storeflow.warehouse
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,9 +21,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import cl.storeflow.warehouse.ui.auth.AuthUiState
 import cl.storeflow.warehouse.ui.auth.AuthViewModel
 import cl.storeflow.warehouse.ui.auth.LoginScreen
@@ -36,6 +39,7 @@ import cl.storeflow.warehouse.ui.configuracion.ConfiguracionScreen
 import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
 import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
+import cl.storeflow.warehouse.ui.movimientos.HistorialMovimientosScreen
 import cl.storeflow.warehouse.ui.productos.ProductosListScreen
 import cl.storeflow.warehouse.ui.reportar.ReportarErrorScreen
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
@@ -66,6 +70,8 @@ private object Rutas {
     const val REGISTRO = "registro"
     const val DASHBOARD = "dashboard"
     const val PRODUCTOS = "productos"
+    const val PRODUCTOS_PATTERN = "productos?busqueda={busqueda}"
+    fun productosConBusqueda(query: String) = "productos?busqueda=${Uri.encode(query)}"
     const val ALERTAS = "alertas"
     const val BODEGAS = "bodegas"
     const val ATRIBUTOS = "atributos"
@@ -73,6 +79,7 @@ private object Rutas {
     const val CONFIGURACION = "configuracion"
     const val MOVIMIENTOS = "movimientos/{productoId}"
     const val REPORTAR_ERROR = "reportar_error"
+    const val HISTORIAL_MOVIMIENTOS = "historial_movimientos"
     fun movimientos(productoId: String) = "movimientos/$productoId"
 }
 
@@ -159,7 +166,11 @@ class MainActivity : ComponentActivity() {
                                 onIrAAlerta = { navController.navigate(Rutas.ALERTAS) },
                                 onIrABodegas = { navController.navigate(Rutas.BODEGAS) },
                                 onIrAAtributos = { navController.navigate(Rutas.ATRIBUTOS) },
-                                onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) }
+                                onIrAUsuarios = { navController.navigate(Rutas.USUARIOS) },
+                                onIrAProductosConBusqueda = { query ->
+                                    navController.navigate(Rutas.productosConBusqueda(query))
+                                },
+                                onIrAHistorial = { navController.navigate(Rutas.HISTORIAL_MOVIMIENTOS) }
                             )
                         }
                         composable(
@@ -203,7 +214,11 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(
-                            Rutas.PRODUCTOS,
+                            Rutas.PRODUCTOS_PATTERN,
+                            arguments = listOf(navArgument("busqueda") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }),
                             enterTransition = slideEnter,
                             exitTransition = slideExit,
                             popEnterTransition = slidePopEnter,
@@ -258,6 +273,20 @@ class MainActivity : ComponentActivity() {
                             popExitTransition = slidePopExit
                         ) {
                             MovimientosScreen(onVolver = { navController.popBackStack() })
+                        }
+                        composable(
+                            Rutas.HISTORIAL_MOVIMIENTOS,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
+                            HistorialMovimientosScreen(
+                                onVolver = { navController.popBackStack() },
+                                onVerProducto = { productoId ->
+                                    navController.navigate(Rutas.movimientos(productoId))
+                                }
+                            )
                         }
                     }
                 }

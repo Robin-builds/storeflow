@@ -34,6 +34,7 @@ data class ProductoEntity(
     val sku: String? = null,
     val precio: Int = 0,
     val stock_minimo: Int = 0,
+    val es_perecedero: Boolean = false,
     // stock NO se almacena — siempre se calcula via MovimientoEntity
     val synced: Boolean = false,
     val synced_at: Date? = null,

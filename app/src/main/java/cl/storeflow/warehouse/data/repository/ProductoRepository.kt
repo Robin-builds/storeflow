@@ -16,6 +16,7 @@ import cl.storeflow.warehouse.data.sync.toSyncDelete
 import cl.storeflow.warehouse.data.sync.toSyncInsert
 import cl.storeflow.warehouse.data.sync.toSyncUpdate
 import cl.storeflow.warehouse.domain.model.Producto
+import cl.storeflow.warehouse.domain.model.ProductoConStockYBodega
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Date
@@ -45,6 +46,10 @@ class ProductoRepository @Inject constructor(
     fun observarBajoMinimo(bodegaId: String): Flow<List<Producto>> =
         productoDao.observarBajoMinimo(bodegaId).map { list -> list.map { it.toDomain() } }
 
+    // Solo lectura — usada por la búsqueda global de productos en el Dashboard (todas las bodegas)
+    fun observarProductosDeEmpresa(empresaId: String): Flow<List<ProductoConStockYBodega>> =
+        productoDao.observarConStockPorEmpresa(empresaId)
+
     fun observarSinMovimientoReciente(bodegaId: String, dias: Int = 7): Flow<List<Producto>> {
         val desde = System.currentTimeMillis() - dias * 24 * 60 * 60 * 1000L
         return productoDao.observarSinMovimientoReciente(bodegaId, desde, limite = 3)
@@ -72,7 +77,8 @@ class ProductoRepository @Inject constructor(
         precio: Int,
         stock_minimo: Int,
         stock_inicial: Int = 0,
-        atributos: Map<String, String> = emptyMap()
+        atributos: Map<String, String> = emptyMap(),
+        es_perecedero: Boolean = false
     ): Result<Unit> {
         val skuTrimmed = sku?.trim()?.ifBlank { null }
         if (skuTrimmed != null && productoDao.contarConSku(empresa_id, skuTrimmed) > 0)
@@ -86,6 +92,7 @@ class ProductoRepository @Inject constructor(
                 sku = skuTrimmed,
                 precio = precio,
                 stock_minimo = stock_minimo,
+                es_perecedero = es_perecedero,
                 synced = false
             )
             productoDao.insertar(producto)

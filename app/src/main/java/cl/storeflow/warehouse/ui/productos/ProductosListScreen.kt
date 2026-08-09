@@ -386,8 +386,8 @@ fun ProductosListScreen(
             productoInicial = null,
             templates = templates,
             formState = formState,
-            onGuardar = { nombre, desc, sku, precio, stockMin, stockInicial, atributos ->
-                viewModel.crear(nombre, desc, sku, precio, stockMin, stockInicial, atributos)
+            onGuardar = { nombre, desc, sku, precio, stockMin, stockInicial, atributos, esPerecedero ->
+                viewModel.crear(nombre, desc, sku, precio, stockMin, stockInicial, atributos, esPerecedero)
             },
             onEliminar = null,
             onDismiss = {
@@ -403,8 +403,8 @@ fun ProductosListScreen(
             productoInicial = producto,
             templates = templates,
             formState = formState,
-            onGuardar = { nombre, desc, sku, precio, stockMin, _, atributos ->
-                viewModel.actualizar(producto, nombre, desc, sku, precio, stockMin, atributos)
+            onGuardar = { nombre, desc, sku, precio, stockMin, _, atributos, esPerecedero ->
+                viewModel.actualizar(producto, nombre, desc, sku, precio, stockMin, atributos, esPerecedero)
             },
             onEliminar = { viewModel.eliminar(producto.id) },
             onDismiss = {
@@ -531,7 +531,7 @@ private fun ProductoFormDialog(
     productoInicial: Producto?,
     templates: List<AtributoTemplate>,
     formState: FormUiState,
-    onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Int, stockMin: Int, stockInicial: Int, atributos: Map<String, String>) -> Unit,
+    onGuardar: (nombre: String, descripcion: String?, sku: String?, precio: Int, stockMin: Int, stockInicial: Int, atributos: Map<String, String>, esPerecedero: Boolean) -> Unit,
     onEliminar: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
@@ -542,6 +542,7 @@ private fun ProductoFormDialog(
     var precio by remember { mutableStateOf(productoInicial?.precio?.toString() ?: "0") }
     var stock_minimo by remember { mutableStateOf(productoInicial?.stockMinimo?.toString() ?: "0") }
     var stock_inicial by remember { mutableStateOf("0") }
+    var esPerecedero by remember { mutableStateOf(productoInicial?.esPerecedero ?: false) }
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
     var mostrarScanner by remember { mutableStateOf(false) }
 
@@ -697,6 +698,18 @@ private fun ProductoFormDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Es perecedero", style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = esPerecedero,
+                        onCheckedChange = { esPerecedero = it },
+                        enabled = !cargando
+                    )
+                }
                 if (templates.isNotEmpty()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     templates.forEach { template ->
@@ -745,7 +758,8 @@ private fun ProductoFormDialog(
                             precio.toIntOrNull() ?: 0,
                             stock_minimo.toIntOrNull() ?: 0,
                             if (modoCrear) stock_inicial.toIntOrNull() ?: 0 else 0,
-                            atributosState.filter { (_, v) -> v.isNotBlank() }
+                            atributosState.filter { (_, v) -> v.isNotBlank() },
+                            esPerecedero
                         )
                     },
                     enabled = formularioValido

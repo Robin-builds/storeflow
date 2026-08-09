@@ -3,6 +3,7 @@
 import androidx.room.*
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
 import cl.storeflow.warehouse.domain.model.ProductoConStock
+import cl.storeflow.warehouse.domain.model.ProductoConStockYBodega
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -35,6 +36,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id
@@ -45,8 +47,22 @@ interface ProductoDao {
     fun observarConStock(bodegaId: String): Flow<List<ProductoConStock>>
 
     @Query("""
+        SELECT p.id, p.nombre, p.sku, p.precio, p.bodega_id,
+               COALESCE(SUM(m.cantidad), 0) AS stock_actual,
+               b.nombre AS bodega_nombre
+        FROM productos p
+        LEFT JOIN movimientos m ON m.producto_id = p.id
+        INNER JOIN bodegas b ON b.id = p.bodega_id
+        WHERE p.empresa_id = :empresaId
+        GROUP BY p.id
+        ORDER BY p.nombre ASC
+    """)
+    fun observarConStockPorEmpresa(empresaId: String): Flow<List<ProductoConStockYBodega>>
+
+    @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id
@@ -58,6 +74,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id
@@ -92,6 +109,7 @@ interface ProductoDao {
     @Query("""
         SELECT p.id, p.empresa_id, p.bodega_id, p.nombre, p.descripcion, p.sku,
                p.precio, p.stock_minimo, p.synced, p.synced_at, p.created_at, p.updated_at,
+               p.es_perecedero,
                COALESCE(SUM(m.cantidad), 0) AS stock_actual
         FROM productos p
         LEFT JOIN movimientos m ON m.producto_id = p.id

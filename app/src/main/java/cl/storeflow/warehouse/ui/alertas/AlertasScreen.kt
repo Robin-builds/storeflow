@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -14,15 +15,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import cl.storeflow.warehouse.domain.model.LoteProximoAVencer
 import cl.storeflow.warehouse.domain.model.Producto
 import cl.storeflow.warehouse.ui.components.BackButton
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+
+private val ColorVencimiento = Color(0xFFEF6C00)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,19 +39,21 @@ fun AlertasScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val bodegaNombre by viewModel.bodegaNombre.collectAsState()
+    val proximosAVencer by viewModel.proximosAVencer.collectAsState()
     val context = LocalContext.current
 
     val alertas = (uiState as? AlertasUiState.Listo)?.alertas ?: emptyList()
+    val hayAlgo = alertas.isNotEmpty() || proximosAVencer.isNotEmpty()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Alertas de stock") },
+                title = { Text("Alertas") },
                 navigationIcon = { BackButton(onClick = onVolver) },
                 actions = {
-                    if (alertas.isNotEmpty()) {
+                    if (hayAlgo) {
                         IconButton(onClick = {
-                            val texto = generarTextoAlertas(alertas, bodegaNombre)
+                            val texto = generarTextoAlertas(alertas, proximosAVencer, bodegaNombre)
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, texto)
@@ -66,7 +74,7 @@ fun AlertasScreen(
                 }
             }
             is AlertasUiState.Listo -> {
-                if (state.alertas.isEmpty()) {
+                if (!hayAlgo) {
                     Box(
                         Modifier
                             .fillMaxSize()
@@ -80,7 +88,7 @@ fun AlertasScreen(
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "No hay productos bajo stock mínimo",
+                                text = "Sin stock bajo mínimo ni productos próximos a vencer",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -88,12 +96,23 @@ fun AlertasScreen(
                     }
                 } else {
                     LazyColumn(contentPadding = padding) {
-                        items(state.alertas, key = { it.id }) { producto ->
-                            Box(modifier = Modifier.animateItem()) {
-                                AlertaItem(
-                                    producto = producto,
-                                    onVerMovimientos = { onVerMovimientos(producto.id) }
-                                )
+                        if (proximosAVencer.isNotEmpty()) {
+                            item { SeccionHeader("Próximos a vencer") }
+                            items(proximosAVencer, key = { it.id }) { lote ->
+                                Box(modifier = Modifier.animateItem()) {
+                                    LoteVencimientoItem(lote)
+                                }
+                            }
+                        }
+                        if (state.alertas.isNotEmpty()) {
+                            item { SeccionHeader("Bajo stock mínimo") }
+                            items(state.alertas, key = { it.id }) { producto ->
+                                Box(modifier = Modifier.animateItem()) {
+                                    AlertaItem(
+                                        producto = producto,
+                                        onVerMovimientos = { onVerMovimientos(producto.id) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -103,17 +122,78 @@ fun AlertasScreen(
     }
 }
 
-private fun generarTextoAlertas(alertas: List<Producto>, bodegaNombre: String): String {
+@Composable
+private fun SeccionHeader(titulo: String) {
+    Text(
+        text = titulo,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+}
+
+private fun generarTextoAlertas(
+    alertas: List<Producto>,
+    proximosAVencer: List<LoteProximoAVencer>,
+    bodegaNombre: String
+): String {
     val fecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
     return buildString {
-        appendLine("⚠️ *Alertas de stock bajo — StoreFlow*")
+        appendLine("⚠️ *Alertas — StoreFlow*")
         if (bodegaNombre.isNotBlank()) appendLine("Bodega: $bodegaNombre")
         appendLine(fecha)
-        appendLine()
-        alertas.forEach { p ->
-            appendLine("• ${p.nombre}: ${p.stockActual} / ${p.stockMinimo} (actual / mínimo)")
+        if (proximosAVencer.isNotEmpty()) {
+            appendLine()
+            appendLine("Próximos a vencer:")
+            proximosAVencer.forEach { l ->
+                appendLine("• ${l.producto_nombre}: ${l.stock_actual} uds — ${textoVencimiento(l.fecha_caducidad)}")
+            }
+        }
+        if (alertas.isNotEmpty()) {
+            appendLine()
+            appendLine("Bajo stock mínimo:")
+            alertas.forEach { p ->
+                appendLine("• ${p.nombre}: ${p.stockActual} / ${p.stockMinimo} (actual / mínimo)")
+            }
         }
     }.trimEnd()
+}
+
+private fun textoVencimiento(fechaCaducidad: Date): String {
+    val diasRestantes = TimeUnit.MILLISECONDS.toDays(fechaCaducidad.time - System.currentTimeMillis())
+    return when {
+        diasRestantes < 0 -> "vencido hace ${-diasRestantes} día${if (diasRestantes != -1L) "s" else ""}"
+        diasRestantes == 0L -> "vence hoy"
+        else -> "vence en $diasRestantes día${if (diasRestantes != 1L) "s" else ""}"
+    }
+}
+
+@Composable
+private fun LoteVencimientoItem(lote: LoteProximoAVencer) {
+    ListItem(
+        headlineContent = {
+            Text(lote.producto_nombre, fontWeight = FontWeight.Medium)
+        },
+        supportingContent = {
+            Text(
+                text = buildString {
+                    append("Stock: ${lote.stock_actual}")
+                    if (!lote.numero_lote.isNullOrBlank()) append("  ·  Lote: ${lote.numero_lote}")
+                    append("  ·  ${textoVencimiento(lote.fecha_caducidad)}")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorVencimiento
+            )
+        },
+        leadingContent = {
+            Icon(
+                Icons.Filled.Schedule,
+                contentDescription = null,
+                tint = ColorVencimiento
+            )
+        }
+    )
+    HorizontalDivider()
 }
 
 @Composable
