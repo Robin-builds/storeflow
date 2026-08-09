@@ -8,9 +8,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -18,6 +23,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cl.storeflow.warehouse.domain.model.ProductoConStockYBodega
+import cl.storeflow.warehouse.ui.components.BarcodeScannerDialog
 import cl.storeflow.warehouse.ui.theme.Rojo600
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import cl.storeflow.warehouse.ui.theme.Verde400
@@ -31,6 +37,7 @@ fun BusquedaProductoCard(
     modifier: Modifier = Modifier
 ) {
     val colores = StoreFlowTheme.coloresExtendidos
+    var mostrarScanner by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -44,22 +51,41 @@ fun BusquedaProductoCard(
                 .background(Brush.linearGradient(listOf(colores.cardGradienteTop, colores.cardGradienteBottom)))
                 .padding(16.dp)
         ) {
-            OutlinedTextField(
-                value = busqueda,
-                onValueChange = onBusquedaChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar producto por nombre o SKU...") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (busqueda.isNotEmpty()) {
-                        IconButton(onClick = { onBusquedaChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Limpiar")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = busqueda,
+                    onValueChange = onBusquedaChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Buscar producto por nombre o SKU...") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (busqueda.isNotEmpty()) {
+                            IconButton(onClick = { onBusquedaChange("") }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Limpiar")
+                            }
                         }
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
-            )
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                )
+                IconButton(onClick = { mostrarScanner = true }) {
+                    Icon(
+                        Icons.Filled.QrCodeScanner,
+                        contentDescription = "Escanear código",
+                        tint = colores.paleta.primario
+                    )
+                }
+            }
+
+            if (mostrarScanner) {
+                BarcodeScannerDialog(
+                    onBarcodeDetected = { valor -> onBusquedaChange(valor) },
+                    onDismiss = { mostrarScanner = false }
+                )
+            }
 
             if (busqueda.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
