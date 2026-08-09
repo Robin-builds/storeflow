@@ -8,6 +8,7 @@
 > 4. Se revisó todo `app/src/main/java/` buscando voseo/argentinismos (público: Chile) — no había más casos. Se agregó la convención "Textos UI: español neutro LatAm" a `CLAUDE.md` para que no se repita.
 > 5. **Branding/ícono** (rama `feat/icono-app`, mergeada a `main`): se reemplazó el ícono placeholder de Android Studio (fondo verde con grilla, nunca personalizado) por un adaptive icon real — fondo `#0D1519`, primer plano con cajas cian/naranja, versión monocroma para íconos tematizados (Android 13+). El usuario proveyó el export de Android Studio (`Image Asset`) en `Desktop\res`; se fusionó con `app/src/main/res` en vez de reemplazar la carpeta entera (esa carpeta no traía `colors.xml`/`strings.xml`/`themes.xml`/`file_paths.xml`/el PDF de la guía — reemplazarla íntegra habría roto el build). De paso se migró `mipmap-anydpi` → `mipmap-anydpi-v26` (redundante desde que minSdk es 27) — commit `681d096`.
 > 6. Se agregó el logo (`ic_launcher_foreground`) junto al nombre de la app en el header del Dashboard y en el TopAppBar de Configuración. El wordmark "STOREFLOW" — que se perdía en gris sobre el tema más oscuro — pasó a bicolor corporativo (STORE cian, FLOW naranja) con contorno blanco delgado (dos `Text` superpuestos: uno con `drawStyle = Stroke` en blanco detrás, el relleno de color encima) — mismo commit `681d096`. Se probó (y se descartó, a pedido del usuario) recolorear el ícono de engranaje de Configuración con los mismos colores de marca — quedó en su gris neutro original.
+> 7. **Linterna en el escáner** — `BarcodeScannerDialog` (compartido por form de producto, Productos y buscador del Dashboard) ahora tiene un botón de linterna vía `CameraX CameraControl.enableTorch()`, útil para escanear en bodegas oscuras. Solo se muestra si `cameraInfo.hasFlashUnit()`. Primera versión (ícono chico, blanco sobre transparente) resultó poco visible — se rehízo como botón circular de 56dp con fondo sólido (naranja apagada `#F0921E` / amarillo encendida `#FFD500`, ícono negro). Se probó y se descartó una card "Linterna" standalone en el Dashboard (`CameraManager.setTorchMode`, sin preview) — el usuario prefirió mantener solo el botón dentro del escáner; "Historial de movimientos" volvió a ocupar el ancho completo — commit `dd983c3`.
 
 ---
 
@@ -60,13 +61,14 @@ POST-MVP:
   Ayuda contextual ("?" + PDF + toggle)✅ Validada en dispositivo físico — mergeada a main (09/08)
   Escaneo QR en buscador de Dashboard  ✅ Validada en dispositivo físico — mergeada a main (09/08)
   Ícono de app + wordmark de marca     ✅ Validada en dispositivo físico — mergeada a main (09/08)
+  Linterna en escáner QR/barcode       ✅ Validada en dispositivo físico — mergeada a main (09/08)
 ```
 
 ---
 
 ## ✨ FEATURES IMPLEMENTADAS (resumen para contexto)
 
-- 📷 **Escaneo QR/Barcode** — `BarcodeScannerDialog` (ML Kit + CameraX). Botón en campo SKU (form de producto), en el buscador de `ProductosListScreen`, y en el buscador global del Dashboard (`BusquedaProductoCard`).
+- 📷 **Escaneo QR/Barcode** — `BarcodeScannerDialog` (ML Kit + CameraX). Botón en campo SKU (form de producto), en el buscador de `ProductosListScreen`, y en el buscador global del Dashboard (`BusquedaProductoCard`). Incluye linterna (`CameraControl.enableTorch()`) — botón circular 56dp, naranja/amarillo según estado, visible solo si `cameraInfo.hasFlashUnit()`.
 - 🗂️ **Selección masiva** — `seleccionados: StateFlow<Set<String>>`, `modoSeleccion` derivado, `eliminarSeleccionados()`, `transferirSeleccionados()`. "Seleccionar todos" opera sobre `productosVisibles`.
 - 🎨 **Atributos dinámicos** — solo tipo TEXT en UI (MVP). `NUMBER`/`DATE` en enum, sin UI.
 - 🌗 **Temas composables** — `PaletaId` (Forja/Planta/Búnker) × `OscuridadId` (Penumbra/Nocturno/Abismo). Reemplaza `TemaApp` (eliminado). Persiste en DataStore (dos keys). Selector visual en ConfiguracionScreen.
@@ -133,5 +135,6 @@ POST-MVP:
 | Escaneo QR en buscador global del Dashboard | Moto G60 | ✅ | ninguno |
 | Ayuda contextual ("?" en cards, toggle, guía PDF) | Moto G60 | ✅ | ninguno — recuperada de rama huérfana de julio, revalidada tras merge |
 | Ayuda contextual — "Es perecedero" + "Fecha de caducidad" | Moto G60 | ✅ | ninguno |
+| Linterna en escáner QR/barcode | Moto G60 | ✅ | 1ra versión (ícono chico) poco visible — rehecha como botón circular de color; card standalone en Dashboard probada y descartada |
 | Ícono de app (adaptive icon nuevo) | Moto G60 | ✅ | ninguno |
 | Logo + wordmark bicolor en Dashboard/Configuración | Moto G60 | ✅ | Colores del engranaje de Configuración probados en 2 combinaciones, ninguna convenció — se revirtió a gris neutro original |
