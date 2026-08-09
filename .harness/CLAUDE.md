@@ -309,3 +309,27 @@ PKs:         String UUID (Supabase), excepto auth_sessions (Int fijo = 1)
 8. **Validación física obligatoria entre fases** — sugerir pruebas en dispositivo, esperar confirmación antes de proponer la siguiente fase; BUILD SUCCESSFUL no es suficiente.
 9. **Cada feature va en su propia rama** — `git checkout -b feat/<nombre>` antes de tocar código.
 10. **Antes de asumir el estado del working tree** — revisar `git status`.
+11. **Antes de escribir un plan, clasificar la feature** (liviana vs compleja — ver criterio abajo). No generar un `docs/plans/*.md` con código completo por paso si la feature es liviana; ejecutar directo.
+
+---
+
+## 🚦 LIVIANA vs COMPLEJA — qué proceso usar
+
+Antes de armar cualquier plan de implementación, evaluar la feature contra estos criterios.
+
+**LIVIANA → implementación directa, sin `docs/plans/*.md`:**
+- Sigue un patrón que YA existe en el codebase y se puede señalar su "gemelo" (ej. un método de repository parecido a otro, un diálogo parecido a otro, una Edge Function parecida a otra).
+- No requiere migración de Room (no toca la versión de `AppDatabase`).
+- No agrega entidades/tablas nuevas ni cambia relaciones N:N existentes.
+- No toca contratos de sync (`SyncPayloads`/`PullDtos`) ni políticas RLS.
+- Toca como mucho 2-3 capas (ej. Repository + ViewModel + UI) sin abrir preguntas de diseño de datos sin responder.
+
+Si cumple todo lo anterior: anunciar en 2-4 líneas qué se va a hacer (qué cambia, en qué archivos, qué patrón existente se sigue) y pasar directo a implementar — TDD donde ya sea convención (ViewModels), rama propia, validación física, commit semántico. No hace falta pre-escribir el código completo en un doc antes de tocar los archivos reales: eso duplica el trabajo de generar la solución sin aportar seguridad extra cuando el patrón ya está probado en el repo.
+
+**COMPLEJA → sí amerita plan de trabajo completo (`docs/plans/*.md`, con o sin `docs/designs/*.md` previo):**
+- Requiere migración de Room / entidad nueva / cambia una relación de datos.
+- Hay una decisión de diseño abierta que necesita resolverse con el usuario antes de escribir código (ver ejemplo: Proveedores UI, bloqueada en `TASKS.md` por definir N:N vs FK).
+- Toca sync (push/pull) o políticas RLS.
+- Afecta múltiples pantallas/flujos, o introduce un patrón nuevo en el codebase que otras features van a replicar después.
+
+Ante la duda, o si la feature mezcla partes livianas con una parte compleja (ej. una migración de schema chica + una UI que sigue un patrón conocido), tratarla como compleja para la parte que lo amerita y ejecutar el resto directo — no es todo o nada.
