@@ -6,6 +6,8 @@
 > 2. Se corrigió este documento: `feat/reset-password` y `feat/historial-movimientos-android` ya estaban mergeadas a `main` desde antes, pero seguían listadas aquí como pendientes — todas las ramas locales quedaron al día con `main` (`git branch --no-merged main` da vacío) — commit `b4e674e`.
 > 3. Se agregó `BotonAyuda` ("?") junto al switch "Es perecedero" (form de producto) y al campo "Fecha de caducidad" (diálogo de Entrada en Movimientos) — el usuario (dueño del proyecto) no tenía claro dónde se ingresaba la fecha de vencimiento y pidió explicarlo ahí mismo. De paso se corrigieron 2 usos de "acá" (rioplatense) a "aquí" — commit `6c58e42`.
 > 4. Se revisó todo `app/src/main/java/` buscando voseo/argentinismos (público: Chile) — no había más casos. Se agregó la convención "Textos UI: español neutro LatAm" a `CLAUDE.md` para que no se repita.
+> 5. **Branding/ícono** (rama `feat/icono-app`, mergeada a `main`): se reemplazó el ícono placeholder de Android Studio (fondo verde con grilla, nunca personalizado) por un adaptive icon real — fondo `#0D1519`, primer plano con cajas cian/naranja, versión monocroma para íconos tematizados (Android 13+). El usuario proveyó el export de Android Studio (`Image Asset`) en `Desktop\res`; se fusionó con `app/src/main/res` en vez de reemplazar la carpeta entera (esa carpeta no traía `colors.xml`/`strings.xml`/`themes.xml`/`file_paths.xml`/el PDF de la guía — reemplazarla íntegra habría roto el build). De paso se migró `mipmap-anydpi` → `mipmap-anydpi-v26` (redundante desde que minSdk es 27) — commit `681d096`.
+> 6. Se agregó el logo (`ic_launcher_foreground`) junto al nombre de la app en el header del Dashboard y en el TopAppBar de Configuración. El wordmark "STOREFLOW" — que se perdía en gris sobre el tema más oscuro — pasó a bicolor corporativo (STORE cian, FLOW naranja) con contorno blanco delgado (dos `Text` superpuestos: uno con `drawStyle = Stroke` en blanco detrás, el relleno de color encima) — mismo commit `681d096`. Se probó (y se descartó, a pedido del usuario) recolorear el ícono de engranaje de Configuración con los mismos colores de marca — quedó en su gris neutro original.
 
 ---
 
@@ -57,6 +59,7 @@ POST-MVP:
   Cambio/reseteo de password           ✅ Validada en dispositivo físico — mergeada a main
   Ayuda contextual ("?" + PDF + toggle)✅ Validada en dispositivo físico — mergeada a main (09/08)
   Escaneo QR en buscador de Dashboard  ✅ Validada en dispositivo físico — mergeada a main (09/08)
+  Ícono de app + wordmark de marca     ✅ Validada en dispositivo físico — mergeada a main (09/08)
 ```
 
 ---
@@ -75,6 +78,7 @@ POST-MVP:
 - 📋 **Historial global de movimientos** — `MovimientoDao.observarPorEmpresa` (JOIN productos), `HistorialMovimientosViewModel/Screen` con búsqueda + paginación "Cargar más". Card de entrada en Dashboard (todos los roles).
 - 🔑 **Cambio/reseteo de contraseña** — auto-servicio (`AuthRepository.cambiarPassword`, diálogo en Configuración) + reseteo por ADMIN (`AuthRepository.resetearPasswordUsuario`, Edge Function `resetear-password-usuario`, diálogo en UsuariosScreen, oculto para la propia fila del ADMIN logueado).
 - ❓ **Ayuda contextual** — `BotonAyuda` ("?") en cards de Dashboard (Productos, Bodegas, Historial, alertas stock bajo/próximos a vencer, Configurar productos, Usuarios, Menor stock, Sin actividad), en Configuración (Dashboard Web, Apariencia), en form de producto (Stock mínimo, Es perecedero) y en el diálogo de Entrada de Movimientos (Fecha de caducidad). Toggle "Mostrar ayuda contextual" en Configuración → sección Ayuda (`AyudaRepository`/`AyudaViewModel`, persistido en DataStore, expuesto a todo el árbol vía `LocalMostrarAyuda`). Guía PDF descargable (`GuiaPdf.abrirGuiaPdf`, `FileProvider`). `OnboardingDialog` en primer ingreso al Dashboard.
+- 🎨 **Ícono de app + wordmark** — adaptive icon real (fondo `#0D1519`, cajas cian `#2EC6DA`/naranja `#F0921E`, monocromo para Android 13+), reemplaza el placeholder de Android Studio. Logo (`ic_launcher_foreground`) junto al nombre en el header del Dashboard (28dp) y en el TopAppBar de Configuración (30dp, lado derecho). Wordmark "STOREFLOW" bicolor (STORE cian, FLOW naranja) con contorno blanco delgado vía `Text` duplicado (`drawStyle = Stroke` blanco detrás + relleno de color encima).
 
 ---
 
@@ -129,3 +133,5 @@ POST-MVP:
 | Escaneo QR en buscador global del Dashboard | Moto G60 | ✅ | ninguno |
 | Ayuda contextual ("?" en cards, toggle, guía PDF) | Moto G60 | ✅ | ninguno — recuperada de rama huérfana de julio, revalidada tras merge |
 | Ayuda contextual — "Es perecedero" + "Fecha de caducidad" | Moto G60 | ✅ | ninguno |
+| Ícono de app (adaptive icon nuevo) | Moto G60 | ✅ | ninguno |
+| Logo + wordmark bicolor en Dashboard/Configuración | Moto G60 | ✅ | Colores del engranaje de Configuración probados en 2 combinaciones, ninguna convenció — se revirtió a gris neutro original |
