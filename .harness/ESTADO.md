@@ -1,7 +1,10 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 09/08/2026 — Sesión de recuperación/limpieza (sin feature nueva de fondo) + ajustes chicos de ayuda contextual y de idioma, todo directo a `main` (sin rama propia, cambios pequeños de texto/UI):
+> **Última actualización:** 15/08/2026 — Cambio de `applicationId` para publicar en Play Store con listing limpio (rama `feat/cambio-applicationId-play-store`, sin mergear):
+> 8. **Cambio de `applicationId`** (`cl.storeflow.warehouse` → `cl.storeflow.app`) — el listing anterior en Play Store quedó con el keystore perdido; se abandona y se crea uno nuevo desde cero. `namespace` de Kotlin **se mantiene** en `cl.storeflow.warehouse` (solo cambia el identificador de publicación, no el código). También `versionCode` → 1 y `versionName` → "1.0.0" (listing nuevo, arranca de cero) en `app/build.gradle.kts`. Sin impacto en Supabase (no hay OAuth ni deep links atados al `applicationId`) ni en `AndroidManifest.xml` (usa `${applicationId}` dinámico). Quedan como referencias cosméticas sin actualizar (no bloquean build/publicación): `.harness/CLAUDE.md` (línea de nombre del proyecto), `docs/plans/2026-08-08-reset-password.md`, `.claude/settings.local.json` (rutas de test hardcodeadas). **Pendiente:** el usuario crea el keystore nuevo manualmente desde Android Studio antes de generar el release firmado; `proguard-rules.pro` revisado y está vacío pero `isMinifyEnabled = false` en release, así que no aplica para este build.
+>
+> **Sesión 09/08/2026** — recuperación/limpieza (sin feature nueva de fondo) + ajustes chicos de ayuda contextual y de idioma, todo directo a `main` (sin rama propia, cambios pequeños de texto/UI):
 > 1. Se encontraron y mergearon a `main` dos ramas de julio que habían quedado huérfanas tras cambios de rama: `feat/guia-usuario-interactiva` (ayuda contextual) y `feat/scanner-busqueda-dashboard` (escaneo QR en buscador global) — commit `bc001d3`.
 > 2. Se corrigió este documento: `feat/reset-password` y `feat/historial-movimientos-android` ya estaban mergeadas a `main` desde antes, pero seguían listadas aquí como pendientes — todas las ramas locales quedaron al día con `main` (`git branch --no-merged main` da vacío) — commit `b4e674e`.
 > 3. Se agregó `BotonAyuda` ("?") junto al switch "Es perecedero" (form de producto) y al campo "Fecha de caducidad" (diálogo de Entrada en Movimientos) — el usuario (dueño del proyecto) no tenía claro dónde se ingresaba la fecha de vencimiento y pidió explicarlo ahí mismo. De paso se corrigieron 2 usos de "acá" (rioplatense) a "aquí" — commit `6c58e42`.
@@ -14,8 +17,9 @@
 
 ## 🌿 RAMAS
 
-Sin ramas locales pendientes de mergear a `main`. Única feature con diseño abierto
-(no una rama activa): **Proveedores UI** — ver `🗺️ FEATURES FUTURAS / PENDIENTES`.
+- `feat/cambio-applicationId-play-store` (activa) — cambio de `applicationId` para republicar en Play Store con listing limpio (keystore anterior perdido). Falta: keystore nuevo (lo crea el usuario manualmente) y build de release firmado antes de mergear.
+
+Única feature con diseño abierto (no una rama activa): **Proveedores UI** — ver `🗺️ FEATURES FUTURAS / PENDIENTES`.
 
 ---
 

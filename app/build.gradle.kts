@@ -23,11 +23,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "cl.storeflow.warehouse"
+        applicationId = "cl.storeflow.app"
         minSdk = 27
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
