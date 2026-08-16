@@ -10,6 +10,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import cl.storeflow.warehouse.data.sync.PullWorker
 import cl.storeflow.warehouse.data.sync.SyncWorker
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -26,7 +27,11 @@ class StoreFlowApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
         Timber.plant(Timber.DebugTree())
+        if (!BuildConfig.DEBUG) {
+            Timber.plant(CrashlyticsTree())
+        }
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()

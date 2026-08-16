@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 val keystoreProperties = Properties().apply {
@@ -60,6 +62,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -97,6 +100,8 @@ dependencies {
     ksp(libs.hilt.compiler)
     ksp(libs.hilt.androidx.compiler)
     implementation(libs.datastore.preferences)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
     implementation(libs.mlkit.barcode)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
