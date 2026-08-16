@@ -21,7 +21,7 @@ gradlew.bat clean                 # limpiar build
 
 ## 🎯 PROYECTO
 
-**Nombre:** StoreFlow (package: `cl.storeflow.warehouse`)
+**Nombre:** StoreFlow (namespace Kotlin: `cl.storeflow.warehouse` · `applicationId` de publicación: `cl.storeflow.app` desde 15/08/2026 — divergen a propósito, ver `ESTADO.md`)
 **Repo:** `https://github.com/Robin-builds/storeflow` (remote `origin`, rama `main`)
 **Tipo:** Micro-SaaS de inventario para pequeñas empresas chilenas
 **Nota de auth Git:** credential manager puede cachear cuenta `Robinson-dev` (sin acceso de escritura). Si un push falla con 403 → `git credential reject` (protocol=https, host=github.com) y volver a autenticar como `Robin-builds`.

@@ -41,6 +41,20 @@ class AuthRepository @Inject constructor(
 
     fun observarSesion(): Flow<AuthSessionEntity?> = authSessionDao.observarSesion()
 
+    private fun esErrorDeConexion(e: Throwable): Boolean {
+        val causa = e.cause
+        return e is java.net.UnknownHostException ||
+            causa is java.net.UnknownHostException ||
+            e.message?.contains("Unable to resolve host") == true
+    }
+
+    private fun mensajeError(e: Throwable, generico: String): String {
+        if (esErrorDeConexion(e)) {
+            return "Sin conexión a internet. Verifica tu WiFi o datos móviles e intenta nuevamente."
+        }
+        return generico
+    }
+
     suspend fun login(correo: String, contrasena: String): Result<SesionUsuario> {
         return try {
             Timber.d("AUTH: iniciando login para $correo")
@@ -108,7 +122,7 @@ class AuthRepository @Inject constructor(
             )
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en login — ${e.javaClass.simpleName}: ${e.message}")
-            Result.failure(Exception("Error: ${e.message}"))
+            Result.failure(Exception(mensajeError(e, "Error: ${e.message}")))
         }
     }
 
@@ -216,7 +230,7 @@ class AuthRepository @Inject constructor(
             val mensaje = when {
                 e.message?.contains("Invalid login credentials") == true ->
                     "Contraseña incorrecta. Si ya tienes cuenta, inicia sesión."
-                else -> "Error al registrar: ${e.message}"
+                else -> mensajeError(e, "Error al registrar: ${e.message}")
             }
             Result.failure(Exception(mensaje))
         }
@@ -369,7 +383,7 @@ class AuthRepository @Inject constructor(
             Timber.e(e, "AUTH: error cambiando password")
             val mensaje = if (e.message?.contains("Invalid login credentials") == true)
                 "Contraseña actual incorrecta"
-            else "Error al cambiar contraseña: ${e.message}"
+            else mensajeError(e, "Error al cambiar contraseña: ${e.message}")
             Result.failure(Exception(mensaje))
         }
     }

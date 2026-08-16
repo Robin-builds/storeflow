@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "45458960087",
+    "project_id": "storeflow-8bf78",
+    "storage_bucket": "storeflow-8bf78.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:45458960087:android:05636119aec34178b80a92",
+        "android_client_info": {
+          "package_name": "cl.storeflow.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZJN4xzIdrHwVCs_y6zfuQRLF9E3_M474"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
