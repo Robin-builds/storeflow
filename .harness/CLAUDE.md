@@ -285,6 +285,14 @@ Textos UI:   español neutro LatAm (público objetivo: Chile) — tuteo tú/uste
 
 ---
 
+## 🌉 PROYECTO HERMANO — DASHBOARD WEB
+
+**Repo:** `C:\Users\Windows 11\Documents\dev\stockflow-web` (Next.js, separado de este repo, misma base Supabase).
+**Contexto compartido:** `.harness/PUENTE.md` — schema/RLS/roles/convenciones que ambos lados asumen, gaps conocidos (ej. `movimientos.usuario_id` que Android no escribe). **Actualizar en los dos repos** si se toca algo que afecta a ambos lados.
+**Detalle del lado web:** `stockflow-web\.harness\CLAUDE.md` / `ESTADO.md` / `TASKS.md`.
+
+---
+
 ## 📁 DOCUMENTACIÓN DE REFERENCIA
 
 `C:\Users\Windows 11\Documents\dev\manegenet_inventory_MSaas_v0.0.1\documentacion\`
