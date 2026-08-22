@@ -17,7 +17,13 @@
 
 ## 🗄️ PROYECTO SUPABASE COMPARTIDO
 
-**Proyecto:** `eygbgykglovbivthyqfb` / "StockFlow" (mismo para ambos repos, mismas credenciales de usuario final).
+**Proyecto:** `quvkxpjstzssivsaqimu` (organización nueva; migrado desde `eygbgykglovbivthyqfb`
+el 2026-08-08, ver `.harness/MIGRACION_SUPABASE.md`). Mismo proyecto para ambos repos,
+mismas credenciales de usuario final. ⚠️ **`eygbgykglovbivthyqfb` es el proyecto viejo,
+abandonado desde la migración — no usarlo.** El 22/08 se detectó que `stockflow-web`
+(`.env.local` local y posiblemente las env vars de producción en Vercel) seguía
+apuntando al proyecto viejo, dos semanas después de la migración — verificar Vercel
+si no se hizo ya.
 
 **Repos:**
 - **Mobile (Android):** `C:\Users\Windows 11\AndroidStudioProjects\StockFlowv00` — Kotlin, Room offline-first + sync (push/pull) contra Supabase. Lee/escribe todo.
