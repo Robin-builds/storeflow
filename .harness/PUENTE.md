@@ -61,12 +61,12 @@ si no se hizo ya.
 
 ---
 
-## ⚠️ GAP CONOCIDO — `movimientos.usuario_id`
+## ✅ RESUELTO — `movimientos.usuario_id` (23/08)
 
 - Columna `usuario_id uuid references usuarios(id) on delete set null` — existe en Supabase desde la migración `20260808000000_migracion_completa_organizacion_nueva.sql`. Es **nullable, sin `DEFAULT`** (no se autocompleta con `auth.uid()` en el servidor).
-- **Android nunca la setea** — `MovimientoEntity`/`MovimientoRepository`/`SyncPayloads` no tienen ningún campo `usuario_id`. Todo movimiento creado desde el celular llega a Supabase con `usuario_id = null`.
-- **La web** lee y muestra esta columna desde el 23/08 (`feat/ui-refresh-visual`, mergeada a `master`): join `usuarios(nombre, email)` en la tabla de Movimientos y en el export CSV, visible solo para ADMIN.
-- **Decidido (23/08):** se mergea igual, documentado como limitación conocida — la columna "Usuario" muestra "—" para prácticamente todos los movimientos históricos y para los creados desde el celular, hasta que se decida (en otra sesión) si vale la pena que Android empiece a mandar `usuario_id` (tomarlo de `AuthSessionEntity`, incluirlo en el insert de `MovimientoRepository` y en el payload de `SyncWorker`).
+- **Android ahora la setea** (migración Room 8→9, `feat/usuario-id-movimientos` mergeada a `main` el 23/08): `MovimientoRepository` toma el `user_id` de la sesión activa y lo incluye en las 4 rutas de creación de movimientos + el stock inicial de `ProductoRepository.crear()`. Se propaga vía `SyncPayloads`/`PullDtos`. Validado en dispositivo físico (Moto G60): upgrade real v8→v9 sin crash, movimiento nuevo sincronizado, columna Usuario en la web mostrando el nombre real.
+- **La web** lee y muestra esta columna desde el 23/08 (mergeada a `master`): join `usuarios(nombre, email)` en la tabla de Movimientos y en el export CSV, visible solo para ADMIN.
+- **Limitación que queda (esperada, no es bug):** todos los movimientos creados **antes** del 23/08 (histórico) van a seguir mostrando "—" para siempre — no se completan retroactivamente. Solo los movimientos nuevos, creados después de que los usuarios actualicen la app, van a tener `usuario_id`.
 
 ---
 
