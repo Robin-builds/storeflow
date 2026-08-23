@@ -1,4 +1,4 @@
-﻿package cl.storeflow.warehouse.data.local.entity
+package cl.storeflow.warehouse.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -22,9 +22,15 @@ import java.util.UUID
             parentColumns = ["id"],
             childColumns = ["lote_id"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = UsuarioEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["usuario_id"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("producto_id"), Index("lote_id")]
+    indices = [Index("producto_id"), Index("lote_id"), Index("usuario_id")]
 )
 data class MovimientoEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -34,6 +40,9 @@ data class MovimientoEntity(
     val nota: String? = null,
     // null = producto no perecedero, o entrada/ajuste sin lote asociado
     val lote_id: String? = null,
+    // usuario que registró el movimiento — null si no hay sesión activa (no debería
+    // pasar en uso normal, pero no bloquea la operación)
+    val usuario_id: String? = null,
     val synced: Boolean = false,
     val synced_at: Date? = null,
     val created_at: Date = Date(),

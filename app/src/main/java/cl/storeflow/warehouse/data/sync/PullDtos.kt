@@ -152,6 +152,7 @@ data class MovimientoDto(
     val cantidad: Int,
     val nota: String? = null,
     @SerialName("lote_id") val loteId: String? = null,
+    @SerialName("usuario_id") val usuarioId: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 ) {
@@ -160,6 +161,7 @@ data class MovimientoDto(
         tipo = TipoMovimiento.valueOf(tipo),
         cantidad = cantidad, nota = nota,
         lote_id = loteId,
+        usuario_id = usuarioId,
         synced = true, synced_at = Date(),
         created_at = parseFecha(createdAt), updated_at = parseFecha(updatedAt)
     )

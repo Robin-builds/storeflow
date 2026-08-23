@@ -156,6 +156,7 @@ private fun MovimientoEntity.toSupabaseJson(): String = buildJsonObject {
     put("cantidad", cantidad)
     put("nota", nota)
     lote_id?.let { put("lote_id", it) }
+    usuario_id?.let { put("usuario_id", it) }
     put("created_at", isoFmt.format(created_at))
     put("updated_at", isoFmt.format(updated_at))
 }.toString()
