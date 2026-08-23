@@ -47,8 +47,12 @@ si no se hizo ya.
 
 - **Stock nunca es un campo almacenado, en ningún lado.** Se calcula siempre como `SUM(movimientos.cantidad) WHERE producto_id = :id`.
   - Android: `ProductoDao` (queries `observarConStock*`).
-  - Web: `calcularStock()` en `types/index.ts`, sobre `movimientos(cantidad)` embebido vía PostgREST.
-  - Si alguno de los dos lados empieza a cachear/guardar stock en una columna, el otro lado queda desincronizado — no hacerlo sin actualizar este documento y avisar al otro lado.
+  - Web: dos vistas SQL en Supabase (creadas 23/08, `with (security_invoker = true)` — **obligatorio**, sin eso la vista bypassa RLS y filtra mal por empresa):
+    - `productos_con_stock` — `productos` + `stock_actual`/`bajo_stock` calculados vía `LEFT JOIN movimientos GROUP BY`. Usada por Productos, Dashboard y Alertas para paginar/ordenar/filtrar por stock en SQL en vez de traer todo a Node.
+    - `bodegas_resumen` — agregado por bodega (`total_productos`, `stock_total`, `productos_stock_bajo`) sobre `productos_con_stock`. Usada por Bodegas.
+    - `calcularStock()` en `types/index.ts` sigue existiendo para el detalle de producto y lotes (pocas filas, no necesita la vista).
+  - **Por qué se agregaron:** con >1000 productos, `select('*, movimientos(cantidad)')` sin `.range()` se corta silenciosamente en 1000 filas (límite default de PostgREST) — Productos/Dashboard/Bodegas/Alertas mostraban conteos truncados sin error visible. Se detectó al cargar datos de prueba a gran escala (10k productos) en la cuenta de sara.
+  - Si alguno de los dos lados empieza a cachear/guardar stock en una columna real (no vista), el otro lado queda desincronizado — no hacerlo sin actualizar este documento y avisar al otro lado.
 - **`precio: Int`** en toda la cadena — CLP sin decimales. Mismo tipo en Room (`Producto.precio: Int`) y en el formateo web (`Intl.NumberFormat('es-CL', { currency: 'CLP' })`).
 - **`movimientos` es inmutable — solo INSERT, nunca UPDATE.**
   - Android lo refuerza a nivel DAO (`OnConflictStrategy.ABORT`).
