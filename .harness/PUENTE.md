@@ -61,9 +61,8 @@ si no se hizo ya.
 
 - Columna `usuario_id uuid references usuarios(id) on delete set null` — existe en Supabase desde la migración `20260808000000_migracion_completa_organizacion_nueva.sql`. Es **nullable, sin `DEFAULT`** (no se autocompleta con `auth.uid()` en el servidor).
 - **Android nunca la setea** — `MovimientoEntity`/`MovimientoRepository`/`SyncPayloads` no tienen ningún campo `usuario_id`. Todo movimiento creado desde el celular llega a Supabase con `usuario_id = null`.
-- **La web (rama `feat/ui-refresh-visual`, en progreso al 18/08)** empezó a leer y mostrar esta columna: join `usuarios(nombre, email)` en la tabla de Movimientos y en el export CSV, visible solo para ADMIN. Ver `TASKS.md` del repo web.
-- **Consecuencia práctica hoy:** la columna "Usuario" en la web va a mostrar "—" para prácticamente todos los movimientos, porque la inmensa mayoría se originan en el celular.
-- **Pendiente de decidir con el usuario:** si vale la pena que Android empiece a mandar `usuario_id` (tomarlo de `AuthSessionEntity`, incluirlo en el insert de `MovimientoRepository` y en el payload de `SyncWorker`) antes de que esta feature web se dé por terminada, o si se documenta como limitación conocida y se sigue.
+- **La web** lee y muestra esta columna desde el 23/08 (`feat/ui-refresh-visual`, mergeada a `master`): join `usuarios(nombre, email)` en la tabla de Movimientos y en el export CSV, visible solo para ADMIN.
+- **Decidido (23/08):** se mergea igual, documentado como limitación conocida — la columna "Usuario" muestra "—" para prácticamente todos los movimientos históricos y para los creados desde el celular, hasta que se decida (en otra sesión) si vale la pena que Android empiece a mandar `usuario_id` (tomarlo de `AuthSessionEntity`, incluirlo en el insert de `MovimientoRepository` y en el payload de `SyncWorker`).
 
 ---
 
