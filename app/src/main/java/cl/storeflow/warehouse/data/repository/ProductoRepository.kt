@@ -102,7 +102,8 @@ class ProductoRepository @Inject constructor(
                     producto_id = producto.id,
                     tipo = TipoMovimiento.ENTRADA,
                     cantidad = stock_inicial,
-                    nota = "Stock inicial"
+                    nota = "Stock inicial",
+                    usuario_id = authSessionDao.obtenerSesion()?.user_id
                 )
                 movimientoDao.insertar(movimiento)
                 syncDao.encolar(movimiento.toSyncInsert())

@@ -1,5 +1,6 @@
 ﻿package cl.storeflow.warehouse.data.repository
 
+import cl.storeflow.warehouse.data.local.dao.AuthSessionDao
 import cl.storeflow.warehouse.data.local.dao.MovimientoDao
 import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
@@ -21,8 +22,10 @@ class MovimientoRepository @Inject constructor(
     private val productoDao: ProductoDao,
     private val syncDao: SyncDao,
     private val syncTrigger: SyncTrigger,
-    private val loteRepository: LoteRepository
+    private val loteRepository: LoteRepository,
+    private val authSessionDao: AuthSessionDao
 ) {
+    private suspend fun usuarioIdActual(): String? = authSessionDao.obtenerSesion()?.user_id
     fun observarProducto(productoId: String): Flow<Producto?> =
         productoDao.observarProductoConStock(productoId).map { it?.toDomain() }
 
@@ -55,7 +58,8 @@ class MovimientoRepository @Inject constructor(
                 tipo = TipoMovimiento.ENTRADA,
                 cantidad = cantidad,
                 nota = nota.trim(),
-                lote_id = loteId
+                lote_id = loteId,
+                usuario_id = usuarioIdActual()
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())
@@ -75,14 +79,16 @@ class MovimientoRepository @Inject constructor(
         return try {
             val producto = productoDao.obtenerPorId(productoId)
                 ?: return Result.failure(Exception("Producto no encontrado"))
+            val usuarioId = usuarioIdActual()
             if (producto.es_perecedero) {
-                registrarSalidaFefo(productoId, cantidad, nota.trim())
+                registrarSalidaFefo(productoId, cantidad, nota.trim(), usuarioId)
             } else {
                 val movimiento = MovimientoEntity(
                     producto_id = productoId,
                     tipo = TipoMovimiento.SALIDA,
                     cantidad = -cantidad,
-                    nota = nota.trim()
+                    nota = nota.trim(),
+                    usuario_id = usuarioId
                 )
                 movimientoDao.insertar(movimiento)
                 syncDao.encolar(movimiento.toSyncInsert())
@@ -98,7 +104,7 @@ class MovimientoRepository @Inject constructor(
     // cruza más de un lote, genera un MovimientoEntity por lote afectado. El remanente
     // sin cubrir por lotes (ej. stock previo a marcar el producto como perecedero) se
     // registra sin lote_id — no bloquea la salida.
-    private suspend fun registrarSalidaFefo(productoId: String, cantidad: Int, nota: String) {
+    private suspend fun registrarSalidaFefo(productoId: String, cantidad: Int, nota: String, usuarioId: String?) {
         var restante = cantidad
         val lotesConStock = loteRepository.obtenerConStockFefo(productoId)
         for (lote in lotesConStock) {
@@ -109,7 +115,8 @@ class MovimientoRepository @Inject constructor(
                 tipo = TipoMovimiento.SALIDA,
                 cantidad = -descuento,
                 nota = nota,
-                lote_id = lote.id
+                lote_id = lote.id,
+                usuario_id = usuarioId
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())
@@ -120,7 +127,8 @@ class MovimientoRepository @Inject constructor(
                 producto_id = productoId,
                 tipo = TipoMovimiento.SALIDA,
                 cantidad = -restante,
-                nota = nota
+                nota = nota,
+                usuario_id = usuarioId
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())
@@ -138,7 +146,8 @@ class MovimientoRepository @Inject constructor(
                 producto_id = productoId,
                 tipo = TipoMovimiento.AJUSTE,
                 cantidad = delta,
-                nota = nota.trim()
+                nota = nota.trim(),
+                usuario_id = usuarioIdActual()
             )
             movimientoDao.insertar(movimiento)
             syncDao.encolar(movimiento.toSyncInsert())

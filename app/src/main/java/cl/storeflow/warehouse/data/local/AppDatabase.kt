@@ -22,7 +22,7 @@ import cl.storeflow.warehouse.data.local.entity.*
         ProductoAtributoEntity::class,
         LoteEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -135,6 +135,13 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_lotes_producto_id ON lotes (producto_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_lotes_empresa_id ON lotes (empresa_id)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_movimientos_lote_id ON movimientos (lote_id)")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE movimientos ADD COLUMN usuario_id TEXT REFERENCES usuarios(id) ON DELETE SET NULL")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_movimientos_usuario_id ON movimientos (usuario_id)")
             }
         }
 
