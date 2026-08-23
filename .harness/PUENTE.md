@@ -27,7 +27,7 @@ si no se hizo ya.
 
 **Repos:**
 - **Mobile (Android):** `C:\Users\Windows 11\AndroidStudioProjects\StockFlowv00` — Kotlin, Room offline-first + sync (push/pull) contra Supabase. Lee/escribe todo.
-- **Web (dashboard):** `C:\Users\Windows 11\Documents\dev\stockflow-web` — Next.js, sin capa offline, habla directo contra Supabase vía `@supabase/ssr`/`supabase-js`. Hoy es **mayormente de solo lectura** (excepción: import CSV masivo de productos, que sí inserta).
+- **Web (dashboard):** `C:\Users\Windows 11\Documents\dev\stockflow-web` — Next.js, sin capa offline, habla directo contra Supabase vía `@supabase/ssr`/`supabase-js`. Es **de solo lectura + descarga por decisión de producto** (23/08: se sacó el import CSV masivo de productos que insertaba — ver `ESTADO.md`; solo queda exportar CSV, que no escribe). Acceso pensado solo para usuarios ADMIN (sin bloqueo técnico todavía, es una convención de uso).
 
 ---
 
@@ -68,9 +68,9 @@ si no se hizo ya.
 
 ## 🔄 ASIMETRÍA DE ESCRITURA (por diseño, no un bug)
 
-- **Android** es offline-first: escribe en Room primero, encola en `sync_queue`, `SyncWorker` empuja a Supabase con reintentos. Puede operar sin conexión.
-- **Web** no tiene cola offline — cada operación (incluida la carga masiva de CSV, en lotes de 300) pega directo contra Supabase vía `supabase-js`/`@supabase/ssr`. Si falla la conexión, falla la operación, sin reintento automático.
-- Esto significa que **cualquier feature nueva en la web que escriba datos** (hoy solo el import CSV) debe asumir que puede coexistir con escrituras concurrentes de la app Android vía sync — no asumir que "la web es la única fuente de verdad en el momento de escribir".
+- **Android** es offline-first: escribe en Room primero, encola en `sync_queue`, `SyncWorker` empuja a Supabase con reintentos. Puede operar sin conexión. Es la única escritura real del sistema.
+- **Web no escribe nada hoy** (23/08: se sacó el import CSV masivo, que era la única excepción). Es de solo lectura + descarga por decisión de producto, no solo por limitación técnica.
+- **Si en el futuro se agrega alguna feature de escritura en la web**, tiene que asumir que puede coexistir con escrituras concurrentes de la app Android vía sync — no asumir que "la web es la única fuente de verdad en el momento de escribir". La web no tiene cola offline: cada operación pegaría directo contra Supabase vía `supabase-js`/`@supabase/ssr`, sin reintento automático si falla la conexión.
 
 ---
 
