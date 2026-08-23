@@ -133,7 +133,7 @@ di/              → AppModule, DatabaseModule
 
 ## 🗄️ MODELO DE DATOS
 
-**AppDatabase versión: 8** (`storeflow.db`, `TypeConverters(DateConverters::class)`)
+**AppDatabase versión: 9** (`storeflow.db`, `TypeConverters(DateConverters::class)`)
 
 **11 entidades, 6 niveles de dependencia FK:**
 ```
@@ -143,7 +143,7 @@ Nivel 1: UsuarioEntity, BodegaEntity, ProveedorEntity, AtributoTemplateEntity (F
 Nivel 2: ProductoEntity (FK → empresa_id + bodega_id CASCADE)
 Nivel 3: ProductoAtributoEntity (FK → producto_id + template_id CASCADE, PK compuesta)
          LoteEntity (FK → producto_id + empresa_id CASCADE)
-Nivel 4: MovimientoEntity (FK → producto_id CASCADE, lote_id SET_NULL) — INMUTABLE
+Nivel 4: MovimientoEntity (FK → producto_id CASCADE, lote_id SET_NULL, usuario_id SET_NULL) — INMUTABLE
 Nivel 5: SyncEntity (cola de sync, sin FK)
 ```
 
@@ -166,10 +166,11 @@ val updated_at: Date = Date()
 | 5→6 | Crea `atributo_templates` + `producto_atributos` + índices |
 | 6→7 | `ADD COLUMN correo TEXT NOT NULL DEFAULT ''` en `auth_sessions` |
 | 7→8 | `ADD COLUMN es_perecedero` en `productos` · crea `lotes` · `ADD COLUMN lote_id TEXT REFERENCES lotes(id) ON DELETE SET NULL` en `movimientos` ⚠️ el `REFERENCES` inline es obligatorio en el `ALTER TABLE` |
+| 8→9 | `ADD COLUMN usuario_id TEXT REFERENCES usuarios(id) ON DELETE SET NULL` en `movimientos` (mismo patrón que `lote_id`) — traza quién registró cada movimiento, consumido por la columna "Usuario" de la web |
 
 **Entidades clave:**
 - **ProductoEntity** — `es_perecedero: Boolean = false`. `stock` NO es campo — siempre se calcula.
-- **MovimientoEntity** — `lote_id: String? = null` (SET_NULL). INMUTABLE (insert ABORT, nunca UPDATE).
+- **MovimientoEntity** — `lote_id: String? = null` (SET_NULL), `usuario_id: String? = null` (SET_NULL, seteado por `MovimientoRepository` desde `AuthSessionDao.obtenerSesion()?.user_id`). INMUTABLE (insert ABORT, nunca UPDATE).
 - **LoteEntity** — `fecha_caducidad: Date` + `numero_lote: String?`. Stock por lote calculado via `LoteDao.obtenerConStockFefo` (orden `fecha_caducidad ASC`).
 - **AuthSessionEntity** — `id: Int = 1` PK fija. Fila única.
 
@@ -240,9 +241,9 @@ SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :id
 
 ---
 
-## 🧪 TESTS (51 totales)
+## 🧪 TESTS (55 totales)
 
-50 unitarios + 1 instrumentado. Stack: JUnit4 + mockk + kotlinx-coroutines-test. Sin Jacoco configurado.
+54 unitarios + 1 instrumentado. Stack: JUnit4 + mockk + kotlinx-coroutines-test. Sin Jacoco configurado.
 
 | Archivo | Tests |
 |---|---|
@@ -254,6 +255,7 @@ SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :id
 | `UsuarioRepositoryTest.kt` | 7 — sesión vs entity, precedencia de rol |
 | `BodegaRepositoryTest.kt` | 6 — esActiva reactivo |
 | `ProductoAtributosFormTest.kt` | 4 — guardar/reemplazar atributos |
+| `MovimientoRepositoryTest.kt` | 4 — usuario_id seteado desde la sesión (entrada/salida/ajuste), null sin sesión |
 | Placeholders | 2 |
 
 ⚠️ `ProductoAtributosFormTest.kt` referencia `contarConNombre` (no existe en `ProductoDao`) — falla también en `develop`, es bug preexistente no relacionado a features activas.
