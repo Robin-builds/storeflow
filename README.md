@@ -1,5 +1,3 @@
-
-
 <h1 align="center">StoreFlow</h1>
 
 <p align="center">
@@ -17,17 +15,16 @@
 
 ---
 
-
-
 ## ¿Qué es StoreFlow?
 
 StoreFlow es un Micro-SaaS de inventario diseñado para el segmento PYME chileno — negocios que hoy gestionan su stock en cuadernos, planillas Excel o sistemas legacy que no se integran con nada.
 
 **Propuesta de valor concreta:**
-- Control de stock en tiempo real desde el celular, sin conexión a internet
+- Control de stock en tiempo real desde el celular, sin necesidad de conexión a internet
 - Multi-bodega y multi-empresa desde una sola app
 - Historial de movimientos auditable (entradas, salidas, ajustes)
 - Alertas de quiebre de stock antes de que ocurra
+- Trazabilidad por lote con soporte FEFO
 - Sincronización automática cuando vuelve la conexión (offline-first)
 
 **Canal de distribución:** contadores y distribuidores que gestionan múltiples clientes PYME — no venta directa al consumidor final.
@@ -40,7 +37,7 @@ StoreFlow es un Micro-SaaS de inventario diseñado para el segmento PYME chileno
 |------|-----------|
 | **UI** | Jetpack Compose + Material 3 |
 | **State** | ViewModel + StateFlow + Hilt |
-| **Persistencia local** | Room (AppDatabase v8, 11 entidades) |
+| **Persistencia local** | Room (AppDatabase v8, 10 tablas) |
 | **Backend** | Supabase — PostgreSQL + Row Level Security |
 | **Auth** | Supabase Auth con JWT custom claims (`empresa_id`) |
 | **Sync** | WorkManager — offline-first, last-write-wins |
@@ -72,42 +69,45 @@ cl.storeflow.warehouse/
 
 **Stock siempre calculado, nunca almacenado:**
 ```sql
-SELECT COALESCE(SUM(quantity), 0)
+SELECT COALESCE(SUM(cantidad), 0)
 FROM movimientos
-WHERE product_id = :id
+WHERE producto_id = :id
 ```
-Los `MovementEntity` son **inmutables** — nunca se editan ni eliminan. El stock es una vista agregada.
+Los `movimientos` son **inmutables** — nunca se editan ni eliminan. El stock es una vista agregada sobre ENTRADA / SALIDA / AJUSTE.
 
 **Multi-tenancy vía RLS, no código:**
-El `empresa_id` viaja en los JWT custom claims de Supabase. Las políticas de Row Level Security filtran automáticamente. El código Kotlin no filtra por empresa nunca — evita errores de aislamiento de datos.
+El `empresa_id` viaja en los JWT custom claims de Supabase. Las políticas de Row Level Security filtran automáticamente. El código Kotlin no filtra por empresa nunca — evita errores de aislamiento de datos entre tenants.
 
 **Sincronización offline-first:**
-Toda operación se escribe primero en Room, se encola en `SyncEntity`, y WorkManager la sube a Supabase en background. Resolución de conflictos: last-write-wins por `updated_at`.
+Toda operación se escribe primero en Room, se encola en `sync_queue`, y WorkManager la sube a Supabase en background. Resolución de conflictos: last-write-wins por `updated_at`.
 
 ---
 
 ## 📊 Modelo de datos
 
 ```
-Nivel 0  EmpresaEntity          (raíz del tenant)
-Nivel 1  UsuarioEntity          FK → empresa
-         BodegaEntity           FK → empresa
-         ProveedorEntity        FK → empresa
-Nivel 2  ProductoEntity         FK → empresa + bodega
-Nivel 3  MovementEntity         FK → producto — INMUTABLE
-Nivel 4  SyncEntity             cola de sincronización
+empresas              raíz del tenant (RLS)
+├── usuarios          FK → empresas
+├── bodegas           FK → empresas
+├── atributo_templates  FK → empresas
+└── productos         FK → empresas + bodegas
+    ├── movimientos   FK → productos  — INMUTABLE (ENTRADA/SALIDA/AJUSTE)
+    ├── lotes         FK → productos  — trazabilidad FEFO
+    └── producto_atributos  FK → productos + atributo_templates
+
+sync_queue            cola de sincronización offline-first
 ```
 
-AppDatabase v8 — 11 entidades en total (incluye entidades de soporte para lotes, atributos y sesión).
+RLS habilitado en todas las tablas. Ninguna consulta Kotlin filtra por `empresa_id` explícitamente.
 
 ---
 
 ## 🔐 Seguridad
 
-- RLS en todas las tablas de Supabase — un tenant nunca ve datos de otro
-- JWT custom claims para propagar `empresa_id` sin filtros manuales
-- Crashlytics con stack traces verificados en Firebase Console
-- Keystore de release: `storeflow-release.jks` (alias `storeflow-key`) — **no incluido en el repo**
+- RLS en todas las tablas — un tenant nunca ve datos de otro
+- JWT custom claims para propagar `empresa_id` sin filtros manuales en código
+- Firebase Crashlytics integrado y verificado (stack traces en consola Firebase)
+- Keystore de release: `storeflow-release.jks` — **no incluido en el repositorio**
 
 ---
 
@@ -116,10 +116,8 @@ AppDatabase v8 — 11 entidades en total (incluye entidades de soporte para lote
 | Spec | Feature | Estado |
 |------|---------|--------|
 | 01–10 | Auth, Productos, Movimientos, Bodegas, Dashboard, Sync, QR, Alertas, Historial | ✅ En `main` |
-| 11 | Órdenes de Compra (Proveedores) | 🔄 En spec |
 | 12 | Trazabilidad por lote / FEFO | 🔜 Diseñado |
-| 13 | Dashboard web — Next.js / Vercel | 🔜 Paralelo |
-| 14 | Facturación electrónica DTE / SII | 🔜 Planificado |
+| 13 | Dashboard web — Next.js / Vercel | 🔜 En paralelo |
 
 ---
 
@@ -146,16 +144,16 @@ Potencial de subsidio del Estado vía programas **SERCOTEC / CORFO** que cubren 
 
 ## ⚙️ Setup local
 
-> Requiere acceso al proyecto Supabase `eygbgykglovbivthyqfb`. Contacta al maintainer.
+> Este proyecto usa Supabase como backend. Para obtener acceso al proyecto, contacta al maintainer.
 
 ```bash
 # 1. Clonar
 git clone https://github.com/Robin-builds/storeflow.git
 cd storeflow
 
-# 2. Crear local.properties con credenciales Supabase
-echo "SUPABASE_URL=https://<project>.supabase.co" >> local.properties
-echo "SUPABASE_ANON_KEY=<tu_anon_key>" >> local.properties
+# 2. Crear local.properties con las credenciales de Supabase
+echo "SUPABASE_URL=https://<project-ref>.supabase.co" >> local.properties
+echo "SUPABASE_ANON_KEY=<anon-key>" >> local.properties
 
 # 3. Compilar
 ./gradlew assembleDebug
