@@ -89,7 +89,7 @@ data/
   local/
     entity/      → 11 entidades Room
     dao/         → 11 DAOs
-    AppDatabase.kt (versión 8)
+    AppDatabase.kt (versión 9)
     DateConverters.kt
   remote/        → SupabaseClient
   sync/          → SyncWorker, PullWorker, SyncTrigger, PullTrigger, SyncPayloads, PullDtos
@@ -237,7 +237,7 @@ SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :id
 ## 🔌 MÓDULOS HILT (`di/`)
 
 - **AppModule** — `provideDataStore()` ("storeflow_datastore").
-- **DatabaseModule** — `provideAppDatabase()` (Room + migraciones 1→8 + `fallbackToDestructiveMigrationOnDowngrade()` + FK off) + `@Provides` por cada uno de los 11 DAOs.
+- **DatabaseModule** — `provideAppDatabase()` (Room + migraciones 1→9 + `fallbackToDestructiveMigrationOnDowngrade()` + FK off) + `@Provides` por cada uno de los 11 DAOs.
 
 ---
 
@@ -290,7 +290,7 @@ Textos UI:   español neutro LatAm (público objetivo: Chile) — tuteo tú/uste
 ## 🌉 PROYECTO HERMANO — DASHBOARD WEB
 
 **Repo:** `C:\Users\Windows 11\Documents\dev\stockflow-web` (Next.js, separado de este repo, misma base Supabase).
-**Contexto compartido:** `.harness/PUENTE.md` — schema/RLS/roles/convenciones que ambos lados asumen, gaps conocidos (ej. `movimientos.usuario_id` que Android no escribe). **Actualizar en los dos repos** si se toca algo que afecta a ambos lados.
+**Contexto compartido:** `.harness/PUENTE.md` — schema/RLS/roles/convenciones que ambos lados asumen, gaps conocidos (el de `movimientos.usuario_id` quedó resuelto el 23/08). **Actualizar en los dos repos** si se toca algo que afecta a ambos lados.
 **Detalle del lado web:** `stockflow-web\.harness\CLAUDE.md` / `ESTADO.md` / `TASKS.md`.
 
 ---
