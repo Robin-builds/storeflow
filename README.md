@@ -9,7 +9,7 @@
   <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white" />
   <img alt="Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=android&logoColor=white" />
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-PostgreSQL%20%2B%20RLS-3ECF8E?logo=supabase&logoColor=white" />
-  <img alt="Play Store" src="https://img.shields.io/badge/Google%20Play-Internal%20Testing-414141?logo=google-play&logoColor=white" />
+  <img alt="Play Store" src="https://img.shields.io/badge/Google%20Play-Closed%20Testing-414141?logo=google-play&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-Proprietary-red" />
 </p>
 
@@ -37,15 +37,15 @@ StoreFlow es un Micro-SaaS de inventario diseñado para el segmento PYME chileno
 |------|-----------|
 | **UI** | Jetpack Compose + Material 3 |
 | **State** | ViewModel + StateFlow + Hilt |
-| **Persistencia local** | Room (AppDatabase v8, 10 tablas) |
+| **Persistencia local** | Room (AppDatabase v9, 11 tablas) |
 | **Backend** | Supabase — PostgreSQL + Row Level Security |
 | **Auth** | Supabase Auth con JWT custom claims (`empresa_id`) |
 | **Sync** | WorkManager — offline-first, last-write-wins |
 | **Escaneo** | ML Kit (QR / código de barras) |
 | **Crash reporting** | Firebase Crashlytics |
-| **Lenguaje** | Kotlin 2.0, JDK 17 |
-| **Min SDK** | 24 (Android 7.0) |
-| **Target SDK** | 35 (Android 15) |
+| **Lenguaje** | Kotlin 2.0, JDK 11 |
+| **Min SDK** | 27 (Android 8.1) |
+| **Target SDK** | 36 (Android 16) |
 
 ---
 
@@ -59,10 +59,10 @@ cl.storeflow.warehouse/
 ├── domain/           # Modelos de negocio
 ├── data/
 │   ├── local/        # Room (entities, DAOs, AppDatabase)
-│   ├── remote/       # Supabase (repositorios remotos)
+│   ├── remote/       # Cliente Supabase
+│   ├── repository/   # Repositorios (lógica de negocio)
 │   └── sync/         # WorkManager + SyncEntity queue
-├── di/               # Módulos Hilt
-└── utils/            # Extensions, helpers
+└── di/               # Módulos Hilt
 ```
 
 ### Decisiones de arquitectura clave
@@ -107,7 +107,7 @@ RLS habilitado en todas las tablas. Ninguna consulta Kotlin filtra por `empresa_
 - RLS en todas las tablas — un tenant nunca ve datos de otro
 - JWT custom claims para propagar `empresa_id` sin filtros manuales en código
 - Firebase Crashlytics integrado y verificado (stack traces en consola Firebase)
-- Keystore de release: `storeflow-release.jks` — **no incluido en el repositorio**
+- Keystore de release **no incluido en el repositorio** (Google Play App Signing activo)
 
 ---
 
@@ -116,14 +116,15 @@ RLS habilitado en todas las tablas. Ninguna consulta Kotlin filtra por `empresa_
 | Spec | Feature | Estado |
 |------|---------|--------|
 | 01–10 | Auth, Productos, Movimientos, Bodegas, Dashboard, Sync, QR, Alertas, Historial | ✅ En `main` |
-| 12 | Trazabilidad por lote / FEFO | 🔜 Diseñado |
-| 13 | Dashboard web — Next.js / Vercel | 🔜 En paralelo |
+| 12 | Trazabilidad por lote / FEFO | ✅ En `main` |
+| 13 | Dashboard web — Next.js / Vercel (solo lectura, mismo Supabase) | ✅ En producción |
+| — | Proveedores | 🔄 En definición del modelo de datos |
 
 ---
 
 ## 💰 Modelo de negocio
 
-Tres tiers de suscripción: **Básico**, **Profesional**, **Partner** — sin tier gratuito.
+La app se distribuye **gratis** en Google Play. Modelo previsto: **freemium** con suscripciones in-app (Google Play Billing).
 
 Canal principal: **contadores** que gestionan 20–50 clientes PYME y **distribuidores** cuyos clientes también usan StoreFlow (efecto de red bilateral → switching costs altos).
 
@@ -133,29 +134,25 @@ Potencial de subsidio del Estado vía programas **SERCOTEC / CORFO** que cubren 
 
 ## 🚀 Estado actual
 
-- ✅ App publicada en Google Play (track: Internal Testing)
-- ✅ Specs 01–10 mergeadas a `main`
+- 🧪 En **prueba cerrada** de Google Play (versión 1.0.2) — aún no publicada en producción
+- ✅ Specs 01–10 y lotes/FEFO mergeados a `main`
+- ✅ Historial global de movimientos, cambio/reseteo de contraseña y ayuda contextual
 - ✅ Crashlytics integrado y verificado
 - ✅ Web dashboard desplegado en Vercel (mismo Supabase)
-- 🔄 `feat/historial-movimientos-android` — en desarrollo
-- 🔄 Spec 11 (Órdenes de Compra) — en diseño
+- 🔄 Proveedores — en definición del modelo de datos
 
 ---
 
 ## ⚙️ Setup local
 
-> Este proyecto usa Supabase como backend. Para obtener acceso al proyecto, contacta al maintainer.
+> Este proyecto usa Supabase como backend. La URL y la anon key están en `data/remote/SupabaseClient.kt`; para usar tu propio proyecto, reemplázalas ahí.
 
 ```bash
 # 1. Clonar
 git clone https://github.com/Robin-builds/storeflow.git
 cd storeflow
 
-# 2. Crear local.properties con las credenciales de Supabase
-echo "SUPABASE_URL=https://<project-ref>.supabase.co" >> local.properties
-echo "SUPABASE_ANON_KEY=<anon-key>" >> local.properties
-
-# 3. Compilar
+# 2. Compilar (en Windows: gradlew.bat)
 ./gradlew assembleDebug
 ```
 
@@ -173,7 +170,7 @@ El keystore de release no está incluido en el repositorio.
 ./gradlew connectedAndroidTest
 ```
 
-Más de 50 unit tests pasando. Cobertura en repositorios, ViewModels y lógica de sync.
+55 tests (54 unitarios + 1 instrumentado) sobre modelos de dominio y repositorios.
 
 ---
 
@@ -184,7 +181,8 @@ Más de 50 unit tests pasando. Cobertura en repositorios, ViewModels y lógica d
 | `.harness/CLAUDE.md` | Contexto persistente para sesiones de Claude Code |
 | `.harness/ESTADO.md` | Snapshot dinámico del estado por sesión |
 | `.harness/TASKS.md` | Tareas atómicas de la sesión activa |
-| `.harness/DEFINITION_OF_DONE.md` | DoD por capa — documento canónico de calidad |
+| `.harness/PUENTE.md` | Contrato compartido con el dashboard web (schema, RLS, roles) |
+| `.harness/MIGRACION_SUPABASE.md` | Registro de la migración entre proyectos Supabase |
 
 ---
 
