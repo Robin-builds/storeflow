@@ -3,12 +3,19 @@
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
 > **Última actualización:** 03/10/2026 — Play Console: prueba interna funcionando en el Moto G60, versión **3 (1.0.2)** sin `READ_MEDIA_IMAGES`, prueba cerrada **enviada a revisión de Google**. Ver punto 13.
 >
+> ⏳ **PENDIENTE — subir 1.0.3 a Play Console cuando la app esté en PRODUCCIÓN** (registrado 26/10/2026):
+>     - AAB firmado listo: `app/release/storeflow-1.0.3-vc4-release.aab` (versionCode **4**, versionName **1.0.3**, firmado con `mi_keystore.jks` alias `storeflow-key`). Generado desde `main` en el commit `76eb48d`.
+>     - Único cambio funcional: `DASHBOARD_URL` → `https://storeflow-dashboard-bice.vercel.app` (cuenta Vercel nueva `robin-builds`; la vieja `robinson-devs-projects` se perdió). Las versiones ≤1.0.2 siguen compartiendo `stockflow-web-eight.vercel.app`, que queda congelada en la cuenta perdida, sin control sobre ella.
+>     - Antes de subir: validar en dispositivo Configuración → **Compartir Dashboard** (el link debe ser el nuevo y abrir). Si entretanto hay otros cambios en `main`, regenerar el AAB (`gradlew :app:bundleRelease`) en vez de subir este.
+>     - Nota de cambios sugerida: "Actualizamos el enlace del panel web."
+>
 > 13. **Play Console: instalación de testers + prueba cerrada** (sesión 03/10):
 >     - **Por qué el Moto G60 no podía instalar** ("No se encontró el elemento" en Play Store): `robinson.001.01@gmail.com` estaba en la lista de testers de la prueba **interna** ("2da Lista", 5 correos), pero **nunca había aceptado la invitación**. Estar en la lista NO alcanza: cada tester debe abrir el enlace de participación con SU cuenta y tocar "Accept invite". Tras aceptarla, se instaló sola desde Play (1.0.1). `chileapps.cl@gmail.com` tampoco la tiene aceptada al 03/10. Enlace prueba interna: `https://play.google.com/apps/internaltest/4701320568601278083`. Gotcha: si el navegador tiene varias cuentas de Google abiertas, verificar el avatar antes de aceptar (el enlace se abre con la cuenta por defecto).
 >     - **Que el Moto G60 sea el dispositivo de desarrollo no bloquea nada** — solo importaría si estuviera instalado un build de Android Studio con el mismo `applicationId` (firma distinta → hay que desinstalarlo antes).
 >     - **Prueba cerrada - Alpha** (track `4700787748170188385`): asignada "2da Lista", versión **3 (1.0.2)**, 172 países. Dos bloqueos resueltos antes de poder enviarla: (1) **declaración de permisos de fotos/videos** → se quitó `READ_MEDIA_IMAGES` del manifiesto (nunca se usaba: desde Android 10 `ReportarErrorScreen` usa el selector del sistema; Google rechaza la declaración para uso ocasional) — rama `fix/quitar-permiso-media`, mergeada a `main`; el error persistía mientras la prueba **interna** siguiera sirviendo la 1.0.1 (Play revisa todas las versiones activas), así que la 1.0.2 se publicó también en interna. (2) **Declaración de ID de publicidad** → "No" (no hay permiso `AD_ID` en el manifiesto final; Crashlytics no lo usa, no hay AdMob/Analytics). **Enviada a revisión el 03/10** (14 cambios). Advertencias no bloqueantes: sin archivo de desofuscación y sin símbolos nativos.
 >     - **Requisito para producción (cuenta personal):** 12 testers inscritos en la prueba **cerrada** (no cuenta la interna) durante 14 días seguidos. Hoy hay 5 en la lista → faltan al menos 7. Verificar la cifra vigente en Panel de control → "Acceso a producción".
->     - Cuenta de desarrollador: `chileapps.cl@gmail.com` (en Chrome es `/u/1` de Play Console; `/u/0` mercadeo9999 no tiene cuenta de desarrollador).
+>     - **06/10:** prueba cerrada aprobada y activa (1.0.2). Enlace correcto para unirse: `https://play.google.com/apps/testing/cl.storeflow.app` (abrir en Chrome, NO tocarlo desde WhatsApp — abre la app Play Store y da "No se encontró el elemento"). La ficha `store/apps/details?id=cl.storeflow.app` solo funciona después de unirse. La app estaba **de pago ($10.000)** → en prueba cerrada se cobra a los testers; se cambió a **gratuita** (irreversible) — modelo futuro: freemium con suscripciones in-app (Play Billing). Al 06/10: 7 correos en "2da Lista", 1 tester aceptado. **Gotcha instalación:** si la app Play Store del celular dice "No se encontró el elemento" pero la ficha web sí muestra "Descargar", instalar desde la web (Chrome → Descargar → elegir dispositivo) — funcionó con el primer tester externo (06/10).
+    - Cuenta de desarrollador: `chileapps.cl@gmail.com` (en Chrome es `/u/1` de Play Console; `/u/0` mercadeo9999 no tiene cuenta de desarrollador).
 >
 > 12. **`usuario_id` en `MovimientoEntity`** (23/08) — ver detalle abajo.
 >
@@ -122,7 +129,7 @@ POST-MVP:
 
 **Path local:** `C:\Users\Windows 11\Documents\dev\stockflow-web`
 **Stack:** Next.js · TypeScript · Tailwind · @supabase/ssr
-**URL producción:** `https://stockflow-web-eight.vercel.app`
+**URL producción:** `https://storeflow-dashboard-bice.vercel.app` — cuenta Vercel `robin-builds`, proyecto `storeflow-dashboard` (migrado 26/10/2026; la URL vieja `stockflow-web-eight` quedó en la cuenta perdida `robinson-devs-projects`). `DASHBOARD_URL` en Android actualizado en rama `fix/url-dashboard-nueva-cuenta`.
 
 **Páginas:** login, dashboard (resumen), productos, movimientos, `productos/importar` (nuevo).
 - Productos: filtro por bodega, orden Nombre/Precio/Stock/Alerta, exportar CSV (BOM UTF-8).
