@@ -1,7 +1,14 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 03/10/2026 — Play Console: prueba interna funcionando en el Moto G60, versión **3 (1.0.2)** sin `READ_MEDIA_IMAGES`, prueba cerrada **enviada a revisión de Google**. Ver punto 13.
+> **Última actualización:** 26/10/2026 — Dashboard web migrado a la cuenta Vercel nueva `robin-builds` (la vieja se perdió), código web respaldado en GitHub privado con deploy automático, app subida a **4 / "1.0.3"** con el link nuevo del dashboard. AAB 1.0.3 firmado y **guardado sin subir** hasta que la app esté en producción (ver pendiente abajo).
+>
+> 14. **Migración del dashboard web a Vercel `robin-builds`** (sesión 26/10):
+>     - **Por qué:** la cuenta Vercel vieja (`robinson-devs-projects`) se perdió sin recuperación. No se pudo transferir el proyecto (la transferencia exige acceso a la cuenta de origen), así que se **recreó** desde el código local. Proyecto nuevo `storeflow-dashboard`, team id `team_9H5Uj6zArGQwvJhULQXyStcq`. La URL vieja `stockflow-web-eight.vercel.app` queda viva pero congelada y fuera de control.
+>     - **URL nueva:** `https://storeflow-dashboard-bice.vercel.app` (`storeflow-dashboard.vercel.app` ya era de un tercero). Mismo Supabase (`quvkxpjstzssivsaqimu`), env vars en production/preview/development. Login probado por el usuario.
+>     - **GitHub:** el código web solo existía en el PC. Ahora está en el repo privado `Robin-builds/stockflow-web` (16 ramas, default `master`), conectado a Vercel: push a `master` = deploy a producción. App de Vercel en GitHub limitada a ese repo.
+>     - **Gotcha:** el `user.email` global de git es `tu@email.cl` (de relleno) → Vercel **bloquea** los deploys cuyo autor no puede asociar a la cuenta. En `stockflow-web` se fijó localmente `285457338+Robin-builds@users.noreply.github.com`. El repo Android sigue con el de relleno.
+>     - **Android:** `DASHBOARD_URL` actualizado + versión 1.0.3 (vc 4), mergeado a `main` y pusheado.
 >
 > ⏳ **PENDIENTE — subir 1.0.3 a Play Console cuando la app esté en PRODUCCIÓN** (registrado 26/10/2026):
 >     - AAB firmado listo: `app/release/storeflow-1.0.3-vc4-release.aab` (versionCode **4**, versionName **1.0.3**, firmado con `mi_keystore.jks` alias `storeflow-key`). Generado desde `main` en el commit `76eb48d`.
@@ -43,7 +50,7 @@
 
 Sin rama activa — `feat/cambio-applicationId-play-store`, `fix/mensaje-error-sin-conexion` (16/08) y `fix/quitar-permiso-media` (03/10) ya están mergeadas a `main`. Siguen existiendo como ramas locales sin borrar; se pueden eliminar cuando se confirme que no hace falta volver a ellas.
 
-**Estado de publicación (03/10):** `main` en versión **3 / "1.0.2"**. Prueba interna: 1.0.2 activa, instalada vía Play en el Moto G60. Prueba cerrada: 1.0.2 **en revisión de Google** (hasta ~7 días). **Pendiente:** (1) cuando se apruebe, que cada tester acepte la invitación de la prueba **cerrada** (enlace distinto al de la interna, aparece en su pestaña Testers); (2) juntar ≥12 testers inscritos y mantenerlos 14 días seguidos; (3) validar en el Moto G60 "Reportar problema → adjuntar imagen" con la 1.0.2 — ver punto 13.
+**Estado de publicación (26/10):** `main` en versión **4 / "1.0.3"** (solo cambia el link del dashboard), AAB generado pero **no subido**; en Play sigue publicada la **3 / "1.0.2"**. Detalle 03/10: Prueba interna: 1.0.2 activa, instalada vía Play en el Moto G60. Prueba cerrada: 1.0.2 **en revisión de Google** (hasta ~7 días). **Pendiente:** (1) cuando se apruebe, que cada tester acepte la invitación de la prueba **cerrada** (enlace distinto al de la interna, aparece en su pestaña Testers); (2) juntar ≥12 testers inscritos y mantenerlos 14 días seguidos; (3) validar en el Moto G60 "Reportar problema → adjuntar imagen" con la 1.0.2 — ver punto 13.
 
 Única feature con diseño abierto (no una rama activa): **Proveedores UI** — ver `🗺️ FEATURES FUTURAS / PENDIENTES`.
 
