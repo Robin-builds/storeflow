@@ -44,7 +44,7 @@ import cl.storeflow.warehouse.ui.theme.OscuridadId
 import cl.storeflow.warehouse.ui.theme.PaletaAcento
 import cl.storeflow.warehouse.ui.theme.PaletaId
 
-private const val DASHBOARD_URL = "https://stockflow-web-eight.vercel.app"
+private const val DASHBOARD_URL = "https://storeflow-dashboard-bice.vercel.app"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
