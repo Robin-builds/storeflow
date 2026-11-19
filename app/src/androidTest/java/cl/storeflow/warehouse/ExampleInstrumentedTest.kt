@@ -11,6 +11,6 @@ class ExampleInstrumentedTest {
     @Test
     fun useAppContext() {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("cl.storeflow.warehouse", appContext.packageName)
+        assertEquals("cl.storeflow.app", appContext.packageName)
     }
 }
