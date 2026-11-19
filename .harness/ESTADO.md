@@ -1,7 +1,16 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 26/10/2026 — Dashboard web migrado a la cuenta Vercel nueva `robin-builds` (la vieja se perdió), código web respaldado en GitHub privado con deploy automático, app subida a **4 / "1.0.3"** con el link nuevo del dashboard. AAB 1.0.3 firmado y **guardado sin subir** hasta que la app esté en producción (ver pendiente abajo).
+> **Última actualización:** 18/11/2026 — Fix de páginas de 16 KB (CameraX 1.3.4 → 1.4.2) mergeado a `main` (`cd98503`, **sin push**), validado en Samsung S25 FE (login, Dashboard, escáner, linterna). AAB 1.0.3 regenerado desde `main` y **publicado en Prueba interna** como **4 (1.0.3)** el 18/11 22:42. Prueba cerrada sigue en 3 (1.0.2).
+>
+> 15. **Fix 16 KB + 1.0.3 en Prueba interna** (sesión 18/11):
+>     - **Fix:** `gradle/libs.versions.toml` CameraX → 1.4.2 (rama `fix/16kb-page-size`, commit `56df660`). Sin cambio de versionCode: vc 4 nunca había llegado a Play.
+>     - **AAB:** `app/release/storeflow-1.0.3-vc4-release.aab` reemplazó al de octubre (que no tenía el fix). Incluye el `DASHBOARD_URL` nuevo + el fix 16 KB. Notas es-419: compatibilidad 16 KB + nuevo enlace del Dashboard.
+>     - **Revisión Play:** 0 errores, 11.301 dispositivos compatibles (sin pérdidas). 2 advertencias no bloqueantes: sin archivo de desofuscación (normal, `isMinifyEnabled = false`) y código nativo sin símbolos de depuración (opcional: `ndk { debugSymbolLevel = "SYMBOL_TABLE" }`).
+>     - **Gotchas:** (1) instalar debug sobre una release de Play falla por firma distinta → hay que desinstalar primero (borra datos locales). (2) `connectedDebugAndroidTest` desinstala la app al terminar. (3) `ExampleInstrumentedTest` falla: compara contra `cl.storeflow.warehouse` y el applicationId es `cl.storeflow.app` — test de plantilla desactualizado, no regresión. (4) En Chrome, Play Console está en la cuenta `/u/1/`; `/u/0/` manda a "Crear cuenta de desarrollador".
+>     - **PRODUCCIÓN (18/11):** la app ya tenía **acceso a producción concedido** (ESTADO.md estaba desactualizado: decía "en revisión de prueba cerrada"). Había un borrador de producción con 3 (1.0.2) sin enviar y 0 países. Se reemplazó por **4 (1.0.3)**, lanzamiento completo (100%), país **solo Chile**, nota "Lanzamiento inicial de StoreFlow.", y se completó la declaración de **estado de operador = Sí** (TOS URL vacío, es opcional). **Enviados 3 cambios a revisión de Google** (hasta ~7 días).
+>     - ⚠️ **Publicación gestionada activada:** cuando Google apruebe, NO sale sola — queda en "Cambios listos para publicarse" y hay que pulsar **Publicar** en Resumen de publicación.
+>     - **Pendiente:** push de `main`; publicar manualmente tras la aprobación.
 >
 > 14. **Migración del dashboard web a Vercel `robin-builds`** (sesión 26/10):
 >     - **Por qué:** la cuenta Vercel vieja (`robinson-devs-projects`) se perdió sin recuperación. No se pudo transferir el proyecto (la transferencia exige acceso a la cuenta de origen), así que se **recreó** desde el código local. Proyecto nuevo `storeflow-dashboard`, team id `team_9H5Uj6zArGQwvJhULQXyStcq`. La URL vieja `stockflow-web-eight.vercel.app` queda viva pero congelada y fuera de control.
@@ -10,7 +19,7 @@
 >     - **Gotcha:** el `user.email` global de git es `tu@email.cl` (de relleno) → Vercel **bloquea** los deploys cuyo autor no puede asociar a la cuenta. En `stockflow-web` se fijó localmente `285457338+Robin-builds@users.noreply.github.com`. El repo Android sigue con el de relleno.
 >     - **Android:** `DASHBOARD_URL` actualizado + versión 1.0.3 (vc 4), mergeado a `main` y pusheado.
 >
-> ⏳ **PENDIENTE — subir 1.0.3 a Play Console cuando la app esté en PRODUCCIÓN** (registrado 26/10/2026):
+> ✅ **RESUELTO 18/11 — 1.0.3 publicada en Prueba interna con AAB regenerado (incluye fix 16 KB), ver punto 15.** Registro original (26/10/2026):
 >     - AAB firmado listo: `app/release/storeflow-1.0.3-vc4-release.aab` (versionCode **4**, versionName **1.0.3**, firmado con `mi_keystore.jks` alias `storeflow-key`). Generado desde `main` en el commit `76eb48d`.
 >     - Único cambio funcional: `DASHBOARD_URL` → `https://storeflow-dashboard-bice.vercel.app` (cuenta Vercel nueva `robin-builds`; la vieja `robinson-devs-projects` se perdió). Las versiones ≤1.0.2 siguen compartiendo `stockflow-web-eight.vercel.app`, que queda congelada en la cuenta perdida, sin control sobre ella.
 >     - Antes de subir: validar en dispositivo Configuración → **Compartir Dashboard** (el link debe ser el nuevo y abrir). Si entretanto hay otros cambios en `main`, regenerar el AAB (`gradlew :app:bundleRelease`) en vez de subir este.
