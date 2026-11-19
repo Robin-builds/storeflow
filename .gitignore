@@ -12,3 +12,6 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+
+# AABs/APKs firmados para Play (no versionar)
+/app/release/
