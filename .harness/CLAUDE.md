@@ -52,7 +52,7 @@ Core KTX:            1.18.0
 WorkManager:         work-runtime-ktx:2.9.1
 DataStore:           datastore-preferences:1.1.1
 ML Kit:              barcode-scanning:17.3.0
-CameraX:             1.3.4 (core, camera2, lifecycle, view)
+CameraX:             1.4.2 (core, camera2, lifecycle, view) — subido desde 1.3.4 por soporte de páginas de 16 KB
 Timber:              5.0.1
 mockk:               1.13.12
 JUnit4:              4.13.2
