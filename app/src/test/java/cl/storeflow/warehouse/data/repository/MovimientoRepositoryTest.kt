@@ -10,6 +10,7 @@ import cl.storeflow.warehouse.data.local.entity.ProductoEntity
 import cl.storeflow.warehouse.data.sync.SyncTrigger
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -30,6 +31,7 @@ class MovimientoRepositoryTest {
     private lateinit var syncTrigger: SyncTrigger
     private lateinit var loteRepository: LoteRepository
     private lateinit var authSessionDao: AuthSessionDao
+    private lateinit var planRepository: PlanRepository
     private lateinit var repo: MovimientoRepository
 
     private val testSession = AuthSessionEntity(
@@ -62,7 +64,37 @@ class MovimientoRepositoryTest {
         coEvery { syncDao.encolar(any()) } just Runs
         every { syncTrigger.trigger() } just Runs
 
-        repo = MovimientoRepository(movimientoDao, productoDao, syncDao, syncTrigger, loteRepository, authSessionDao)
+        planRepository = mockk()
+        coEvery { planRepository.bodegasEnSoloLectura() } returns emptySet()
+
+        repo = MovimientoRepository(
+            movimientoDao, productoDao, syncDao, syncTrigger, loteRepository, authSessionDao, planRepository
+        )
+    }
+
+    @Test
+    fun `no registra entrada, salida ni ajuste en una bodega en solo lectura`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-1")
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero
+        coEvery { productoDao.calcularStock("prod-1") } returns 100
+
+        assertTrue(repo.registrarEntrada("prod-1", 10, "compra").isFailure)
+        assertTrue(repo.registrarSalida("prod-1", 5, "venta").isFailure)
+        assertTrue(repo.registrarAjuste("prod-1", 60, "conteo").isFailure)
+
+        coVerify(exactly = 0) { movimientoDao.insertar(any()) }
+        coVerify(exactly = 0) { syncDao.encolar(any()) }
+    }
+
+    @Test
+    fun `registra normalmente si la bodega del producto sigue activa`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-2")
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero
+
+        assertTrue(repo.registrarEntrada("prod-1", 10, "compra").isSuccess)
+        coVerify(exactly = 1) { movimientoDao.insertar(any()) }
     }
 
     @Test

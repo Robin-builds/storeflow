@@ -82,6 +82,10 @@ class BodegaViewModel @Inject constructor(
             viewModelScope.launch { _mensaje.emit("No se puede eliminar la bodega activa") }
             return
         }
+        if (estado.bodegas.firstOrNull { it.id == id }?.soloLectura == true) {
+            viewModelScope.launch { _mensaje.emit("Esta bodega está en solo lectura con el plan actual") }
+            return
+        }
         if (estado.bodegas.size <= 1) {
             viewModelScope.launch { _mensaje.emit("No se puede eliminar la única bodega de la empresa") }
             return

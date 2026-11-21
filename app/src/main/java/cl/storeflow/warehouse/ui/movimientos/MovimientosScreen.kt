@@ -79,6 +79,7 @@ fun MovimientosScreen(
                 ContenidoMovimientos(
                     producto = state.producto,
                     movimientos = state.movimientos,
+                    soloLectura = state.soloLectura,
                     tipoActivo = tipoSeleccionado,
                     onRegistrar = { tipo -> tipoSeleccionado = tipo },
                     modifier = Modifier.padding(padding)
@@ -114,6 +115,7 @@ fun MovimientosScreen(
 private fun ContenidoMovimientos(
     producto: Producto,
     movimientos: List<MovimientoEntity>,
+    soloLectura: Boolean,
     tipoActivo: TipoMovimiento?,
     onRegistrar: (TipoMovimiento) -> Unit,
     modifier: Modifier = Modifier
@@ -164,6 +166,15 @@ private fun ContenidoMovimientos(
             }
         }
 
+        if (soloLectura) {
+            Text(
+                text = "Esta bodega está en solo lectura con el plan actual. Puedes consultar su stock e historial.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            )
+        }
+
         // Botones de acción
         val tipos = listOf(TipoMovimiento.ENTRADA, TipoMovimiento.SALIDA, TipoMovimiento.AJUSTE)
         val etiquetas = listOf("Entrada", "Salida", "Ajuste")
@@ -201,6 +212,7 @@ private fun ContenidoMovimientos(
                 SegmentedButton(
                     selected = tipoActivo == tipo,
                     onClick = { onRegistrar(tipo) },
+                    enabled = !soloLectura,
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = tipos.size),
                     colors = SegmentedButtonDefaults.colors(
                         activeContainerColor = paleta.primario,

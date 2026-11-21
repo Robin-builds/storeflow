@@ -11,6 +11,7 @@ import cl.storeflow.warehouse.data.sync.toSyncInsert
 import cl.storeflow.warehouse.domain.model.MovimientoConProducto
 import cl.storeflow.warehouse.domain.model.Producto
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.util.Date
 import javax.inject.Inject
@@ -23,9 +24,22 @@ class MovimientoRepository @Inject constructor(
     private val syncDao: SyncDao,
     private val syncTrigger: SyncTrigger,
     private val loteRepository: LoteRepository,
-    private val authSessionDao: AuthSessionDao
+    private val authSessionDao: AuthSessionDao,
+    private val planRepository: PlanRepository
 ) {
     private suspend fun usuarioIdActual(): String? = authSessionDao.obtenerSesion()?.user_id
+
+    private suspend fun enSoloLectura(productoId: String): Boolean {
+        val soloLectura = planRepository.bodegasEnSoloLectura()
+        if (soloLectura.isEmpty()) return false
+        return productoDao.obtenerPorId(productoId)?.bodega_id in soloLectura
+    }
+
+    fun observarSoloLectura(productoId: String): Flow<Boolean> = combine(
+        productoDao.observarProductoConStock(productoId),
+        planRepository.observarBodegasSoloLectura()
+    ) { producto, soloLectura -> producto?.toDomain()?.bodegaId in soloLectura }
+
     fun observarProducto(productoId: String): Flow<Producto?> =
         productoDao.observarProductoConStock(productoId).map { it?.toDomain() }
 
@@ -44,6 +58,7 @@ class MovimientoRepository @Inject constructor(
     ): Result<Unit> {
         if (nota.isNullOrBlank()) return Result.failure(Exception("Debe indicar la razón de la entrada"))
         if (cantidad <= 0) return Result.failure(Exception("La cantidad debe ser mayor a cero"))
+        if (enSoloLectura(productoId)) return Result.failure(Exception(PlanRepository.MENSAJE_SOLO_LECTURA))
         return try {
             var loteId: String? = null
             if (fechaCaducidad != null) {
@@ -73,6 +88,7 @@ class MovimientoRepository @Inject constructor(
     suspend fun registrarSalida(productoId: String, cantidad: Int, nota: String?): Result<Unit> {
         if (nota.isNullOrBlank()) return Result.failure(Exception("Debe indicar la razón de la salida"))
         if (cantidad <= 0) return Result.failure(Exception("La cantidad debe ser mayor a cero"))
+        if (enSoloLectura(productoId)) return Result.failure(Exception(PlanRepository.MENSAJE_SOLO_LECTURA))
         val stockActual = productoDao.calcularStock(productoId)
         if (stockActual < cantidad)
             return Result.failure(Exception("Stock insuficiente. Disponible: $stockActual"))
@@ -138,6 +154,7 @@ class MovimientoRepository @Inject constructor(
     suspend fun registrarAjuste(productoId: String, stockObjetivo: Int, nota: String?): Result<Unit> {
         if (nota.isNullOrBlank()) return Result.failure(Exception("Debe indicar la razón del ajuste"))
         if (stockObjetivo < 0) return Result.failure(Exception("El stock objetivo no puede ser negativo"))
+        if (enSoloLectura(productoId)) return Result.failure(Exception(PlanRepository.MENSAJE_SOLO_LECTURA))
         val stockActual = productoDao.calcularStock(productoId)
         val delta = stockObjetivo - stockActual
         if (delta == 0) return Result.failure(Exception("El stock ya es $stockActual, no hay cambio"))

@@ -22,8 +22,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -106,6 +109,19 @@ class PlanRepository @Inject constructor(
                 }
             }
         }
+
+    fun observarBodegasSoloLectura(): Flow<Set<String>> =
+        observarPlan().map { it?.bodegasSoloLectura ?: emptySet() }.distinctUntilChanged()
+
+    /** Según el último plan guardado. El servidor sigue siendo quien decide (FR-010). */
+    suspend fun bodegasEnSoloLectura(): Set<String> {
+        val sesion = authSessionDao.obtenerSesion() ?: return emptySet()
+        val cache = planCacheDao.obtener(sesion.empresa_id) ?: return emptySet()
+        if (cache.plan_efectivo == SIN_PLAN) return emptySet()
+        val bodegas = bodegaDao.observarPorEmpresa(sesion.empresa_id).first()
+            .mapTo(mutableSetOf()) { it.id }
+        return evaluador.evaluar(aPlanValidado(cache), bodegas).bodegasSoloLectura
+    }
 
     private suspend fun procesar(respuesta: RespuestaEntitlement): ResultadoValidacion =
         when (respuesta) {
@@ -202,7 +218,7 @@ class PlanRepository @Inject constructor(
                 val restante = (fin - cache.validado_en_servidor - transcurrido).coerceAtLeast(0)
                 ((restante + DIA_MS - 1) / DIA_MS).toInt()
             }
-        return PlanActual(evaluado.planEfectivo, estado, dias)
+        return PlanActual(evaluado.planEfectivo, estado, dias, evaluado.bodegasSoloLectura)
     }
 
     private fun aPlanValidado(cache: PlanCacheEntity) = PlanValidado(
@@ -251,6 +267,7 @@ class PlanRepository @Inject constructor(
 
     companion object {
         const val SIN_PLAN = "SIN_PLAN"
+        const val MENSAJE_SOLO_LECTURA = "Esta bodega está en solo lectura con el plan actual"
         private const val PLAN_FREE = "FREE"
         private const val ESTADO_TRIAL = "TRIAL"
         private const val ESTADO_BLOQUEADO = "BLOQUEADO"

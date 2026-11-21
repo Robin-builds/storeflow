@@ -9,6 +9,7 @@ import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
 import cl.storeflow.warehouse.data.sync.SyncTrigger
+import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -49,9 +50,12 @@ class ProductoAtributosFormTest {
         coJustRun { productoAtributoDao.upsertAll(any()) }
         coJustRun { productoAtributoDao.eliminarPorProducto(any()) }
 
+        val planRepository = mockk<PlanRepository>()
+        coEvery { planRepository.bodegasEnSoloLectura() } returns emptySet()
+
         repo = ProductoRepository(
             productoDao, movimientoDao, authSessionDao, bodegaDao,
-            syncDao, syncTrigger, productoAtributoDao, atributoTemplateDao
+            syncDao, syncTrigger, productoAtributoDao, atributoTemplateDao, planRepository
         )
     }
 

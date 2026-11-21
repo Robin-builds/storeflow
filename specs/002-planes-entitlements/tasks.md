@@ -141,23 +141,23 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T047 [P] [US2] Escribir `supabase/tests/planes_solo_lectura.sql`: SC-003, SC-004, SC-006, SC-013, SC-014, regla de selección de FR-007, eliminar bodega en solo lectura, eliminar la única activa con excedentes, editar o borrar movimientos tras el downgrade (FR-022), producto nuevo en bodega en solo lectura rechazado aunque su fecha esté en la ventana (FR-028), stock de `productos_con_stock` sin cambios en Free con movimientos de más de 90 días (FR-021), y que `obtener_entitlement` entregue los conjuntos activos sin valores de límites (FR-011)
-- [ ] T048 [P] [US2] Ampliar `<test>/data/repository/BodegaRepositoryTest.kt`: no permite editar, eliminar ni trasladar hacia o desde una bodega en solo lectura
-- [ ] T049 [P] [US2] Ampliar `<test>/data/repository/MovimientoRepositoryTest.kt`: no registra en una bodega en solo lectura según el plan cacheado
+- [X] T047 [P] [US2] Escribir `supabase/tests/planes_solo_lectura.sql`: SC-003, SC-004, SC-006, SC-013, SC-014, regla de selección de FR-007, eliminar bodega en solo lectura, eliminar la única activa con excedentes, editar o borrar movimientos tras el downgrade (FR-022), producto nuevo en bodega en solo lectura rechazado aunque su fecha esté en la ventana (FR-028), stock de `productos_con_stock` sin cambios en Free con movimientos de más de 90 días (FR-021), y que `obtener_entitlement` entregue los conjuntos activos sin valores de límites (FR-011)
+- [X] T048 [P] [US2] Ampliar `<test>/data/repository/BodegaRepositoryTest.kt`: no permite editar, eliminar ni trasladar hacia o desde una bodega en solo lectura
+- [X] T049 [P] [US2] Ampliar `<test>/data/repository/MovimientoRepositoryTest.kt`: no registra en una bodega en solo lectura según el plan cacheado
 
 ### Implementation for User Story 2
 
-- [ ] T050 [US2] Crear `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) con helpers `private`: vencimiento con `coalesce(cobertura_fin, greatest(trial_fin, pagado_hasta))` (R7), bodegas activas y usuarios activos por (`created_at`, `id`), con el ADMIN más antiguo primero y la excepción del trial de activación (R8)
-- [ ] T051 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) triggers en `bodegas` y `usuarios`: `INSERT` asigna `created_at = clock_timestamp()` y `UPDATE` conserva el valor anterior sin error (R6). Usar `clock_timestamp()` y no `now()`, para que las altas de una misma transacción no empaten
-- [ ] T052 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) los triggers `BEFORE` de solo lectura en `bodegas`, `productos`, `lotes` y `producto_atributos` con código `SFP04`, validando origen y destino en traslados y eximiendo acciones FK con `pg_trigger_depth() > 1`
-- [ ] T053 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) la tabla `movimientos_fuera_plan` (`movimiento_id` unique, FK con `on delete cascade`) y los triggers de `movimientos`: en bodega en solo lectura o de usuario excedente, identificado siempre con `auth.uid()` y nunca con `usuario_id` del payload, acepta con fecha anterior a `vencimiento + 7 días` y marca; en caso contrario rechaza con `SFP04` o `SFP05` (FR-028, FR-029)
-- [ ] T054 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) el reemplazo de `public.obtener_entitlement` con `bloqueado`, `permisos`, `historial_desde`, `bodegas_solo_lectura` y `degradacion_free`, sin exponer valores de límites. A un excedente le devuelve solo `bloqueado`, `empresa_id`, `rol` y `ahora_servidor` (R20, R22)
-- [ ] T055 [US2] Aplicar M3 en Sandbox y correr `supabase/tests/*.sql`
-- [ ] T056 [US2] Agregar el bloqueo por plan cacheado a `<app>/data/repository/BodegaRepository.kt`, incluido eliminar la única bodega activa con excedentes
-- [ ] T057 [US2] Agregar el bloqueo a `<app>/data/repository/MovimientoRepository.kt`
-- [ ] T058 [P] [US2] Agregar el bloqueo a `<app>/data/repository/ProductoRepository.kt`
-- [ ] T059 [P] [US2] Mostrar el estado de solo lectura en `<app>/ui/bodegas/BodegaViewModel.kt` y `<app>/ui/bodegas/BodegasScreen.kt`
-- [ ] T060 [US2] Deshabilitar crear, editar y registrar en bodegas en solo lectura en `<app>/ui/productos/ProductosListScreen.kt` y `<app>/ui/movimientos/MovimientosScreen.kt`, manteniendo visible el stock
+- [X] T050 [US2] Crear `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) con helpers `private`: vencimiento con `coalesce(cobertura_fin, greatest(trial_fin, pagado_hasta))` (R7), bodegas activas y usuarios activos por (`created_at`, `id`), con el ADMIN más antiguo primero y la excepción del trial de activación (R8)
+- [X] T051 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) triggers en `bodegas` y `usuarios`: `INSERT` asigna `created_at = clock_timestamp()` y `UPDATE` conserva el valor anterior sin error (R6). Usar `clock_timestamp()` y no `now()`, para que las altas de una misma transacción no empaten
+- [X] T052 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) los triggers `BEFORE` de solo lectura en `bodegas`, `productos`, `lotes` y `producto_atributos` con código `SFP04`, validando origen y destino en traslados y eximiendo acciones FK con `pg_trigger_depth() > 1`
+- [X] T053 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) la tabla `movimientos_fuera_plan` (`movimiento_id` unique, FK con `on delete cascade`) y los triggers de `movimientos`: en bodega en solo lectura o de usuario excedente, identificado siempre con `auth.uid()` y nunca con `usuario_id` del payload, acepta con fecha anterior a `vencimiento + 7 días` y marca; en caso contrario rechaza con `SFP04` o `SFP05` (FR-028, FR-029)
+- [X] T054 [US2] Agregar a `supabase/migrations/<ts>_planes_solo_lectura.sql` (M3) el reemplazo de `public.obtener_entitlement` con `bloqueado`, `permisos`, `historial_desde`, `bodegas_solo_lectura` y `degradacion_free`, sin exponer valores de límites. A un excedente le devuelve solo `bloqueado`, `empresa_id`, `rol` y `ahora_servidor` (R20, R22)
+- [X] T055 [US2] Aplicar M3 en Sandbox y correr `supabase/tests/*.sql`
+- [X] T056 [US2] Agregar el bloqueo por plan cacheado a `<app>/data/repository/BodegaRepository.kt`, incluido eliminar la única bodega activa con excedentes
+- [X] T057 [US2] Agregar el bloqueo a `<app>/data/repository/MovimientoRepository.kt`
+- [X] T058 [P] [US2] Agregar el bloqueo a `<app>/data/repository/ProductoRepository.kt`
+- [X] T059 [P] [US2] Mostrar el estado de solo lectura en `<app>/ui/bodegas/BodegaViewModel.kt` y `<app>/ui/bodegas/BodegasScreen.kt`
+- [X] T060 [US2] Deshabilitar crear, editar y registrar en bodegas en solo lectura en `<app>/ui/productos/ProductosListScreen.kt` y `<app>/ui/movimientos/MovimientosScreen.kt`, manteniendo visible el stock
 
 **Checkpoint**: US1 y US2 funcionan. Un downgrade no altera datos.
 

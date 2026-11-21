@@ -4,5 +4,6 @@ package cl.storeflow.warehouse.domain.model
 data class PlanActual(
     val tipo: String,
     val estado: String,
-    val diasRestantesTrial: Int?
+    val diasRestantesTrial: Int?,
+    val bodegasSoloLectura: Set<String> = emptySet()
 )

@@ -32,8 +32,12 @@ class ProductoRepository @Inject constructor(
     private val syncDao: SyncDao,
     private val syncTrigger: SyncTrigger,
     private val productoAtributoDao: ProductoAtributoDao,
-    private val atributoTemplateDao: AtributoTemplateDao
+    private val atributoTemplateDao: AtributoTemplateDao,
+    private val planRepository: PlanRepository
 ) {
+    private fun rechazoSoloLectura(): Result<Unit> =
+        Result.failure(Exception(PlanRepository.MENSAJE_SOLO_LECTURA))
+
     suspend fun obtenerContexto(): Pair<String, String>? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
         if (sesion.bodega_id.isBlank()) return null
@@ -80,6 +84,7 @@ class ProductoRepository @Inject constructor(
         atributos: Map<String, String> = emptyMap(),
         es_perecedero: Boolean = false
     ): Result<Unit> {
+        if (bodega_id in planRepository.bodegasEnSoloLectura()) return rechazoSoloLectura()
         val skuTrimmed = sku?.trim()?.ifBlank { null }
         if (skuTrimmed != null && productoDao.contarConSku(empresa_id, skuTrimmed) > 0)
             return Result.failure(Exception("Ya existe un producto con ese SKU en la empresa"))
@@ -122,6 +127,13 @@ class ProductoRepository @Inject constructor(
         producto: ProductoEntity,
         atributos: Map<String, String> = emptyMap()
     ): Result<Unit> {
+        val soloLectura = planRepository.bodegasEnSoloLectura()
+        if (soloLectura.isNotEmpty() &&
+            (producto.bodega_id in soloLectura ||
+                productoDao.obtenerPorId(producto.id)?.bodega_id in soloLectura)
+        ) {
+            return rechazoSoloLectura()
+        }
         val skuAct = producto.sku?.trim()?.ifBlank { null }
         if (skuAct != null && productoDao.contarConSku(producto.empresa_id, skuAct, producto.id) > 0)
             return Result.failure(Exception("Ya existe un producto con ese SKU en la empresa"))
@@ -153,33 +165,49 @@ class ProductoRepository @Inject constructor(
     }
 
     suspend fun eliminar(producto: ProductoEntity): Result<Unit> = try {
-        productoDao.eliminar(producto)
-        syncDao.encolar(producto.toSyncDelete())
-        syncTrigger.trigger()
-        Result.success(Unit)
+        if (producto.bodega_id in planRepository.bodegasEnSoloLectura()) {
+            rechazoSoloLectura()
+        } else {
+            productoDao.eliminar(producto)
+            syncDao.encolar(producto.toSyncDelete())
+            syncTrigger.trigger()
+            Result.success(Unit)
+        }
     } catch (e: Exception) {
         Result.failure(e)
     }
 
     suspend fun eliminarVarios(ids: List<String>): Result<Unit> = try {
         val productos = productoDao.obtenerPorIds(ids)
-        productos.forEach { producto ->
-            productoDao.eliminar(producto)
-            syncDao.encolar(producto.toSyncDelete())
+        val soloLectura = planRepository.bodegasEnSoloLectura()
+        if (productos.any { it.bodega_id in soloLectura }) {
+            rechazoSoloLectura()
+        } else {
+            productos.forEach { producto ->
+                productoDao.eliminar(producto)
+                syncDao.encolar(producto.toSyncDelete())
+            }
+            syncTrigger.trigger()
+            Result.success(Unit)
         }
-        syncTrigger.trigger()
-        Result.success(Unit)
     } catch (e: Exception) {
         Result.failure(e)
     }
 
     suspend fun transferirSeleccionados(ids: List<String>, bodegaDestino: String): Result<Unit> = try {
-        val ahora = System.currentTimeMillis()
-        productoDao.transferirSeleccionadosABodega(ids, bodegaDestino, ahora)
-        val productos = productoDao.obtenerPorIds(ids)
-        productos.forEach { syncDao.encolar(it.toSyncUpdate()) }
-        syncTrigger.trigger()
-        Result.success(Unit)
+        val soloLectura = planRepository.bodegasEnSoloLectura()
+        if (bodegaDestino in soloLectura ||
+            productoDao.obtenerPorIds(ids).any { it.bodega_id in soloLectura }
+        ) {
+            rechazoSoloLectura()
+        } else {
+            val ahora = System.currentTimeMillis()
+            productoDao.transferirSeleccionadosABodega(ids, bodegaDestino, ahora)
+            val productos = productoDao.obtenerPorIds(ids)
+            productos.forEach { syncDao.encolar(it.toSyncUpdate()) }
+            syncTrigger.trigger()
+            Result.success(Unit)
+        }
     } catch (e: Exception) {
         Result.failure(e)
     }

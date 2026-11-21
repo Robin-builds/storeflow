@@ -11,6 +11,7 @@ import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -85,9 +86,13 @@ fun BodegasScreen(
                 } else {
                     LazyColumn(contentPadding = padding) {
                         items(state.bodegas, key = { it.id }) { bodega ->
+                            val hayExcedentes = state.bodegas.any { it.soloLectura }
+                            val editables = state.bodegas.count { !it.soloLectura }
                             val puedeEliminar = state.esAdmin &&
                                     state.bodegas.size > 1 &&
-                                    !bodega.esActiva
+                                    !bodega.esActiva &&
+                                    !bodega.soloLectura &&
+                                    !(hayExcedentes && editables <= 1)
                             Box(modifier = Modifier.animateItem()) {
                                 BodegaItem(
                                     bodega = bodega,
@@ -155,8 +160,23 @@ private fun BodegaItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = bodega.nombre,
-                    fontWeight = if (bodega.esActiva) FontWeight.SemiBold else FontWeight.Normal
+                    fontWeight = if (bodega.esActiva) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                if (bodega.soloLectura) {
+                    Spacer(Modifier.width(8.dp))
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text("Solo lectura", style = MaterialTheme.typography.labelSmall) },
+                        icon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    )
+                }
                 if (bodega.esActiva) {
                     Spacer(Modifier.width(8.dp))
                     SuggestionChip(

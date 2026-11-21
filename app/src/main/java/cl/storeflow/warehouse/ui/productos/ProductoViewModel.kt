@@ -111,6 +111,10 @@ class ProductoViewModel @Inject constructor(
     private val _bodegas = MutableStateFlow<List<Bodega>>(emptyList())
     val bodegas: StateFlow<List<Bodega>> = _bodegas.asStateFlow()
 
+    val bodegaEnSoloLectura: StateFlow<Boolean> = _bodegas
+        .map { lista -> lista.firstOrNull { it.esActiva }?.soloLectura == true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     init {
         viewModelScope.launch {
             val ctx = repository.obtenerContexto()

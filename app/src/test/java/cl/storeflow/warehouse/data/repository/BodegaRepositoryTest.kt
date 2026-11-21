@@ -7,12 +7,15 @@ import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.BodegaEntity
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -25,6 +28,7 @@ class BodegaRepositoryTest {
     private lateinit var bodegaDao: BodegaDao
     private lateinit var syncDao: SyncDao
     private lateinit var productoDao: ProductoDao
+    private lateinit var planRepository: PlanRepository
     private lateinit var repo: BodegaRepository
 
     private val sessionFlow = MutableStateFlow<AuthSessionEntity?>(null)
@@ -47,8 +51,65 @@ class BodegaRepositoryTest {
         bodegaDao = mockk()
         syncDao = mockk()
         productoDao = mockk()
+        planRepository = mockk()
         every { authSessionDao.observarSesion() } returns sessionFlow
-        repo = BodegaRepository(bodegaDao, authSessionDao, syncDao, productoDao)
+        every { planRepository.observarBodegasSoloLectura() } returns flowOf(emptySet())
+        coEvery { planRepository.bodegasEnSoloLectura() } returns emptySet()
+        repo = BodegaRepository(bodegaDao, authSessionDao, syncDao, productoDao, planRepository)
+    }
+
+    @Test
+    fun `observarBodegas marca las bodegas en solo lectura`() = runTest {
+        sessionFlow.value = testSession
+        every { bodegaDao.observarPorEmpresa("emp-1") } returns
+                MutableStateFlow(listOf(entidadActiva, entidadOtra))
+        every { planRepository.observarBodegasSoloLectura() } returns flowOf(setOf("bod-2"))
+
+        val bodegas = repo.observarBodegas().first()
+
+        assertFalse(bodegas.first { it.id == "bod-1" }.soloLectura)
+        assertTrue(bodegas.first { it.id == "bod-2" }.soloLectura)
+    }
+
+    @Test
+    fun `no permite eliminar una bodega en solo lectura`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { bodegaDao.obtenerPorId("bod-2") } returns entidadOtra
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-2")
+
+        assertTrue(repo.eliminar("bod-2").isFailure)
+        coVerify(exactly = 0) { bodegaDao.eliminar(any()) }
+        coVerify(exactly = 0) { syncDao.encolar(any()) }
+    }
+
+    @Test
+    fun `no permite eliminar la unica bodega editable si hay excedentes`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { bodegaDao.obtenerPorId("bod-1") } returns entidadActiva
+        every { bodegaDao.observarPorEmpresa("emp-1") } returns
+                MutableStateFlow(listOf(entidadActiva, entidadOtra))
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-2")
+
+        assertTrue(repo.eliminar("bod-1").isFailure)
+        coVerify(exactly = 0) { bodegaDao.eliminar(any()) }
+        coVerify(exactly = 0) { syncDao.encolar(any()) }
+    }
+
+    @Test
+    fun `no traslada productos hacia una bodega en solo lectura`() = runTest {
+        val tercera = BodegaEntity(id = "bod-3", empresa_id = "emp-1", nombre = "Sur", ubicacion = null)
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { bodegaDao.obtenerPorId("bod-1") } returns entidadActiva
+        every { bodegaDao.observarPorEmpresa("emp-1") } returns
+                MutableStateFlow(listOf(entidadActiva, entidadOtra, tercera))
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-2")
+        coEvery { productoDao.contarPorBodega("bod-1") } returns 2
+        coEvery { bodegaDao.obtenerMasAntiguaExcluyendo("emp-1", "bod-1") } returns entidadOtra
+
+        assertTrue(repo.eliminar("bod-1").isFailure)
+        coVerify(exactly = 0) { productoDao.transferirABodega(any(), any()) }
+        coVerify(exactly = 0) { bodegaDao.eliminar(any()) }
+        coVerify(exactly = 0) { syncDao.encolar(any()) }
     }
 
     @Test
