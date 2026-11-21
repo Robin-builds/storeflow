@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report
-- Versión: 1.0.0 → 1.1.0 (MINOR: nueva sección Ambientes Sandbox → Producción)
+- Versión: 1.1.0 → 1.2.0 (MINOR: nueva sección "Alcance de los cambios: solo lo solicitado")
 - Principios creados: I Stock derivado, II Historial inmutable, III Aislamiento entre empresas,
   IV Montos en CLP enteros, V Identidad global de registros
 - Secciones agregadas: Convenciones, Puertas de calidad, Decisiones fuera de la constitución,
@@ -12,7 +12,7 @@ Sync Impact Report
 
 # Constitución — StoreFlow (Android)
 
-**Versión**: 1.1.0 | **Ratificada**: 2026-11-20 | **Última enmienda**: 2026-11-20
+**Versión**: 1.2.0 | **Ratificada**: 2026-11-20 | **Última enmienda**: 2026-11-20
 
 ## Fallo capital
 
@@ -220,6 +220,26 @@ distintas, se crea `specs/MAPA.md` con un propietario por spec (enmienda MINOR).
 Toda spec que toque `movimientos`, el cálculo de stock, RLS, funciones `SECURITY DEFINER`
 o el esquema de Room debe citar el principio que afecta (I–V) en su sección de requisitos.
 
+## Alcance de los cambios: solo lo solicitado — **NO NEGOCIABLE**
+
+**Ningún cambio se aplica sin que el dueño del proyecto lo haya solicitado explícitamente.**
+Vale para personas y agentes de IA, y para código, base de datos (Sandbox y Producción),
+configuración, documentación, dependencias y servicios externos.
+
+- Una solicitud cubre **solo** lo que nombra. Pedir un análisis o un documento (por
+  ejemplo, esta constitución) no autoriza a implementar lo que ese documento propone.
+- Un hallazgo (bug, deuda, mejora) se **reporta**, no se corrige. Se corrige solo cuando se
+  solicita.
+- Un "sí" a una propuesta cubre **esa** propuesta, no las siguientes.
+- No se cierra una entrega con preguntas que propongan trabajo nuevo ("¿sigo con…?",
+  "¿arranco…?"). Si hay pasos pendientes, se informan; el dueño decide si los pide.
+- **Criterio de verificación:** cada cambio (commit, migración, despliegue, cambio de
+  configuración) debe poder vincularse a una solicitud explícita del dueño. Un cambio sin
+  esa solicitud es una violación y se revierte si el dueño lo pide.
+- **Enforcement:** nivel 1 (proceso, revisión del dueño). No existe un mecanismo
+  automático que distinga un cambio solicitado de uno no solicitado. Los cambios en la base
+  de Producción tienen además la barrera de la sección Ambientes.
+
 ## Gobernanza
 
 - Esta constitución prevalece sobre `.harness/CLAUDE.md` y cualquier otra guía si hay
@@ -239,3 +259,4 @@ o el esquema de Room debe citar el principio que afecta (I–V) en su sección d
 |---|---|---|
 | 1.0.0 | 2026-11-20 | Ratificación inicial a partir de auditoría código ↔ doc ↔ base en vivo. |
 | 1.1.0 | 2026-11-20 | Se agrega la sección "Ambientes: Sandbox → Producción" (NO NEGOCIABLE) y la puerta 0. Cierre de D1 y D2, decisión de D3 (borrado lógico), avance de D4 y D5, nueva deuda D10. |
+| 1.2.0 | 2026-11-20 | Se agrega la sección "Alcance de los cambios: solo lo solicitado" (NO NEGOCIABLE), a pedido del dueño. |
