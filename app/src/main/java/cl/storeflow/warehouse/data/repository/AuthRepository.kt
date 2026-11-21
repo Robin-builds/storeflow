@@ -38,7 +38,8 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val authSessionDao: AuthSessionDao,
     private val gestorSesion: GestorSesion,
-    private val pullTrigger: PullTrigger
+    private val pullTrigger: PullTrigger,
+    private val planRepository: PlanRepository
 ) {
 
     private companion object {
@@ -83,6 +84,35 @@ class AuthRepository @Inject constructor(
             if (!gestorSesion.puedeIngresar(user.id)) {
                 supabaseClient.gotrue.clearSession()
                 return Result.failure(Exception(MENSAJE_OTRA_CUENTA))
+            }
+
+            // Antes de leer usuarios: un excedente no puede leer datos de la empresa (R20).
+            // Un fallo de red no impide el ingreso.
+            val validacion = planRepository.validar(session.accessToken)
+            if (validacion is ResultadoValidacion.Actualizado && validacion.bloqueado) {
+                val expira = session.expiresAt.toEpochMilliseconds()
+                authSessionDao.guardarSesion(
+                    AuthSessionEntity(
+                        access_token = session.accessToken,
+                        refresh_token = session.refreshToken,
+                        user_id = user.id,
+                        empresa_id = validacion.empresaId,
+                        bodega_id = "",
+                        rol = validacion.rol,
+                        expires_at = Date(expira),
+                        correo = correo.trim()
+                    )
+                )
+                return Result.success(
+                    SesionUsuario(
+                        user_id = user.id,
+                        empresa_id = validacion.empresaId,
+                        access_token = session.accessToken,
+                        refresh_token = session.refreshToken,
+                        expires_at = expira,
+                        rol = Rol.fromString(validacion.rol)
+                    )
+                )
             }
 
             Timber.d("AUTH: consultando tabla usuarios...")
@@ -237,6 +267,8 @@ class AuthRepository @Inject constructor(
                     correo = correo.trim()
                 )
             )
+
+            planRepository.validar(session.accessToken)
 
             Timber.d("AUTH: registro completo OK")
             Result.success(

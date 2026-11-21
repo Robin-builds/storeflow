@@ -139,10 +139,11 @@ class GestorSesion @Inject constructor(
 ) {
     private val mutex = Mutex()
 
-    suspend fun obtenerToken(): ResultadoToken = mutex.withLock {
+    /** `forzar` renueva aunque la fecha local diga vigente: el servidor respondió 401. */
+    suspend fun obtenerToken(forzar: Boolean = false): ResultadoToken = mutex.withLock {
         // Se relee dentro del lock: otro actor pudo haber rotado el token mientras se esperaba.
         val sesion = authSessionDao.obtenerSesion() ?: return@withLock ResultadoToken.SinSesion
-        if (sesion.expires_at.after(Date())) return@withLock ResultadoToken.Vigente(sesion)
+        if (!forzar && sesion.expires_at.after(Date())) return@withLock ResultadoToken.Vigente(sesion)
 
         when (val respuesta = clienteRefresh.refrescar(sesion.refresh_token)) {
             is RespuestaRefresh.Ok -> {

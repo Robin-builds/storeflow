@@ -109,25 +109,25 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T031 [P] [US1] Escribir `supabase/tests/planes_modelo.sql`: SC-001, SC-002 (T − 1 s Standard, T Free), trial único (FR-004), catálogo con exactamente 3 filas, ADMIN sin escritura (FR-019), usuario de A no lee B (FR-020) y marca de tester no cae a Free (FR-018)
-- [ ] T032 [P] [US1] Escribir `<test>/data/repository/PlanRepositoryTest.kt`: guarda la respuesta, conserva la caché sin red, queda en "sin plan" ante `PGRST202`, y guarda a un usuario bloqueado con su `empresa_id` y `rol`
-- [ ] T033 [P] [US1] Escribir `<test>/ui/plan/PlanViewModelTest.kt`: el estado contiene tipo de plan, estado y días restantes del trial, sin valores de límites
+- [X] T031 [P] [US1] Escribir `supabase/tests/planes_modelo.sql`: SC-001, SC-002 (T − 1 s Standard, T Free), trial único (FR-004), catálogo con exactamente 3 filas, ADMIN sin escritura (FR-019), usuario de A no lee B (FR-020) y marca de tester no cae a Free (FR-018)
+- [X] T032 [P] [US1] Escribir `<test>/data/repository/PlanRepositoryTest.kt`: guarda la respuesta, conserva la caché sin red, queda en "sin plan" ante `PGRST202`, y guarda a un usuario bloqueado con su `empresa_id` y `rol`
+- [X] T033 [P] [US1] Escribir `<test>/ui/plan/PlanViewModelTest.kt`: el estado contiene tipo de plan, estado y días restantes del trial, sin valores de límites
 
 ### Implementation for User Story 1
 
-- [ ] T034 [US1] Crear `supabase/migrations/<ts>_planes_modelo.sql` (M1) con el esquema `private` y `planes_catalogo`: `plan` unique en `FREE`, `STANDARD`, `PREMIUM`; `max_bodegas`, `max_usuarios` nulos o `>= 1`; `historial_dias` nulo o `>= 1`; y los valores de R15
-- [ ] T035 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) la tabla `suscripciones` de `data-model.md`, incluidos `primer_pago_standard_at` y `cobertura_fin`, con los checks `trial_fin = trial_inicio + interval '30 days'` y "`pagado_hasta` nulo si y solo si `plan_pagado` es nulo", RLS de lectura propia y `REVOKE` de `INSERT/UPDATE/DELETE`
-- [ ] T036 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) `private.plan_efectivo(suscripcion, instante)`, función pura con el orden de R1. Fundador se agrega en M5
-- [ ] T037 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) el trigger `AFTER INSERT` en `empresas` que crea la suscripción en la misma transacción (FR-001)
-- [ ] T038 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) el backfill de FR-026: cada empresa existente recibe trial desde la migración, con `activado_en = now()`, `usaba_lotes` según tenga lotes y `es_tester = false`
-- [ ] T039 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) `public.obtener_entitlement()` según `contracts/entitlement-rpc.md`, sin parámetros, sin precios y con `EXECUTE` solo para `authenticated`. En M1 devuelve `bloqueado = false` y listas vacías (R20)
-- [ ] T040 [US1] Aplicar M1 en Sandbox y correr `supabase/tests/*.sql`
-- [ ] T041 [US1] Implementar `<app>/data/repository/PlanRepository.kt`: validar, guardar en `plan_cache`, observar el plan y aplicar `EvaluadorPlan`
-- [ ] T042 [US1] En `<app>/data/sync/SyncWorker.kt`, revalidar el plan antes de revisar si la cola está vacía (`contracts/sync-cola.md`)
-- [ ] T043 [US1] En `<app>/data/repository/AuthRepository.kt`, consultar `obtener_entitlement` tras autenticar y **antes** de leer `usuarios` en `login`, y validar el plan tras `registrar`. Si `bloqueado = true`, guardar la sesión con `empresa_id`, `rol` y `bodega_id` vacío, sin leer más datos. Un fallo de red no impide el ingreso (R20)
-- [ ] T044 [US1] Implementar `<app>/ui/plan/PlanViewModel.kt`
-- [ ] T045 [US1] Implementar `<app>/ui/plan/PlanScreen.kt`: tipo de plan, estado y días restantes, sin valores de límites ni contenido de compra
-- [ ] T046 [US1] Agregar la ruta en `<app>/MainActivity.kt` y el acceso desde `<app>/ui/configuracion/ConfiguracionScreen.kt`
+- [X] T034 [US1] Crear `supabase/migrations/<ts>_planes_modelo.sql` (M1) con el esquema `private` y `planes_catalogo`: `plan` unique en `FREE`, `STANDARD`, `PREMIUM`; `max_bodegas`, `max_usuarios` nulos o `>= 1`; `historial_dias` nulo o `>= 1`; y los valores de R15
+- [X] T035 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) la tabla `suscripciones` de `data-model.md`, incluidos `primer_pago_standard_at` y `cobertura_fin`, con los checks `trial_fin = trial_inicio + interval '30 days'` y "`pagado_hasta` nulo si y solo si `plan_pagado` es nulo", RLS de lectura propia y `REVOKE` de `INSERT/UPDATE/DELETE`
+- [X] T036 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) `private.plan_efectivo(suscripcion, instante)`, función pura con el orden de R1. Fundador se agrega en M5
+- [X] T037 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) el trigger `AFTER INSERT` en `empresas` que crea la suscripción en la misma transacción (FR-001)
+- [X] T038 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) el backfill de FR-026: cada empresa existente recibe trial desde la migración, con `activado_en = now()`, `usaba_lotes` según tenga lotes y `es_tester = false`
+- [X] T039 [US1] Agregar a `supabase/migrations/<ts>_planes_modelo.sql` (M1) `public.obtener_entitlement()` según `contracts/entitlement-rpc.md`, sin parámetros, sin precios y con `EXECUTE` solo para `authenticated`. En M1 devuelve `bloqueado = false` y listas vacías (R20)
+- [X] T040 [US1] Aplicar M1 en Sandbox y correr `supabase/tests/*.sql`
+- [X] T041 [US1] Implementar `<app>/data/repository/PlanRepository.kt`: validar, guardar en `plan_cache`, observar el plan y aplicar `EvaluadorPlan`
+- [X] T042 [US1] En `<app>/data/sync/SyncWorker.kt`, revalidar el plan antes de revisar si la cola está vacía (`contracts/sync-cola.md`)
+- [X] T043 [US1] En `<app>/data/repository/AuthRepository.kt`, consultar `obtener_entitlement` tras autenticar y **antes** de leer `usuarios` en `login`, y validar el plan tras `registrar`. Si `bloqueado = true`, guardar la sesión con `empresa_id`, `rol` y `bodega_id` vacío, sin leer más datos. Un fallo de red no impide el ingreso (R20)
+- [X] T044 [US1] Implementar `<app>/ui/plan/PlanViewModel.kt`
+- [X] T045 [US1] Implementar `<app>/ui/plan/PlanScreen.kt`: tipo de plan, estado y días restantes, sin valores de límites ni contenido de compra
+- [X] T046 [US1] Agregar la ruta en `<app>/MainActivity.kt` y el acceso desde `<app>/ui/configuracion/ConfiguracionScreen.kt`
 
 **Checkpoint**: US1 funciona y se puede probar sola. Todavía no se aplica ningún límite.
 

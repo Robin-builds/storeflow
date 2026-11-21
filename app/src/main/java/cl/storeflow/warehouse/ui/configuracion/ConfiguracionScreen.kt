@@ -6,14 +6,17 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.*
@@ -56,6 +59,7 @@ fun ConfiguracionScreen(
     onVolver: () -> Unit,
     onLogout: () -> Unit,
     onIrAReportarError: () -> Unit,
+    onIrAPlan: () -> Unit,
     viewModel: ConfiguracionViewModel = hiltViewModel(),
     ayudaViewModel: AyudaViewModel = hiltViewModel()
 ) {
@@ -95,12 +99,24 @@ fun ConfiguracionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // Con la fila de plan, el botón de cerrar sesión no cabe en pantallas chicas.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // --- Cuenta ---
             SeccionLabel("Cuenta")
             Card(modifier = Modifier.fillMaxWidth()) {
+                ConfigFilaItem(
+                    icon = Icons.Filled.WorkspacePremium,
+                    titulo = "Mi plan",
+                    subtitulo = "Consulta tu plan y su estado",
+                    onClick = onIrAPlan
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
                 ConfigFilaItem(
                     icon = Icons.Filled.Lock,
                     titulo = "Cambiar contraseña",

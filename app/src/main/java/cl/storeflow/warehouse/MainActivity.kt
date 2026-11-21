@@ -40,6 +40,7 @@ import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
 import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
 import cl.storeflow.warehouse.ui.movimientos.HistorialMovimientosScreen
+import cl.storeflow.warehouse.ui.plan.PlanScreen
 import cl.storeflow.warehouse.ui.productos.ProductosListScreen
 import cl.storeflow.warehouse.ui.reportar.ReportarErrorScreen
 import cl.storeflow.warehouse.ui.theme.StoreFlowTheme
@@ -77,6 +78,7 @@ private object Rutas {
     const val ATRIBUTOS = "atributos"
     const val USUARIOS = "usuarios"
     const val CONFIGURACION = "configuracion"
+    const val PLAN = "plan"
     const val MOVIMIENTOS = "movimientos/{productoId}"
     const val REPORTAR_ERROR = "reportar_error"
     const val HISTORIAL_MOVIMIENTOS = "historial_movimientos"
@@ -187,8 +189,18 @@ class MainActivity : ComponentActivity() {
                                 onSetOscuridad = temaViewModel::cambiarOscuridad,
                                 onVolver = { navController.popBackStack() },
                                 onLogout = authViewModel::logout,
-                                onIrAReportarError = { navController.navigate(Rutas.REPORTAR_ERROR) }
+                                onIrAReportarError = { navController.navigate(Rutas.REPORTAR_ERROR) },
+                                onIrAPlan = { navController.navigate(Rutas.PLAN) }
                             )
+                        }
+                        composable(
+                            Rutas.PLAN,
+                            enterTransition = slideEnter,
+                            exitTransition = slideExit,
+                            popEnterTransition = slidePopEnter,
+                            popExitTransition = slidePopExit
+                        ) {
+                            PlanScreen(onVolver = { navController.popBackStack() })
                         }
                         composable(
                             Rutas.REPORTAR_ERROR,

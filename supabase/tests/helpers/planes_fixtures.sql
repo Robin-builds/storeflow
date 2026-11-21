@@ -50,7 +50,8 @@ declare
     v_fin timestamptz := now() - p_hace;
 begin
     update public.suscripciones
-    set trial_inicio = v_fin - interval '30 days',
+    -- 720 horas exactas: '30 days' varía con el cambio de hora según la zona de la sesión.
+    set trial_inicio = v_fin - interval '720 hours',
         trial_fin = v_fin
     where empresa_id = p_empresa;
 
