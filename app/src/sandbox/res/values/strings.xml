@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nombre visible del build "sandbox": distingue la app de pruebas de la real en el launcher. -->
+    <string name="app_name">StoreFlow Sandbox</string>
+</resources>

@@ -1,4 +1,4 @@
-﻿import java.util.Properties
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -32,6 +32,11 @@ android {
         versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Producción (debug y release). El build "sandbox" lo sobrescribe — ver constitución, sección Ambientes.
+        buildConfigField("String", "SUPABASE_URL", "\"https://quvkxpjstzssivsaqimu.supabase.co\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1dmt4cGpzdHpzc2l2c2FxaW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODY4MDcsImV4cCI6MjEwMTc2MjgwN30.ZyagUxQQbix3imROEiLBY7cd2Pr-EArT9cKhzlMYsX0\"")
+        buildConfigField("String", "AMBIENTE", "\"PRODUCCION\"")
     }
 
     signingConfigs {
@@ -51,6 +56,17 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+        }
+        // App de pruebas contra el proyecto Supabase Sandbox. Se instala al lado de la app real
+        // (applicationId con sufijo .sandbox) y nunca toca Producción.
+        create("sandbox") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".sandbox"
+            versionNameSuffix = "-sandbox"
+            matchingFallbacks += listOf("debug")
+            buildConfigField("String", "SUPABASE_URL", "\"https://ihmseolpajzqnddldffc.supabase.co\"")
+            buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobXNlb2xwYWp6cW5kZGxkZmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyMTkyMTYsImV4cCI6MjExMDc5NTIxNn0.1OWo9Mop2EJwVtPZ8zkCo1CaXqyuyoBCqJ9mEP3fQjM\"")
+            buildConfigField("String", "AMBIENTE", "\"SANDBOX\"")
         }
     }
     compileOptions {

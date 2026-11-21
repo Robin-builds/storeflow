@@ -148,7 +148,7 @@ con el servidor. Las PK son UUID generados en el cliente. Única excepción:
 
 ## Ambientes: Sandbox → Producción — **NO NEGOCIABLE**
 
-- **Sandbox:** proyecto Supabase separado. Replica el **esquema** de producción (tablas,
+- **Sandbox:** proyecto Supabase `storeflow-sandbox` (`ihmseolpajzqnddldffc`), separado. Replica el **esquema** de producción (tablas,
   RLS, funciones, triggers, vistas y Edge Functions), reconstruido **solo** desde
   `supabase/migrations/`. Usa datos de prueba sintéticos: los datos reales de clientes
   nunca se copian a Sandbox.
@@ -161,9 +161,14 @@ con el servidor. Las PK son UUID generados en el cliente. Única excepción:
 - **Deriva:** Sandbox y Producción deben tener el mismo historial de migraciones
   (`list_migrations`). Si difieren, no se aplica nada nuevo en Producción hasta igualarlas.
 - **Enforcement:**
-  - Hoy: nivel 1 (proceso).
-  - Objetivo: script `scripts/promover-migracion` que solo aplica en Producción una
-    migración ya registrada en Sandbox y con tests en verde. **[Deuda D10]**
+  - `scripts/promover-migracion.sh <archivo>`: solo aplica en Producción una migración
+    ya registrada en Sandbox, con historial previo idéntico y tests en verde. La aplica
+    sin editar y la registra con la misma versión. Requiere `psql` y las variables
+    `STOREFLOW_SANDBOX_DB_URL` y `STOREFLOW_PROD_DB_URL`.
+  - Cuando la promoción la hace un agente vía MCP, sigue los mismos 6 pasos del script y
+    pide confirmación explícita antes del paso 5.
+  - App: el build `sandbox` (`gradlew installSandbox`) instala "StoreFlow Sandbox"
+    (`cl.storeflow.app.sandbox`), que apunta solo al proyecto Sandbox.
 
 ## Puertas de calidad previas al merge a `main`
 
@@ -200,8 +205,8 @@ con el servidor. Las PK son UUID generados en el cliente. Única excepción:
 | D3 | Media — **decidido: borrado lógico** | II | Borrar un producto borra en cascada su historial de movimientos (Room y Postgres). | `productos.eliminado_at` en Postgres y Room (migración Room v10). `eliminar`/`eliminarVarios` pasan a `UPDATE` vía sync. Las consultas de app y web excluyen los productos eliminados. Al terminar, quitar la excepción de cascada del trigger D2. Feature COMPLEJA: requiere `docs/plans/` y pasar por Sandbox. |
 | D4 | Media | III | Los tests SQL existen y pasan (`supabase/tests/`), pero no corren solos. | Ejecutarlos automáticamente contra Sandbox desde el `pre-push` o `scripts/promover-migracion` (depende de D10). |
 | D5 | ✅ Cerrada 2026-11-20 | I, II, IV, V, convenciones | — | `EsquemaInvariantesTest` y `MovimientoDaoInmutableTest` (6 tests; verificado que fallan ante violaciones inyectadas). `.githooks/commit-msg` y `.githooks/pre-push` (tests unitarios; si el push cambia `supabase/`, tests SQL contra Sandbox vía `STOREFLOW_SANDBOX_DB_URL`, o `SANDBOX_OK=1` tras correrlos a mano). Activación documentada en el README. |
-| D10 | **Alta** | Ambientes | No existe Sandbox. | Crear el proyecto Supabase Sandbox y reconstruirlo desde `supabase/migrations/` (requiere D6), desplegar las Edge Functions, agregar un build de la app apuntando a Sandbox y crear `scripts/promover-migracion`. |
-| D6 | Casi cerrada | Ambientes / III | Faltaban en el repo las vistas, el event trigger `ensure_rls` y la migración `sync_queue_deny_all` del 03/11. | Agregadas `20260823000000_vistas_stock_y_rls_auto.sql` y `20261103002657_sync_queue_deny_all.sql` (definiciones tomadas del catálogo en vivo; tablas, columnas, constraints e índices verificados idénticos). **Falta:** probar la reconstrucción completa en Sandbox (D10) y registrar en el historial de Producción las migraciones 20260808 y 20260823 (aplicadas a mano, no figuran en `list_migrations`). |
+| D10 | Media — casi cerrada | Ambientes | Sandbox creado el 2026-11-20: reconstruido solo desde `supabase/migrations/` (348 objetos idénticos a Producción), tests SQL en verde, 2 Edge Functions desplegadas, build `sandbox` de la app, script de promoción. | **Falta:** (1) desactivar "Confirm email" en Sandbox, como en Producción; (2) instalar `psql` y probar el script de punta a punta; (3) registrar en el historial de Producción las versiones 20260808000000 y 20260823000000 (hoy hay deriva de historial y el script se detendría); (4) borrar la Edge Function duplicada `clever-action` de Producción. |
+| D6 | ✅ Cerrada 2026-11-20 (salvo el registro de historial, en D10) | Ambientes / III | Faltaban en el repo las vistas, el event trigger `ensure_rls` y la migración `sync_queue_deny_all` del 03/11. | Agregadas `20260823000000_vistas_stock_y_rls_auto.sql` y `20261103002657_sync_queue_deny_all.sql` (definiciones tomadas del catálogo en vivo; tablas, columnas, constraints e índices verificados idénticos). **Falta:** probar la reconstrucción completa en Sandbox (D10) y registrar en el historial de Producción las migraciones 20260808 y 20260823 (aplicadas a mano, no figuran en `list_migrations`). |
 | D7 | Baja | III | La tabla remota `sync_queue` no tiene uso (la cola vive solo en Room). | Eliminarla en la migración de D6, o documentar por qué existe. |
 | D8 | Baja | — | `.harness/CLAUDE.md` describe el multi-tenant vía JWT `app_metadata` (es vía `usuarios`), la regla nº 4 dice "no filtrar `empresa_id`" (reemplazada por el principio III) y declara 55 tests (son 59 unitarios). | Actualizar `CLAUDE.md` para que apunte a esta constitución. |
 | D9 | Baja | — | `ExampleInstrumentedTest` falla (compara contra `cl.storeflow.warehouse`, el applicationId es `cl.storeflow.app`). No bloquea: el `pre-push` solo corre tests unitarios. | Corregir el valor esperado o borrar el test de plantilla. |
