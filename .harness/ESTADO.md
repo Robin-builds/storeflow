@@ -1,7 +1,9 @@
 # 📊 ESTADO.md — Estado Dinámico del Proyecto
 > **Uso:** Pegar junto con `CLAUDE.md` al inicio de CADA sesión.
 > **Actualizar este archivo al cerrar cada sesión** (rama activa, último trabajo, blockers, próximo paso).
-> **Última actualización:** 18/11/2026 — Fix de páginas de 16 KB (CameraX 1.3.4 → 1.4.2) mergeado a `main` (`cd98503`, **sin push**), validado en Samsung S25 FE (login, Dashboard, escáner, linterna). AAB 1.0.3 regenerado desde `main` y **publicado en Prueba interna** como **4 (1.0.3)** el 18/11 22:42. Prueba cerrada sigue en 3 (1.0.2).
+> **Última actualización:** 21/11/2026 — Planes & Entitlements v1: Fases 5 a 8 implementadas en `feat/planes-entitlements` (app y web), **sin commit ni push**. M2 a M6 y la Edge Function solo en Sandbox. Avance 107 de 118. Pendiente: `psql` (T003, T073, T099, T110), validación en dispositivo de Fases 5 a 7 (T111) y Rollout (Fase 9). Detalle en `TASKS.md`.
+>
+> **Actualización anterior (18/11/2026):** Fix de páginas de 16 KB (CameraX 1.3.4 → 1.4.2) mergeado a `main` (`cd98503`, **sin push**), validado en Samsung S25 FE (login, Dashboard, escáner, linterna). AAB 1.0.3 regenerado desde `main` y **publicado en Prueba interna** como **4 (1.0.3)** el 18/11 22:42. Prueba cerrada sigue en 3 (1.0.2).
 >
 > 15. **Fix 16 KB + 1.0.3 en Prueba interna** (sesión 18/11):
 >     - **Fix:** `gradle/libs.versions.toml` CameraX → 1.4.2 (rama `fix/16kb-page-size`, commit `56df660`). Sin cambio de versionCode: vc 4 nunca había llegado a Play.

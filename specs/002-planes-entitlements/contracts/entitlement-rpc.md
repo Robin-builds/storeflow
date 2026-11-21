@@ -43,6 +43,7 @@
 - `degradacion_free` es lo que la app aplica sin red al vencer la gracia. Una bodega que no esté en `bodegas_activas` queda en solo lectura (R22).
 - `avisos` y `retenidos` solo llegan para ADMIN.
 - **Evolución**: M1 devuelve `bloqueado = false` y listas vacías; M3 agrega conjuntos activos, M4 retenidos y M6 avisos.
+- Los avisos de vencimiento (`MENOS_7`, `MENOS_1`, `TERMINO`, `MAS_2`) se emiten solo a empresas que nunca pagaron y sin marca de tester (M6).
 - **Nunca incluye** precios ni el cupo Fundador (FR-027).
 
 ### Errores

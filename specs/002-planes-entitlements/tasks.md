@@ -171,41 +171,41 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T061 [P] [US3] Escribir `supabase/tests/planes_limites.sql`: SC-005, límite exacto, service role sujeto a límites, capacidad de lotes (`SFP03`), altas sobre Standard durante el trial de activación (FR-026) parametrización por tier (FR-011) y operación rechazada según el plan real aunque el cliente tenga un plan cacheado obsoleto (FR-010)
-- [ ] T062 [P] [US3] Escribir `supabase/tests/planes_bloqueo.sql` para la función de pre-request: excedente rechazado con `SFP05`, las rutas permitidas de `contracts/codigos-rechazo.md`, `POST` sin `return=minimal` o con `resolution=` rechazado, movimiento de excedente aceptado y marcado dentro de la ventana y rechazado fuera, usuario activo y service role sin bloqueo, y sin error ante un request sin JWT
-- [ ] T063 [US3] Agregar a `scripts/test-planes-concurrencia.sh` el caso de creaciones simultáneas de la última bodega: nunca se supera el límite
-- [ ] T064 [P] [US3] Ampliar `<test>/data/repository/MovimientoRepositoryTest.kt` para FR-025: sin lotes, la entrada de un perecedero se registra sin lote y la salida descuenta de lotes existentes
-- [ ] T065 [P] [US3] Ampliar `<test>/ui/movimientos/` con `HistorialMovimientosViewModelTest.kt`: un movimiento anterior a `historial_desde` no aparece; con `NULL` aparecen todos
-- [ ] T066 [P] [US3] Ampliar `<test>/ui/plan/PlanViewModelTest.kt`: sin el permiso correspondiente no se llama al repositorio de creación, y el ADMIN ve la cantidad retenida por usuario, sin el detalle (FR-023)
+- [X] T061 [P] [US3] Escribir `supabase/tests/planes_limites.sql`: SC-005, límite exacto, service role sujeto a límites, capacidad de lotes (`SFP03`), altas sobre Standard durante el trial de activación (FR-026) parametrización por tier (FR-011) y operación rechazada según el plan real aunque el cliente tenga un plan cacheado obsoleto (FR-010)
+- [X] T062 [P] [US3] Escribir `supabase/tests/planes_bloqueo.sql` para la función de pre-request: excedente rechazado con `SFP05`, las rutas permitidas de `contracts/codigos-rechazo.md`, `POST` sin `return=minimal` o con `resolution=` rechazado, movimiento de excedente aceptado y marcado dentro de la ventana y rechazado fuera, usuario activo y service role sin bloqueo, y sin error ante un request sin JWT
+- [X] T063 [US3] Agregar a `scripts/test-planes-concurrencia.sh` el caso de creaciones simultáneas de la última bodega: nunca se supera el límite
+- [X] T064 [P] [US3] Ampliar `<test>/data/repository/MovimientoRepositoryTest.kt` para FR-025: sin lotes, la entrada de un perecedero se registra sin lote y la salida descuenta de lotes existentes
+- [X] T065 [P] [US3] Ampliar `<test>/ui/movimientos/` con `HistorialMovimientosViewModelTest.kt`: un movimiento anterior a `historial_desde` no aparece; con `NULL` aparecen todos
+- [X] T066 [P] [US3] Ampliar `<test>/ui/plan/PlanViewModelTest.kt`: sin el permiso correspondiente no se llama al repositorio de creación, y el ADMIN ve la cantidad retenida por usuario, sin el detalle (FR-023)
 
 ### Implementation for User Story 3
 
-- [ ] T067 [US3] Crear `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) con los triggers de límite de `bodegas` (`SFP01`) y `usuarios` (`SFP02`): bloquear la suscripción con `FOR NO KEY UPDATE` y luego contar, en función `VOLATILE` y `SECURITY DEFINER` (R5)
-- [ ] T068 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) la validación de capacidad de lotes con `SFP03`, aceptando un lote dentro de la ventana si la empresa tenía la capacidad (R7) y la excepción de `usaba_lotes` en el trial de activación
-- [ ] T069 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) la tabla `retenidos_resumen` (`cantidad` `> 0`, unique (`usuario_id`, `dispositivo_id`), sin acceso directo) y `public.reportar_retenidos(p_dispositivo uuid, p_cantidad integer)`: usuario y empresa desde la sesión, 0 elimina la fila, negativo responde error y no devuelve datos (R19)
-- [ ] T070 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) el reemplazo de `public.obtener_entitlement` que agrega `retenidos` solo para ADMIN, conservando los campos de M3
-- [ ] T071 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) `public.verificar_acceso_plan()` y su registro con `alter role authenticator set pgrst.db_pre_request` más `notify pgrst, 'reload config'`. Debe ser mínima, responder 403 con `code = SFP05` usando `raise sqlstate 'PGRST'`, exceptuar solo las rutas de `contracts/codigos-rechazo.md` y seguir los permisos y el manejo de errores de R2
-- [ ] T072 [US3] Devolver `409` con `code = SFP02` y eliminar el usuario de Auth creado en `supabase/functions/registrar-usuario-empresa/index.ts`
+- [X] T067 [US3] Crear `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) con los triggers de límite de `bodegas` (`SFP01`) y `usuarios` (`SFP02`): bloquear la suscripción con `FOR NO KEY UPDATE` y luego contar, en función `VOLATILE` y `SECURITY DEFINER` (R5)
+- [X] T068 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) la validación de capacidad de lotes con `SFP03`, aceptando un lote dentro de la ventana si la empresa tenía la capacidad (R7) y la excepción de `usaba_lotes` en el trial de activación
+- [X] T069 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) la tabla `retenidos_resumen` (`cantidad` `> 0`, unique (`usuario_id`, `dispositivo_id`), sin acceso directo) y `public.reportar_retenidos(p_dispositivo uuid, p_cantidad integer)`: usuario y empresa desde la sesión, 0 elimina la fila, negativo responde error y no devuelve datos (R19)
+- [X] T070 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) el reemplazo de `public.obtener_entitlement` que agrega `retenidos` solo para ADMIN, conservando los campos de M3
+- [X] T071 [US3] Agregar a `supabase/migrations/<ts>_planes_limites_bloqueo.sql` (M4) `public.verificar_acceso_plan()` y su registro con `alter role authenticator set pgrst.db_pre_request` más `notify pgrst, 'reload config'`. Debe ser mínima, responder 403 con `code = SFP05` usando `raise sqlstate 'PGRST'`, exceptuar solo las rutas de `contracts/codigos-rechazo.md` y seguir los permisos y el manejo de errores de R2
+- [X] T072 [US3] Devolver `409` con `code = SFP02` y eliminar el usuario de Auth creado en `supabase/functions/registrar-usuario-empresa/index.ts`
 - [ ] T073 [US3] Aplicar M4, desplegar la Edge Function en Sandbox, correr `supabase/tests/*.sql` y `scripts/test-planes-concurrencia.sh`, y comprobar por REST que un usuario activo sigue operando
-- [ ] T074 [US3] En `<app>/data/repository/MovimientoRepository.kt`, ignorar fecha y número de lote si el plan no incluye lotes (FR-025)
-- [ ] T075 [US3] Ocultar los campos de lote sin la capacidad en `<app>/ui/movimientos/MovimientoViewModel.kt` y `<app>/ui/movimientos/MovimientosScreen.kt`, permitiendo registrar la entrada
-- [ ] T076 [P] [US3] Bloquear altas según `permisos.crear_bodega` y `permisos.crear_usuario` en `<app>/ui/bodegas/BodegaViewModel.kt` y `<app>/ui/usuarios/UsuariosViewModel.kt`, sin mostrar valores de límites, enlaces ni llamados a comprar
-- [ ] T077 [US3] Crear `<app>/ui/plan/BloqueoPlanScreen.kt`: acceso bloqueado, sin datos del servidor y sin opción de cerrar sesión si hay trabajo retenido
-- [ ] T078 [US3] Mostrar el bloqueo en `<app>/MainActivity.kt` y `<app>/ui/auth/AuthViewModel.kt` cuando `bloqueado = true`, sin llamar a `clearAllTables()`
-- [ ] T079 [US3] En `<app>/data/sync/SyncWorker.kt`, si `bloqueado = true`, enviar solo los `INSERT` de `lotes` y `movimientos` con `Prefer: return=minimal`, sin los que dependan de un `INSERT` de producto o lote aún no aceptado, y conservar el resto de la cola (`contracts/sync-cola.md`)
-- [ ] T080 [US3] En `<app>/data/sync/PullWorker.kt`, terminar con `Result.success()` sin reintentar si `bloqueado = true` o si un request responde `SFP05`, sin modificar datos locales
-- [ ] T081 [US3] En `<app>/data/repository/PlanRepository.kt`, al pasar de `bloqueado = true` a `false`, leer el perfil, restaurar `bodega_id` con la primera bodega activa mediante `<app>/data/local/dao/AuthSessionDao.kt`, y lanzar `PullTrigger` y `SyncTrigger` (FR-029)
-- [ ] T082 [US3] En `<app>/data/repository/PlanRepository.kt` y `<app>/data/sync/SyncWorker.kt`, generar y conservar `dispositivo_id` e informar con `reportar_retenidos` cuando cambie la cantidad retenida (FR-023)
+- [X] T074 [US3] En `<app>/data/repository/MovimientoRepository.kt`, ignorar fecha y número de lote si el plan no incluye lotes (FR-025)
+- [X] T075 [US3] Ocultar los campos de lote sin la capacidad en `<app>/ui/movimientos/MovimientoViewModel.kt` y `<app>/ui/movimientos/MovimientosScreen.kt`, permitiendo registrar la entrada
+- [X] T076 [P] [US3] Bloquear altas según `permisos.crear_bodega` y `permisos.crear_usuario` en `<app>/ui/bodegas/BodegaViewModel.kt` y `<app>/ui/usuarios/UsuariosViewModel.kt`, sin mostrar valores de límites, enlaces ni llamados a comprar
+- [X] T077 [US3] Crear `<app>/ui/plan/BloqueoPlanScreen.kt`: acceso bloqueado, sin datos del servidor y sin opción de cerrar sesión si hay trabajo retenido
+- [X] T078 [US3] Mostrar el bloqueo en `<app>/MainActivity.kt` y `<app>/ui/auth/AuthViewModel.kt` cuando `bloqueado = true`, sin llamar a `clearAllTables()`
+- [X] T079 [US3] En `<app>/data/sync/SyncWorker.kt`, si `bloqueado = true`, enviar solo los `INSERT` de `lotes` y `movimientos` con `Prefer: return=minimal`, sin los que dependan de un `INSERT` de producto o lote aún no aceptado, y conservar el resto de la cola (`contracts/sync-cola.md`)
+- [X] T080 [US3] En `<app>/data/sync/PullWorker.kt`, terminar con `Result.success()` sin reintentar si `bloqueado = true` o si un request responde `SFP05`, sin modificar datos locales
+- [X] T081 [US3] En `<app>/data/repository/PlanRepository.kt`, al pasar de `bloqueado = true` a `false`, leer el perfil, restaurar `bodega_id` con la primera bodega activa mediante `<app>/data/local/dao/AuthSessionDao.kt`, y lanzar `PullTrigger` y `SyncTrigger` (FR-029)
+- [X] T082 [US3] En `<app>/data/repository/PlanRepository.kt` y `<app>/data/sync/SyncWorker.kt`, generar y conservar `dispositivo_id` e informar con `reportar_retenidos` cuando cambie la cantidad retenida (FR-023)
 - [X] T083 [US3] Ocultar cerrar sesión a todo usuario con trabajo pendiente o retenido en `<app>/ui/configuracion/ConfiguracionScreen.kt`, y en `<app>/data/repository/AuthRepository.kt` hacer que `logout()` rechace la operación y que `login` y `registrar()` acepten solo al mismo usuario mientras exista ese trabajo (FR-030)
-- [ ] T084 [US3] Mostrar en `<app>/ui/plan/PlanViewModel.kt` y `<app>/ui/plan/PlanScreen.kt` el detalle del trabajo retenido en el propio dispositivo y, para ADMIN, la cantidad por usuario con su última actualización (FR-023)
-- [ ] T085 [US3] Aplicar `historial_desde` en `<app>/ui/movimientos/HistorialMovimientosViewModel.kt`, solo en lo visible. **No** cambiar consultas de stock de `<app>/data/local/dao/`
-- [ ] T086 [P] [US3] Crear `<web>/utils/getPlan.ts`, que llama a `obtener_entitlement` desde el servidor y distingue plan, usuario bloqueado, "sin plan" ante `PGRST202` (no restringe nada) y error (R21)
-- [ ] T087 [US3] Exigir la capacidad `export` antes de consultar datos en `<web>/app/api/export/movimientos/route.ts`, respondiendo 403 con `code = SFP03`. Ante otro error del plan responder 503. Aplicar `historial_desde` a las filas del CSV
-- [ ] T088 [US3] Exigir la capacidad `export` en `<web>/app/api/export/productos/route.ts`
-- [ ] T089 [US3] Aplicar `historial_desde` y ocultar el botón de export sin la capacidad en `<web>/app/dashboard/movimientos/page.tsx`
-- [ ] T090 [US3] Ocultar el botón de export sin la capacidad en `<web>/app/dashboard/productos/page.tsx`
-- [ ] T091 [US3] Aplicar `historial_desde` a los movimientos de `<web>/app/dashboard/productos/[id]/page.tsx` y a los recientes de `<web>/app/dashboard/page.tsx`, sin tocar los datos de stock
-- [ ] T092 [US3] Mostrar acceso bloqueado a un usuario excedente en `<web>/app/dashboard/layout.tsx`
+- [X] T084 [US3] Mostrar en `<app>/ui/plan/PlanViewModel.kt` y `<app>/ui/plan/PlanScreen.kt` el detalle del trabajo retenido en el propio dispositivo y, para ADMIN, la cantidad por usuario con su última actualización (FR-023)
+- [X] T085 [US3] Aplicar `historial_desde` en `<app>/ui/movimientos/HistorialMovimientosViewModel.kt`, solo en lo visible. **No** cambiar consultas de stock de `<app>/data/local/dao/`
+- [X] T086 [P] [US3] Crear `<web>/utils/getPlan.ts`, que llama a `obtener_entitlement` desde el servidor y distingue plan, usuario bloqueado, "sin plan" ante `PGRST202` (no restringe nada) y error (R21)
+- [X] T087 [US3] Exigir la capacidad `export` antes de consultar datos en `<web>/app/api/export/movimientos/route.ts`, respondiendo 403 con `code = SFP03`. Ante otro error del plan responder 503. Aplicar `historial_desde` a las filas del CSV
+- [X] T088 [US3] Exigir la capacidad `export` en `<web>/app/api/export/productos/route.ts`
+- [X] T089 [US3] Aplicar `historial_desde` y ocultar el botón de export sin la capacidad en `<web>/app/dashboard/movimientos/page.tsx`
+- [X] T090 [US3] Ocultar el botón de export sin la capacidad en `<web>/app/dashboard/productos/page.tsx`
+- [X] T091 [US3] Aplicar `historial_desde` a los movimientos de `<web>/app/dashboard/productos/[id]/page.tsx` y a los recientes de `<web>/app/dashboard/page.tsx`, sin tocar los datos de stock
+- [X] T092 [US3] Mostrar acceso bloqueado a un usuario excedente en `<web>/app/dashboard/layout.tsx`
 
 **Checkpoint**: El núcleo (US1 a US3) está completo y validado en Sandbox.
 
@@ -219,15 +219,15 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T093 [P] [US4] Escribir `supabase/tests/planes_fundador.sql`: SC-008, SC-009, no reotorgamiento (FR-016), primer pago de Standard tras haber pagado Premium (FR-012), Fundador que pasa a Premium pagado y conserva el estatus (FR-015), `cobertura_fin` tras baja o paso a Free (R7), otorgamiento que sobrevive a eliminar la empresa (FR-013), `plan_cambios` con operador no vacío y funciones sin `EXECUTE` para `authenticated`
-- [ ] T094 [US4] Agregar a `scripts/test-planes-concurrencia.sh` el caso SC-007: con 99 otorgamientos, 10 pagos concurrentes dan exactamente 1 Fundador y 9 sin cupo
+- [X] T093 [P] [US4] Escribir `supabase/tests/planes_fundador.sql`: SC-008, SC-009, no reotorgamiento (FR-016), primer pago de Standard tras haber pagado Premium (FR-012), Fundador que pasa a Premium pagado y conserva el estatus (FR-015), `cobertura_fin` tras baja o paso a Free (R7), otorgamiento que sobrevive a eliminar la empresa (FR-013), `plan_cambios` con operador no vacío y funciones sin `EXECUTE` para `authenticated`
+- [X] T094 [US4] Agregar a `scripts/test-planes-concurrencia.sh` el caso SC-007: con 99 otorgamientos, 10 pagos concurrentes dan exactamente 1 Fundador y 9 sin cupo
 
 ### Implementation for User Story 4
 
-- [ ] T095 [US4] Crear `supabase/migrations/<ts>_planes_fundador.sql` (M5) con `fundador_olas` (ola 1, cupo 100), `fundador_otorgamientos` (`empresa_id` unique **sin FK**, `motivo_perdida` en `BAJA`, `PASO_A_FREE`, `IMPAGO`) y `plan_cambios` (`operador` no vacío), sin acceso para clientes
-- [ ] T096 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) el reemplazo de `private.plan_efectivo` y del helper de vencimiento: Fundador vigente con `perdido_at` nulo y `ahora < pagado_hasta + 7 días`
-- [ ] T097 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) `private.registrar_pago` siguiendo los 5 pasos de `contracts/operador.md`
-- [ ] T098 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) `private.registrar_baja`, `private.pasar_a_free` y `private.marcar_tester`, con `EXECUTE` revocado a `public`, `anon` y `authenticated`
+- [X] T095 [US4] Crear `supabase/migrations/<ts>_planes_fundador.sql` (M5) con `fundador_olas` (ola 1, cupo 100), `fundador_otorgamientos` (`empresa_id` unique **sin FK**, `motivo_perdida` en `BAJA`, `PASO_A_FREE`, `IMPAGO`) y `plan_cambios` (`operador` no vacío), sin acceso para clientes
+- [X] T096 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) el reemplazo de `private.plan_efectivo` y del helper de vencimiento: Fundador vigente con `perdido_at` nulo y `ahora < pagado_hasta + 7 días`
+- [X] T097 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) `private.registrar_pago` siguiendo los 5 pasos de `contracts/operador.md`
+- [X] T098 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) `private.registrar_baja`, `private.pasar_a_free` y `private.marcar_tester`, con `EXECUTE` revocado a `public`, `anon` y `authenticated`
 - [ ] T099 [US4] Aplicar M5 en Sandbox y correr `supabase/tests/*.sql` y `scripts/test-planes-concurrencia.sh`
 
 **Checkpoint**: US4 funciona sin cambios en la app, porque la RPC ya entrega Premium como plan efectivo.
@@ -242,17 +242,17 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T100 [P] [US5] Escribir `supabase/tests/planes_avisos.sql`: momentos `DIA_0`, `MENOS_7`, `MENOS_1`, `TERMINO`, `MAS_2`, emisión única, sin avisos de vencimiento con plan pagado, solo ADMIN, cierre idempotente y cerrar un aviso cierra los anteriores para ese ADMIN
-- [ ] T101 [P] [US5] Ampliar `<test>/ui/plan/PlanViewModelTest.kt`: muestra solo el aviso más reciente sin cerrar, cerrarlo cierra los anteriores, un OPERADOR de bodega no lo ve, y sin señal se calcula desde el plan guardado
+- [X] T100 [P] [US5] Escribir `supabase/tests/planes_avisos.sql`: momentos `DIA_0`, `MENOS_7`, `MENOS_1`, `TERMINO`, `MAS_2`, emisión única, sin avisos de vencimiento con plan pagado, solo ADMIN, cierre idempotente y cerrar un aviso cierra los anteriores para ese ADMIN
+- [X] T101 [P] [US5] Ampliar `<test>/ui/plan/PlanViewModelTest.kt`: muestra solo el aviso más reciente sin cerrar, cerrarlo cierra los anteriores, un OPERADOR de bodega no lo ve, y sin señal se calcula desde el plan guardado
 
 ### Implementation for User Story 5
 
-- [ ] T102 [US5] Crear `supabase/migrations/<ts>_planes_avisos.sql` (M6) con `avisos_plan`, unique (`empresa_id`, `momento`), y reemplazar `obtener_entitlement` para emitir y devolver avisos, conservando todos los campos de M4
-- [ ] T103 [US5] Agregar a `supabase/migrations/<ts>_planes_avisos.sql` (M6) `public.cerrar_aviso_plan(p_momento text)`, solo para ADMIN de la empresa de la sesión, que cierra ese momento y los anteriores, idempotente y sin `empresa_id`
-- [ ] T104 [US5] Aplicar M6 en Sandbox y correr `supabase/tests/*.sql`
-- [ ] T105 [US5] En `<app>/data/repository/PlanRepository.kt`, guardar avisos, cerrar localmente ese aviso y los anteriores, y confirmar en el servidor los que tengan `cierre_pendiente`
-- [ ] T106 [P] [US5] Crear `<app>/ui/plan/AvisoPlanBanner.kt`: para recuperar el plan solo indica contactar a StoreFlow, sin enlaces, precios ni llamados a comprar (FR-027)
-- [ ] T107 [US5] Exponer el aviso en `<app>/ui/plan/PlanViewModel.kt` y mostrarlo a los ADMIN en `<app>/ui/dashboard/DashboardScreen.kt`
+- [X] T102 [US5] Crear `supabase/migrations/<ts>_planes_avisos.sql` (M6) con `avisos_plan`, unique (`empresa_id`, `momento`), y reemplazar `obtener_entitlement` para emitir y devolver avisos, conservando todos los campos de M4
+- [X] T103 [US5] Agregar a `supabase/migrations/<ts>_planes_avisos.sql` (M6) `public.cerrar_aviso_plan(p_momento text)`, solo para ADMIN de la empresa de la sesión, que cierra ese momento y los anteriores, idempotente y sin `empresa_id`
+- [X] T104 [US5] Aplicar M6 en Sandbox y correr `supabase/tests/*.sql`
+- [X] T105 [US5] En `<app>/data/repository/PlanRepository.kt`, guardar avisos, cerrar localmente ese aviso y los anteriores, y confirmar en el servidor los que tengan `cierre_pendiente`
+- [X] T106 [P] [US5] Crear `<app>/ui/plan/AvisoPlanBanner.kt`: para recuperar el plan solo indica contactar a StoreFlow, sin enlaces, precios ni llamados a comprar (FR-027)
+- [X] T107 [US5] Exponer el aviso en `<app>/ui/plan/PlanViewModel.kt` y mostrarlo a los ADMIN en `<app>/ui/dashboard/DashboardScreen.kt`
 
 **Checkpoint**: Todas las historias funcionan por separado.
 
@@ -262,12 +262,12 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 **Purpose**: Verificación completa antes de publicar
 
-- [ ] T108 [P] Crear `<test>/constitucion/AntiSteeringApkTest.kt`: falla ante dependencia o permiso de billing, y ante precios o términos de compra en strings (FR-027)
-- [ ] T109 [P] Crear `<test>/constitucion/TrazabilidadSpecTest.kt`: lee `specs/002-planes-entitlements/spec.md` y falla si algún FR no está en la tabla de trazabilidad
+- [X] T108 [P] Crear `<test>/constitucion/AntiSteeringApkTest.kt`: falla ante dependencia o permiso de billing, y ante precios o términos de compra en strings (FR-027)
+- [X] T109 [P] Crear `<test>/constitucion/TrazabilidadSpecTest.kt`: lee `specs/002-planes-entitlements/spec.md` y falla si algún FR no está en la tabla de trazabilidad
 - [ ] T110 Correr `gradlew testDebugUnitTest`, `supabase/tests/*.sql` contra Sandbox, `scripts/test-planes-concurrencia.sh` y el build de `<web>/`, y reportar cualquier fallo con su salida
 - [ ] T111 Validar con el build `sandbox` los escenarios 1 a 14, 16 y 17 de `specs/002-planes-entitlements/quickstart.md` en dispositivo físico, con confirmación del dueño (puerta 3)
-- [ ] T112 Probar el upgrade real desde Room v9 con datos, sin reinstalar, según el escenario 15 de `specs/002-planes-entitlements/quickstart.md` (puerta 4)
-- [ ] T113 [P] Actualizar `.harness/ESTADO.md` y `.harness/TASKS.md`, y registrar en `.specify/memory/constitution.md` lo que corresponda solo si el dueño lo pide
+- [X] T112 Probar el upgrade real desde Room v9 con datos, sin reinstalar, según el escenario 15 de `specs/002-planes-entitlements/quickstart.md` (puerta 4)
+- [X] T113 [P] Actualizar `.harness/ESTADO.md` y `.harness/TASKS.md`, y registrar en `.specify/memory/constitution.md` lo que corresponda solo si el dueño lo pide
 
 ---
 

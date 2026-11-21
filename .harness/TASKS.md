@@ -10,12 +10,13 @@
 > Esta sección prevalece sobre "Feature en progreso", que quedó desactualizada.
 > Nada de esta lista está autorizado por estar escrito aquí: cada punto se trabaja cuando el dueño lo pida.
 
-**Rama:** `feat/planes-entitlements` (app y `stockflow-web`), sin push. Último commit de la app: `3cee1f7`.
-**Spec:** `specs/002-planes-entitlements/`. Avance: 58 de 118 tareas; Fases 3 y 4 completas.
-**Bases:** M2, M1 y M3 aplicadas solo en Sandbox. Producción sigue en `20261121161643`.
-**Siguiente fase de la spec:** Fase 5, límites reales y bloqueo de usuarios excedentes (T061–T092).
+**Rama:** `feat/planes-entitlements` (app y `stockflow-web`), sin push. Último commit de la app: `e5c1adf` (integra `main`). **Las Fases 5 a 8 están sin commit en ambos repos.**
+**Spec:** `specs/002-planes-entitlements/`. Avance: 107 de 118 tareas. Abiertas: T003, T030, T073, T099, T110, T111 y la Fase 9 (T114–T118).
+**Bases:** M2, M1, M3, M4, M5 y M6 y la Edge Function v2 aplicadas solo en Sandbox. Ninguna se promovió a Producción; su último estado registrado es `20261121161643` (no reconsultado el 21/11 al cierre).
+**Siguiente fase de la spec:** Fase 9, Rollout. Cada tarea requiere solicitud explícita del dueño.
+**Verificado en Fase 8:** 186 tests unitarios, 10 tests SQL en Sandbox tras M6, build del panel web y APK sin permiso de cobro.
 
-### Defectos encontrados en dispositivo (corregidos y validados en moto g(60), sin commit)
+### Defectos encontrados en dispositivo (corregidos y validados en moto g(60), commit `4ab0c2b`)
 
 - [x] **DEF-1 — Tras registrarse no se descargaban los datos.** `registrar()` ahora dispara el pull.
 - [x] **DEF-2 — Los errores mostraban URL, headers y clave.** `mensajeAuthSeguro` entrega solo un texto limpio.
@@ -23,7 +24,10 @@
 - [x] **DEF-4 — Cerrar sesión con trabajo pendiente no mostraba mensaje.** Se oculta el botón y aparece un aviso (T083).
 - [x] **DEF-5 — Tras una sesión revocada, el trabajo pendiente no se enviaba al reingresar.** `login` ahora dispara el sync (SC-016).
 
-### Validación en dispositivo (completa, moto g(60), 2026-11-21)
+### Validación en dispositivo (hasta Fase 4, moto g(60), 2026-11-21)
+
+> Límites, bloqueo de excedentes y avisos (Fases 5 a 7) **no se ejecutaron en dispositivo**: el dueño dio por superadas las pruebas de la Fase 5. T111 sigue abierta.
+
 
 - [x] Registro, Mi plan, downgrade a Free, bodegas en solo lectura y stock intacto.
 - [x] Entrada, Salida y Ajuste no hacen nada en una bodega en solo lectura.
@@ -36,9 +40,11 @@
 
 ### Pendientes antes de Producción
 
-- [ ] Integrar `main` en la rama: falta el hotfix `e393ad8` (migración `20261121161643` y su test).
-- [ ] T003: instalar `psql` y definir `STOREFLOW_SANDBOX_DB_URL` y `STOREFLOW_PROD_DB_URL`. `scripts/test-planes-concurrencia.sh` aún no se ha ejecutado.
-- [ ] T029: invocar de verdad la Edge Function `registrar-usuario-empresa`; solo se simuló su alta con `service_role`.
+- [x] Integrar `main` en la rama (`e5c1adf`).
+- [ ] Commit de las Fases 5 a 8 en la app y en `stockflow-web`.
+- [ ] T003: instalar `psql` y definir `STOREFLOW_SANDBOX_DB_URL` y `STOREFLOW_PROD_DB_URL`. `scripts/test-planes-concurrencia.sh` aún no se ha ejecutado; bloquea T073, T099 y T110. El límite de bodegas se probó con 10 altas simultáneas por REST; el cupo Fundador (SC-007) solo en secuencia.
+- [x] T029: Edge Function `registrar-usuario-empresa` invocada de verdad en Sandbox, incluido el rechazo 409 sobre el límite.
+- [ ] T111: validar en dispositivo límites, bloqueo de excedentes y avisos.
 - [ ] T030: promover M2 a Producción, solo con confirmación explícita.
 
 ### Datos de prueba en Sandbox

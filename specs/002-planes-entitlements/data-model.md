@@ -26,6 +26,7 @@ Tres filas exactas. Sin acceso para `anon` ni `authenticated`.
 | `pagado_hasta` | `timestamptz` null | Check: nulo si y solo si `plan_pagado` es nulo |
 | `primer_pago_standard_at` | `timestamptz` null | Determina "por primera vez a Standard pagado" (FR-012) |
 | `cobertura_fin` | `timestamptz` null | Fin anticipado por baja o paso a Free; `registrar_pago` lo limpia (R7) |
+| `cobertura_lotes` | `boolean` not null | Default `false`. Si tenía lotes al darse de baja o pasar a Free; `registrar_pago` lo limpia (R7) |
 | `es_tester` | `boolean` not null | Default `false` (FR-018) |
 | `activado_en` | `timestamptz` null | Solo empresas existentes (FR-026) |
 | `usaba_lotes` | `boolean` not null | Default `false` |

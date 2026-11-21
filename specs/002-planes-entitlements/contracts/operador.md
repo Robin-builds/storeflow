@@ -18,3 +18,9 @@ Funciones en el esquema `private`, no expuesto por la API. `EXECUTE` revocado a 
 5. Devuelve `{ "fundador": true | false, "motivo": "OTORGADO" | "CUPO_AGOTADO" | "NO_APLICA" }`.
 
 Con cupo agotado el pago se registra igual: la empresa queda en Standard pagado (FR-013). Un Fundador que pasa a Premium pagado conserva el estatus (FR-015).
+
+## Precisiones de la implementación (M5)
+
+- La pérdida por `IMPAGO` se fecha en `pagado_hasta + 7 días`, aunque se registre después (R9).
+- En baja y paso a Free, `cobertura_fin` es `ahora`, salvo que quede un trial en curso (entonces su término) o que la cobertura ya haya terminado (entonces ese vencimiento).
+- `obtener_entitlement` informa `PAGADO` durante la gracia de un Fundador, sin revelar el estatus (FR-027).
