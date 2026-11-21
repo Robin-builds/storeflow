@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import cl.storeflow.warehouse.data.local.dao.*
 import cl.storeflow.warehouse.data.remote.SUPABASE_ANON_KEY
 import cl.storeflow.warehouse.data.remote.SUPABASE_URL
+import cl.storeflow.warehouse.data.repository.PlanRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.ktor.client.*
@@ -32,10 +33,12 @@ class PullWorker @AssistedInject constructor(
     private val movimientoDao: MovimientoDao,
     private val atributoTemplateDao: AtributoTemplateDao,
     private val productoAtributoDao: ProductoAtributoDao,
-    private val loteDao: LoteDao
+    private val loteDao: LoteDao,
+    private val planRepository: PlanRepository
 ) : CoroutineWorker(context, params) {
 
     private val httpClient = HttpClient(Android) { expectSuccess = false }
+    private var rechazadoPorPlan = false
 
     override suspend fun doWork(): Result {
         val sesion = when (val resultado = gestorSesion.obtenerToken()) {
@@ -49,6 +52,11 @@ class PullWorker @AssistedInject constructor(
                 httpClient.close()
                 return Result.success()
             }
+        }
+        if (planRepository.estaBloqueado()) {
+            Timber.d("PULL: usuario bloqueado por plan, no se descargan datos")
+            httpClient.close()
+            return Result.success()
         }
         Timber.d("PULL: iniciando — bodega_id=${sesion.bodega_id} empresa_id=${sesion.empresa_id}")
 
@@ -108,13 +116,15 @@ class PullWorker @AssistedInject constructor(
 
             val ok = e1 && e2 && e3 && e4 && e5 && e6 && e7 && e8 && e9
             Timber.d("PULL: completado — ${if (ok) "SUCCESS" else "RETRY"} e1=$e1 e2=$e2 e3=$e3 e4=$e4 e5=$e5 e6=$e6 e7=$e7 e8=$e8 e9=$e9")
-            if (ok) Result.success() else Result.retry()
+            // SFP05: reintentar no cambia nada hasta que la empresa recupere el plan (FR-029).
+            if (ok || rechazadoPorPlan) Result.success() else Result.retry()
         } finally {
             httpClient.close()
         }
     }
 
     private suspend fun pull(tabla: String, token: String, upsert: suspend (String) -> Int): Boolean {
+        if (rechazadoPorPlan) return false
         return try {
             val response = httpClient.get("$SUPABASE_URL/rest/v1/$tabla?select=*") {
                 headers {
@@ -124,7 +134,9 @@ class PullWorker @AssistedInject constructor(
                 }
             }
             if (!response.status.isSuccess()) {
-                Timber.e("PULL: HTTP ${response.status.value} en $tabla — ${response.bodyAsText()}")
+                val cuerpo = response.bodyAsText()
+                if (response.status.value == 403 && cuerpo.contains("\"SFP05\"")) rechazadoPorPlan = true
+                Timber.e("PULL: HTTP ${response.status.value} en $tabla — $cuerpo")
                 return false
             }
             val body = response.bodyAsText()

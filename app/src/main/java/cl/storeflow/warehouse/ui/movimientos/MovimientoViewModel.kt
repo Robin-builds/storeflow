@@ -20,7 +20,8 @@ sealed class MovimientosUiState {
     data class Listo(
         val producto: Producto,
         val movimientos: List<MovimientoEntity>,
-        val soloLectura: Boolean = false
+        val soloLectura: Boolean = false,
+        val incluyeLotes: Boolean = true
     ) : MovimientosUiState()
     data class Error(val mensaje: String) : MovimientosUiState()
 }
@@ -51,10 +52,11 @@ class MovimientoViewModel @Inject constructor(
             combine(
                 repository.observarProducto(productoId),
                 repository.observarMovimientos(productoId),
-                repository.observarSoloLectura(productoId)
-            ) { producto, movimientos, soloLectura ->
+                repository.observarSoloLectura(productoId),
+                repository.observarIncluyeLotes()
+            ) { producto, movimientos, soloLectura, incluyeLotes ->
                 if (producto == null) MovimientosUiState.Error("Producto no encontrado")
-                else MovimientosUiState.Listo(producto, movimientos, soloLectura)
+                else MovimientosUiState.Listo(producto, movimientos, soloLectura, incluyeLotes)
             }.collect { _uiState.value = it }
         }
     }

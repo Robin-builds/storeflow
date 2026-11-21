@@ -25,6 +25,10 @@ interface AvisoPlanDao {
     )
     suspend fun cerrarLocal(empresaId: String, momentos: List<String>)
 
+    // El ADMIN ya lo cerró en otro dispositivo.
+    @Query("UPDATE avisos_plan SET cerrado = 1 WHERE empresa_id = :empresaId AND momento IN (:momentos)")
+    suspend fun marcarCerradosEnServidor(empresaId: String, momentos: List<String>)
+
     @Query(
         "UPDATE avisos_plan SET cierre_pendiente = 0 " +
             "WHERE empresa_id = :empresaId AND momento = :momento"

@@ -40,6 +40,8 @@ class MovimientoRepository @Inject constructor(
         planRepository.observarBodegasSoloLectura()
     ) { producto, soloLectura -> producto?.toDomain()?.bodegaId in soloLectura }
 
+    fun observarIncluyeLotes(): Flow<Boolean> = planRepository.observarLotes()
+
     fun observarProducto(productoId: String): Flow<Producto?> =
         productoDao.observarProductoConStock(productoId).map { it?.toDomain() }
 
@@ -61,7 +63,8 @@ class MovimientoRepository @Inject constructor(
         if (enSoloLectura(productoId)) return Result.failure(Exception(PlanRepository.MENSAJE_SOLO_LECTURA))
         return try {
             var loteId: String? = null
-            if (fechaCaducidad != null) {
+            // Sin la capacidad, la entrada se registra igual, sin lote ni fecha (FR-025).
+            if (fechaCaducidad != null && planRepository.incluyeLotes()) {
                 val producto = productoDao.obtenerPorId(productoId)
                     ?: return Result.failure(Exception("Producto no encontrado"))
                 val lote = loteRepository.crear(productoId, producto.empresa_id, fechaCaducidad, numeroLote)

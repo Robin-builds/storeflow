@@ -17,7 +17,8 @@ class ProcesadorCola @Inject constructor(private val syncDao: SyncDao) {
 
     suspend fun procesar(
         enviar: suspend (SyncEntity) -> RespuestaPush,
-        alSincronizar: suspend (SyncEntity) -> Unit
+        alSincronizar: suspend (SyncEntity) -> Unit,
+        usuarioBloqueado: Boolean = false
     ): ResultadoCola {
         val cola = syncDao.obtenerCola()
         val restantes = cola.toMutableList()
@@ -28,6 +29,7 @@ class ProcesadorCola @Inject constructor(private val syncDao: SyncDao) {
             // El DELETE de bodega depende de lo que ya salió de la cola en esta misma pasada.
             if (esDeleteBodega(item)) bloqueados = ResolverRetencion.resolver(restantes)
             if (item.id in bloqueados) continue
+            if (usuarioBloqueado && !enviableBloqueado(item, restantes)) continue
 
             val clase = ClasificadorRechazo.clasificar(enviar(item), item.entidad_tipo, item.operacion)
             when (clase) {
@@ -74,6 +76,21 @@ class ProcesadorCola @Inject constructor(private val syncDao: SyncDao) {
         val indice = restantes.indexOfFirst { it.id == item.id }
         restantes[indice] = item.copy(rechazo_codigo = codigo)
         return ResolverRetencion.resolver(restantes)
+    }
+
+    /**
+     * Un usuario bloqueado solo envía INSERT de lotes y movimientos, y no los que dependan
+     * de un INSERT de producto o lote que siga en la cola (FR-029).
+     */
+    private fun enviableBloqueado(item: SyncEntity, restantes: List<SyncEntity>): Boolean {
+        if (item.operacion != OperacionSync.INSERT) return false
+        if (item.entidad_tipo != "lotes" && item.entidad_tipo != "movimientos") return false
+
+        fun enCola(tabla: String, id: String?) = id != null && restantes.any {
+            it.entidad_tipo == tabla && it.operacion == OperacionSync.INSERT && it.entidad_id == id
+        }
+        if (enCola("productos", ResolverRetencion.campo(item, "producto_id"))) return false
+        return item.entidad_tipo == "lotes" || !enCola("lotes", ResolverRetencion.campo(item, "lote_id"))
     }
 
     private fun esDeleteBodega(item: SyncEntity) =

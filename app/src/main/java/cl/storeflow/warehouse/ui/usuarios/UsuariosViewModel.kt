@@ -3,6 +3,7 @@
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.repository.AuthRepository
+import cl.storeflow.warehouse.data.repository.PlanRepository
 import cl.storeflow.warehouse.data.repository.UsuarioRepository
 import cl.storeflow.warehouse.domain.model.Rol
 import cl.storeflow.warehouse.domain.model.Usuario
@@ -28,7 +29,8 @@ sealed class UsuariosUiState {
 @HiltViewModel
 class UsuariosViewModel @Inject constructor(
     private val usuarioRepository: UsuarioRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val planRepository: PlanRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UsuariosUiState>(UsuariosUiState.Cargando)
@@ -55,6 +57,10 @@ class UsuariosViewModel @Inject constructor(
 
     fun registrar(email: String, password: String, nombre: String) {
         viewModelScope.launch {
+            if (!planRepository.puedeCrearUsuario()) {
+                _mensaje.emit(PlanRepository.MENSAJE_SIN_PERMISO_USUARIO)
+                return@launch
+            }
             _operando.value = true
             authRepository.registrarUsuarioEnEmpresa(email, password, nombre)
                 .onSuccess { userId ->

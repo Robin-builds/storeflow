@@ -8,6 +8,7 @@ import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
 import cl.storeflow.warehouse.data.sync.SyncTrigger
+import cl.storeflow.warehouse.domain.model.LoteConStock
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -66,10 +67,50 @@ class MovimientoRepositoryTest {
 
         planRepository = mockk()
         coEvery { planRepository.bodegasEnSoloLectura() } returns emptySet()
+        coEvery { planRepository.incluyeLotes() } returns true
 
         repo = MovimientoRepository(
             movimientoDao, productoDao, syncDao, syncTrigger, loteRepository, authSessionDao, planRepository
         )
+    }
+
+    @Test
+    fun `FR-025 - sin lotes, la entrada de un perecedero se registra sin lote`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.incluyeLotes() } returns false
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero.copy(es_perecedero = true)
+        val slot = slot<MovimientoEntity>()
+        coEvery { movimientoDao.insertar(capture(slot)) } just Runs
+
+        val resultado = repo.registrarEntrada("prod-1", 10, "compra", Date(), "L-1")
+
+        assertTrue(resultado.isSuccess)
+        assertNull(slot.captured.lote_id)
+        assertEquals(10, slot.captured.cantidad)
+        coVerify(exactly = 0) { loteRepository.crear(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `FR-025 - sin lotes, la salida descuenta de los lotes existentes y el resto sin lote`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.incluyeLotes() } returns false
+        coEvery { productoDao.calcularStock("prod-1") } returns 10
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero.copy(es_perecedero = true)
+        coEvery { loteRepository.obtenerConStockFefo("prod-1") } returns listOf(
+            LoteConStock(
+                id = "lote-1", producto_id = "prod-1", empresa_id = "emp-1", numero_lote = null,
+                fecha_caducidad = Date(), stock_actual = 4, synced = true, synced_at = null,
+                created_at = Date(), updated_at = Date()
+            )
+        )
+        val insertados = mutableListOf<MovimientoEntity>()
+        coEvery { movimientoDao.insertar(capture(insertados)) } just Runs
+
+        val resultado = repo.registrarSalida("prod-1", 6, "venta")
+
+        assertTrue(resultado.isSuccess)
+        assertEquals(listOf("lote-1", null), insertados.map { it.lote_id })
+        assertEquals(listOf(-4, -2), insertados.map { it.cantidad })
     }
 
     @Test

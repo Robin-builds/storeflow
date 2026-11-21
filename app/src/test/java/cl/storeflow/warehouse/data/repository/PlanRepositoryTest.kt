@@ -1,6 +1,8 @@
 package cl.storeflow.warehouse.data.repository
 
 import cl.storeflow.warehouse.data.local.dao.AuthSessionDao
+import cl.storeflow.warehouse.data.local.dao.AvisoPlanDao
+import cl.storeflow.warehouse.data.local.entity.AvisoPlanEntity
 import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.PlanCacheDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
@@ -41,6 +43,7 @@ class PlanRepositoryTest {
     private val bodegaDao = mockk<BodegaDao>()
     private val gestorSesion = mockk<GestorSesion>()
     private val clientePlan = mockk<ClientePlan>()
+    private val avisoPlanDao = mockk<AvisoPlanDao>(relaxed = true)
     private val reloj = object : RelojPlan {
         override fun ahoraMs() = AHORA
         override fun elapsedMs() = 5_000L
@@ -114,7 +117,10 @@ class PlanRepositoryTest {
         coEvery { planCacheDao.actualizarMayorReloj(any(), any()) } just Runs
         coEvery { authSessionDao.obtenerSesion() } returns sesion
         every { authSessionDao.observarSesion() } returns flowOf(sesion)
-        repo = PlanRepository(planCacheDao, authSessionDao, bodegaDao, gestorSesion, clientePlan, reloj)
+        repo = PlanRepository(
+            planCacheDao, authSessionDao, bodegaDao, gestorSesion, clientePlan, reloj,
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), avisoPlanDao
+        )
     }
 
     @Test
@@ -281,6 +287,83 @@ class PlanRepositoryTest {
         every { bodegaDao.observarPorEmpresa("empresa-1") } returns flowOf(emptyList())
 
         assertNull(repo.observarPlan().first()!!.diasRestantesTrial)
+    }
+
+    private fun aviso(momento: String, cerrado: Boolean = false) =
+        AvisoPlanEntity(empresa_id = "empresa-1", momento = momento, cerrado = cerrado)
+
+    private fun prepararAvisos(cacheActual: PlanCacheEntity, vararg avisos: AvisoPlanEntity) {
+        every { planCacheDao.observar("empresa-1") } returns flowOf(cacheActual)
+        every { avisoPlanDao.observar("empresa-1") } returns flowOf(avisos.toList())
+    }
+
+    @Test
+    fun `FR-017 - muestra solo el aviso mas reciente sin cerrar`() = runTest {
+        prepararAvisos(
+            cache(plan = "FREE", estado = "FREE", trialFin = AHORA - 1_000),
+            aviso("DIA_0"), aviso("MENOS_7"), aviso("TERMINO")
+        )
+
+        assertEquals("TERMINO", repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - un aviso anterior a uno cerrado no reaparece`() = runTest {
+        prepararAvisos(
+            cache(plan = "FREE", estado = "FREE", trialFin = AHORA - 1_000),
+            aviso("DIA_0"), aviso("MENOS_7", cerrado = true)
+        )
+
+        assertNull(repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - un OPERADOR no ve avisos`() = runTest {
+        every { authSessionDao.observarSesion() } returns flowOf(sesion.copy(rol = "OPERADOR"))
+        prepararAvisos(cache(), aviso("DIA_0"))
+
+        assertNull(repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - sin senal calcula el momento desde el plan guardado`() = runTest {
+        val enSeisDias = AHORA + 6L * 24 * 60 * 60 * 1_000
+        prepararAvisos(cache(trialFin = enSeisDias), aviso("DIA_0"))
+
+        assertEquals("MENOS_7", repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - una cuenta pagada no calcula avisos de vencimiento`() = runTest {
+        prepararAvisos(cache(plan = "STANDARD", estado = "PAGADO", trialFin = AHORA - 1_000))
+
+        assertNull(repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - cerrar marca este aviso y los anteriores y confirma en el servidor`() = runTest {
+        coEvery { gestorSesion.obtenerToken(false) } returns ResultadoToken.Vigente(sesion)
+        coEvery { avisoPlanDao.obtenerCierresPendientes("empresa-1") } returns
+            listOf(aviso("DIA_0", cerrado = true), aviso("MENOS_7", cerrado = true))
+        coEvery { clientePlan.cerrarAviso("token", "MENOS_7") } returns true
+
+        repo.cerrarAviso("MENOS_7")
+
+        coVerify { avisoPlanDao.cerrarLocal("empresa-1", listOf("DIA_0", "MENOS_7")) }
+        coVerify(exactly = 1) { clientePlan.cerrarAviso("token", "MENOS_7") }
+        coVerify { avisoPlanDao.confirmarCierre("empresa-1", "DIA_0") }
+        coVerify { avisoPlanDao.confirmarCierre("empresa-1", "MENOS_7") }
+    }
+
+    @Test
+    fun `FR-017 - si el servidor no responde el cierre queda pendiente`() = runTest {
+        coEvery { gestorSesion.obtenerToken(false) } returns ResultadoToken.Vigente(sesion)
+        coEvery { avisoPlanDao.obtenerCierresPendientes("empresa-1") } returns listOf(aviso("DIA_0", cerrado = true))
+        coEvery { clientePlan.cerrarAviso(any(), any()) } returns false
+
+        repo.cerrarAviso("DIA_0")
+
+        coVerify(exactly = 0) { avisoPlanDao.confirmarCierre(any(), any()) }
     }
 
     @Test

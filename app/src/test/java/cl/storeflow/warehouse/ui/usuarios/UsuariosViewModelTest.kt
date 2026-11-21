@@ -2,10 +2,12 @@ package cl.storeflow.warehouse.ui.usuarios
 
 import cl.storeflow.warehouse.MainDispatcherRule
 import cl.storeflow.warehouse.data.repository.AuthRepository
+import cl.storeflow.warehouse.data.repository.PlanRepository
 import cl.storeflow.warehouse.data.repository.UsuarioRepository
 import cl.storeflow.warehouse.domain.model.Rol
 import cl.storeflow.warehouse.domain.model.Usuario
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -23,6 +25,7 @@ class UsuariosViewModelTest {
 
     private lateinit var usuarioRepository: UsuarioRepository
     private lateinit var authRepository: AuthRepository
+    private lateinit var planRepository: PlanRepository
     private lateinit var viewModel: UsuariosViewModel
 
     private val testUsuario = Usuario(
@@ -36,7 +39,20 @@ class UsuariosViewModelTest {
         authRepository = mockk()
         coEvery { usuarioRepository.obtenerUsuarioActual() } returns testUsuario
         coEvery { usuarioRepository.observarUsuariosDeEmpresa() } returns flowOf(listOf(testUsuario))
-        viewModel = UsuariosViewModel(usuarioRepository, authRepository)
+        planRepository = mockk()
+        coEvery { planRepository.puedeCrearUsuario() } returns true
+        viewModel = UsuariosViewModel(usuarioRepository, authRepository, planRepository)
+    }
+
+    @Test
+    fun `sin permiso no llama al registro y avisa sin mencionar limites`() = runTest {
+        coEvery { planRepository.puedeCrearUsuario() } returns false
+
+        val mensajeDeferred = async { viewModel.mensaje.first() }
+        viewModel.registrar("nuevo@empresa.cl", "clave12345", "Nuevo")
+
+        assertEquals(PlanRepository.MENSAJE_SIN_PERMISO_USUARIO, mensajeDeferred.await())
+        coVerify(exactly = 0) { authRepository.registrarUsuarioEnEmpresa(any(), any(), any()) }
     }
 
     @Test

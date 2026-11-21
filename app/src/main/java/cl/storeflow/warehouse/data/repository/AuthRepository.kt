@@ -56,6 +56,12 @@ class AuthRepository @Inject constructor(
     fun observarTrabajoSinSincronizar(): Flow<Boolean> =
         gestorSesion.observarTrabajoSinSincronizar()
 
+    fun observarBloqueado(): Flow<Boolean> = planRepository.observarBloqueado()
+
+    suspend fun revalidarPlan() {
+        planRepository.validarActual()
+    }
+
     suspend fun login(correo: String, contrasena: String): Result<SesionUsuario> {
         return try {
             Timber.d("AUTH: iniciando login para $correo")
@@ -94,6 +100,8 @@ class AuthRepository @Inject constructor(
                         correo = correo.trim()
                     )
                 )
+                // Sus movimientos dentro de la ventana todavía se pueden enviar (FR-029).
+                syncTrigger.trigger()
                 return Result.success(
                     SesionUsuario(
                         user_id = user.id,

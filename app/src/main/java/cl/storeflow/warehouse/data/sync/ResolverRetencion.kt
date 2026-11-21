@@ -59,7 +59,7 @@ object ResolverRetencion {
         }
     }
 
-    private fun campo(item: SyncEntity, nombre: String): String? = try {
+    internal fun campo(item: SyncEntity, nombre: String): String? = try {
         ((Json.parseToJsonElement(item.payload) as? JsonObject)?.get(nombre) as? JsonPrimitive)
             ?.takeIf { it.isString }
             ?.content

@@ -67,6 +67,28 @@ class ProcesadorColaTest {
         respuestas[id] = ArrayDeque(r.toList())
     }
 
+    @Test
+    fun `FR-029 - bloqueado solo envia inserts de lotes y movimientos sin padre pendiente`() = runTest {
+        encolar("p-nuevo", "productos")
+        encolar("p-editado", "productos", OperacionSync.UPDATE)
+        encolar("m-dependiente", "movimientos", payload = """{"producto_id":"e-p-nuevo"}""")
+        encolar("m-libre", "movimientos", payload = """{"producto_id":"p-existente"}""")
+        encolar("l-libre", "lotes", payload = """{"producto_id":"p-existente"}""")
+
+        val resultado = procesador.procesar(
+            enviar = { item ->
+                enviados += item.id
+                RespuestaPush(201)
+            },
+            alSincronizar = { sincronizados += it.id },
+            usuarioBloqueado = true
+        )
+
+        assertEquals(listOf("m-libre", "l-libre"), enviados)
+        assertEquals(3, cola.size)
+        assertFalse(resultado.hayQueReintentar)
+    }
+
     private suspend fun procesar() = procesador.procesar(
         enviar = { item ->
             enviados += item.id

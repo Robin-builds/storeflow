@@ -40,6 +40,7 @@ import cl.storeflow.warehouse.ui.dashboard.DashboardScreen
 import cl.storeflow.warehouse.ui.usuarios.UsuariosScreen
 import cl.storeflow.warehouse.ui.movimientos.MovimientosScreen
 import cl.storeflow.warehouse.ui.movimientos.HistorialMovimientosScreen
+import cl.storeflow.warehouse.ui.plan.BloqueoPlanScreen
 import cl.storeflow.warehouse.ui.plan.PlanScreen
 import cl.storeflow.warehouse.ui.productos.ProductosListScreen
 import cl.storeflow.warehouse.ui.reportar.ReportarErrorScreen
@@ -300,6 +301,17 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+                    }
+
+                    // Sobre el NavHost: debe seguir compuesto para que la navegación tenga su grafo.
+                    val bloqueadoPorPlan by authViewModel.bloqueadoPorPlan.collectAsState()
+                    val hayTrabajo by authViewModel.hayTrabajoSinSincronizar.collectAsState()
+                    if (bloqueadoPorPlan) {
+                        BloqueoPlanScreen(
+                            hayTrabajoSinSincronizar = hayTrabajo,
+                            onReintentar = authViewModel::revalidarPlan,
+                            onCerrarSesion = authViewModel::logout
+                        )
                     }
                 }
                 }

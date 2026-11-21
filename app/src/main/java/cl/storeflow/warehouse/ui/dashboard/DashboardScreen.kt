@@ -59,6 +59,8 @@ import cl.storeflow.warehouse.ui.ayuda.OnboardingDialog
 import cl.storeflow.warehouse.ui.bodegas.BodegaViewModel
 import cl.storeflow.warehouse.ui.bodegas.BodegasUiState
 import cl.storeflow.warehouse.ui.components.BotonAyuda
+import cl.storeflow.warehouse.ui.plan.AvisoPlanBanner
+import cl.storeflow.warehouse.ui.plan.PlanViewModel
 import cl.storeflow.warehouse.ui.productos.ProductoViewModel
 import cl.storeflow.warehouse.ui.productos.ProductosUiState
 import cl.storeflow.warehouse.ui.theme.StoreFlowColoresExtendidos
@@ -84,7 +86,8 @@ fun DashboardScreen(
     productoViewModel: ProductoViewModel = hiltViewModel(),
     atributoViewModel: AtributoViewModel = hiltViewModel(),
     usuariosViewModel: UsuariosViewModel = hiltViewModel(),
-    dashboardViewModel: DashboardViewModel = hiltViewModel()
+    dashboardViewModel: DashboardViewModel = hiltViewModel(),
+    planViewModel: PlanViewModel = hiltViewModel()
 ) {
     val colores = StoreFlowTheme.coloresExtendidos
 
@@ -99,6 +102,7 @@ fun DashboardScreen(
     val busquedaGlobal by dashboardViewModel.busquedaGlobal.collectAsState()
     val resultadosBusquedaGlobal by dashboardViewModel.resultadosBusquedaGlobal.collectAsState()
     val countProximosAVencer by dashboardViewModel.countProximosAVencer.collectAsState()
+    val avisoPlan by planViewModel.avisoActual.collectAsState()
 
     val countAlertas = (alertasState as? AlertasUiState.Listo)?.alertas?.size ?: 0
     val bodegaActiva = (bodegasState as? BodegasUiState.Listo)?.activa
@@ -205,6 +209,10 @@ fun DashboardScreen(
                     .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
                     .padding(bottom = 24.dp)
             ) {
+                avisoPlan?.let { momento ->
+                    AvisoPlanBanner(momento = momento, onCerrar = planViewModel::cerrarAviso)
+                    Spacer(Modifier.height(16.dp))
+                }
                 BusquedaProductoCard(
                     busqueda = busquedaGlobal,
                     resultados = resultadosBusquedaGlobal,

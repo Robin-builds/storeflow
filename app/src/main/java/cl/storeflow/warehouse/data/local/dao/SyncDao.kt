@@ -4,6 +4,8 @@ import androidx.room.*
 import cl.storeflow.warehouse.data.local.entity.SyncEntity
 import kotlinx.coroutines.flow.Flow
 
+data class RetenidoPorTipo(val entidad_tipo: String, val cantidad: Int)
+
 @Dao
 interface SyncDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -36,6 +38,12 @@ interface SyncDao {
 
     @Query("SELECT COUNT(*) FROM sync_queue WHERE rechazo_codigo IS NOT NULL")
     fun observarRetenidos(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM sync_queue WHERE rechazo_codigo IS NOT NULL")
+    suspend fun contarRetenidos(): Int
+
+    @Query("SELECT entidad_tipo, COUNT(*) AS cantidad FROM sync_queue WHERE rechazo_codigo IS NOT NULL GROUP BY entidad_tipo ORDER BY entidad_tipo")
+    fun observarRetenidosPorTipo(): Flow<List<RetenidoPorTipo>>
 
     // Pendientes y retenidos: lo que no se puede borrar al cerrar o perder la sesión (FR-030).
     @Query("SELECT COUNT(*) FROM sync_queue")

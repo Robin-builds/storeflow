@@ -72,13 +72,18 @@ class SyncWorker @AssistedInject constructor(
                 syncDao.limpiarRechazos()
             }
 
+            val bloqueado = (validacion as? ResultadoValidacion.Actualizado)?.bloqueado
+                ?: planRepository.estaBloqueado()
+
             val resultado = procesadorCola.procesar(
                 enviar = { item -> pushItem(item, accessToken) },
                 alSincronizar = { item ->
                     Timber.d("SYNC: OK — ${item.entidad_tipo}/${item.operacion} id=${item.entidad_id}")
                     marcarSincronizado(item)
-                }
+                },
+                usuarioBloqueado = bloqueado
             )
+            planRepository.informarRetenidos(accessToken)
             if (resultado.hayQueReintentar) Result.retry() else Result.success()
         } finally {
             httpClient.close()

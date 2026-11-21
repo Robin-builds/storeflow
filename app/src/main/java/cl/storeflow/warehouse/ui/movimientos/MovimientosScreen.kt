@@ -89,12 +89,14 @@ fun MovimientosScreen(
     }
 
     val stockActual = (uiState as? MovimientosUiState.Listo)?.producto?.stockActual ?: 0
-    val esPerecedero = (uiState as? MovimientosUiState.Listo)?.producto?.esPerecedero ?: false
+    // Sin la capacidad de lotes se ocultan fecha y lote, y la entrada se puede registrar (FR-025).
+    val pideLote = (uiState as? MovimientosUiState.Listo)
+        ?.let { it.producto.esPerecedero && it.incluyeLotes } ?: false
     tipoSeleccionado?.let { tipo ->
         MovimientoDialog(
             tipo = tipo,
             stockActual = stockActual,
-            esPerecedero = esPerecedero,
+            esPerecedero = pideLote,
             formState = formState,
             onRegistrar = { cantidad, nota, fechaCaducidad, numeroLote ->
                 when (tipo) {
