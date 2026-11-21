@@ -195,3 +195,17 @@ Propietaria — todos los derechos reservados. Sin licencia de uso, copia ni dis
 <p align="center">
   Desarrollado en Chile 🇨🇱 por <a href="https://github.com/Robin-builds">Robinson Arriagada</a>
 </p>
+
+## Constitución y puertas de calidad
+
+Las reglas no negociables del proyecto están en [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+Después de clonar, activa los hooks versionados (una sola vez por clon):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+- `commit-msg`: exige commits semánticos (`feat:`, `fix:`, `docs:`…).
+- `pre-push`: corre los tests unitarios; si el push cambia `supabase/`, exige los tests SQL de `supabase/tests/` contra **Sandbox**.
+
+Ningún cambio de base de datos se aplica en Producción sin pasar antes por Sandbox.

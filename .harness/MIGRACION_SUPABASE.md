@@ -5,7 +5,7 @@ en una organización distinta. Sirve como guía reutilizable si hay que repetirl
 
 ## Caso realizado (referencia histórica)
 
-- **Origen**: proyecto "StockFlow" (`eygbgykglovbivthyqfb`), organización `qmvlkqgapwsybqeowicc`
+- **Origen**: proyecto anterior (eliminado), organización antigua
 - **Destino**: proyecto `quvkxpjstzssivsaqimu`, organización nueva
 - **Fecha**: 2026-08-08
 - **Resultado**: 10 tablas, RLS, políticas, 3 funciones RPC y ~20,111 filas migradas sin pérdida. Edge function desplegada manualmente (ver limitación de MCP más abajo). **`auth.users`/`auth.identities` se migraron después, vía `postgres_fdw`** (ver sección 7) — validado que funciona, incluyendo el hash de contraseña (`encrypted_password`). Solo la primera cuenta (`sara@cym.cl`, que ya había creado una cuenta nueva antes de migrar auth) necesitó el fix manual de la sección 7.b; el resto de usuarios entra directo con su email/contraseña original.

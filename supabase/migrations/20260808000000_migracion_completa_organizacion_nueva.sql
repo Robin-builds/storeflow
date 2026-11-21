@@ -1,6 +1,6 @@
     -- ============================================================================
     -- Migración completa de esquema StockFlow
-    -- Origen: proyecto "StockFlow" (eygbgykglovbivthyqfb) — organización antigua
+    -- Origen: proyecto anterior (eliminado) — organización antigua
     -- Destino: proyecto nuevo (quvkxpjstzssivsaqimu) — organización nueva
     -- Generado: 2026-08-08
     --

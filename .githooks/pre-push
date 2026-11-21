@@ -1,0 +1,51 @@
+#!/bin/sh
+# Constitución StoreFlow — puertas de calidad previas al push.
+# Activar una vez por clon:  git config core.hooksPath .githooks
+# Saltar este hook con --no-verify es una violación de la constitución.
+
+raiz=$(git rev-parse --show-toplevel)
+cd "$raiz" || exit 1
+
+# --- archivos que entran en este push -------------------------------------------
+cero=0000000000000000000000000000000000000000
+cambiados=""
+while read -r ref_local sha_local ref_remota sha_remota; do
+  [ "$sha_local" = "$cero" ] && continue                    # borrado de rama remota
+  if [ "$sha_remota" = "$cero" ]; then
+    base=$(git merge-base "$sha_local" origin/main 2>/dev/null || git rev-list --max-parents=0 "$sha_local" | tail -n 1)
+  else
+    base=$sha_remota
+  fi
+  cambiados="$cambiados
+$(git diff --name-only "$base" "$sha_local")"
+done
+
+# --- Puerta 1: tests unitarios (principios I, II, IV, V) ------------------------
+echo "▶ pre-push: tests unitarios (gradlew testDebugUnitTest)…"
+if ! ./gradlew testDebugUnitTest -q --console=plain; then
+  echo "✖ pre-push: hay tests unitarios en rojo. Push cancelado." >&2
+  exit 1
+fi
+echo "✔ tests unitarios en verde"
+
+# --- Puerta 0 / 2: cambios en supabase/ → tests SQL contra Sandbox -------------
+if echo "$cambiados" | grep -q '^supabase/'; then
+  if [ -n "$STOREFLOW_SANDBOX_DB_URL" ] && command -v psql >/dev/null 2>&1; then
+    for test_sql in supabase/tests/*.sql; do
+      echo "▶ pre-push: $test_sql contra Sandbox…"
+      if ! psql "$STOREFLOW_SANDBOX_DB_URL" -v ON_ERROR_STOP=1 -q -f "$test_sql" >/dev/null; then
+        echo "✖ pre-push: $test_sql falló en Sandbox. Push cancelado." >&2
+        exit 1
+      fi
+    done
+    echo "✔ tests SQL en verde contra Sandbox"
+  elif [ "$SANDBOX_OK" = "1" ]; then
+    echo "⚠ pre-push: cambios en supabase/ validados manualmente en Sandbox (SANDBOX_OK=1)."
+  else
+    echo "✖ pre-push: este push cambia supabase/ y los tests SQL no se pudieron correr." >&2
+    echo "  Opción A: definir STOREFLOW_SANDBOX_DB_URL (connection string de Sandbox) y tener psql en el PATH." >&2
+    echo "  Opción B: correr supabase/tests/*.sql en Sandbox a mano y luego:  SANDBOX_OK=1 git push" >&2
+    exit 1
+  fi
+fi
+exit 0

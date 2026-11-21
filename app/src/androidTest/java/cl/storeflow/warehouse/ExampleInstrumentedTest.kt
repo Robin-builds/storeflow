@@ -1,4 +1,4 @@
-﻿package cl.storeflow.warehouse
+package cl.storeflow.warehouse
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -11,6 +11,7 @@ class ExampleInstrumentedTest {
     @Test
     fun useAppContext() {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("cl.storeflow.app", appContext.packageName)
+        // cl.storeflow.app (debug/release) o cl.storeflow.app.sandbox (build sandbox)
+        assertEquals(BuildConfig.APPLICATION_ID, appContext.packageName)
     }
 }
