@@ -90,6 +90,9 @@ serve(async (req) => {
 
     if (insertError) {
       await supabaseAdmin.auth.admin.deleteUser(newUserId)
+      if (insertError.code === 'SFP02') {
+        return json({ error: 'Límite de usuarios del plan alcanzado', code: 'SFP02' }, 409)
+      }
       return json({ error: `Error al crear perfil: ${insertError.message}` }, 500)
     }
 

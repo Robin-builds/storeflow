@@ -34,6 +34,11 @@ insert into public.empresas (id, nombre) values
     ('e4000000-0000-4000-8000-00000000000e', 'TEST unica activa'),
     ('e5000000-0000-4000-8000-00000000000e', 'TEST activacion');
 
+-- Premium temporal: permite armar datos que exceden el plan final (límites de M4).
+update public.suscripciones
+set plan_pagado = 'PREMIUM', pagado_hasta = now() + interval '1 day'
+where empresa_id in ('e3000000-0000-4000-8000-00000000000e', 'e5000000-0000-4000-8000-00000000000e');
+
 insert into public.usuarios (id, empresa_id, nombre, email, rol) values
     ('e3000000-0000-4000-8000-0000000000a2', 'e3000000-0000-4000-8000-00000000000e', 'operador antiguo', 'e2@test.invalid', 'OPERADOR');
 insert into public.usuarios (id, empresa_id, nombre, email, rol) values
@@ -75,7 +80,7 @@ insert into public.bodegas (empresa_id, nombre)
 select 'e5000000-0000-4000-8000-00000000000e', 'bodega ' || i from generate_series(1, 7) i;
 
 update public.suscripciones
-set activado_en = clock_timestamp()
+set activado_en = clock_timestamp(), plan_pagado = null, pagado_hasta = null
 where empresa_id = 'e5000000-0000-4000-8000-00000000000e';
 
 create temp table stock_antes on commit drop as
@@ -99,7 +104,8 @@ end $$;
 
 -- ---------------------------------------------------------------- vence el trial
 update public.suscripciones
-set trial_inicio = now() - interval '721 hours', trial_fin = now() - interval '1 hour'
+set trial_inicio = now() - interval '721 hours', trial_fin = now() - interval '1 hour',
+    plan_pagado = null, pagado_hasta = null
 where empresa_id in ('e3000000-0000-4000-8000-00000000000e', 'e4000000-0000-4000-8000-00000000000e');
 
 do $$

@@ -41,6 +41,10 @@ insert into public.productos (id, empresa_id, bodega_id, nombre) values
 insert into public.producto_atributos (producto_id, template_id, valor) values
     ('b0000000-0000-4000-8000-0000000000b5', 'b0000000-0000-4000-8000-0000000000b4', 'rojo');
 
+-- Los lotes requieren una capacidad de plan (M4).
+update public.suscripciones set es_tester = true
+where empresa_id = 'b0000000-0000-4000-8000-00000000000b';
+
 insert into public.lotes (id, producto_id, empresa_id, fecha_caducidad) values
     ('b0000000-0000-4000-8000-0000000000b6', 'b0000000-0000-4000-8000-0000000000b5', 'b0000000-0000-4000-8000-00000000000b', now() + interval '30 days');
 

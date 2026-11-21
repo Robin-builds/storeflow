@@ -23,6 +23,9 @@ insert into public.bodegas (id, empresa_id, nombre) values
 insert into public.productos (id, empresa_id, bodega_id, nombre) values
     ('d0000000-0000-4000-8000-0000000000d5', 'd0000000-0000-4000-8000-00000000000d', 'd0000000-0000-4000-8000-0000000000d2', 'producto D'),
     ('d0000000-0000-4000-8000-0000000000d6', 'd0000000-0000-4000-8000-00000000000d', 'd0000000-0000-4000-8000-0000000000d2', 'producto D2');
+-- Los lotes requieren una capacidad de plan (M4).
+update public.suscripciones set es_tester = true
+where empresa_id = 'd0000000-0000-4000-8000-00000000000d';
 insert into public.lotes (id, producto_id, empresa_id, fecha_caducidad) values
     ('d0000000-0000-4000-8000-0000000000d7', 'd0000000-0000-4000-8000-0000000000d5', 'd0000000-0000-4000-8000-00000000000d', now() + interval '30 days');
 insert into public.movimientos (id, producto_id, tipo, cantidad, nota, lote_id, usuario_id) values
