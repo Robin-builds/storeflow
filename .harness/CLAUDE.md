@@ -103,7 +103,7 @@ di/              → AppModule, DatabaseModule
 - `*Entity` nunca sale de `data/` — la UI solo conoce objetos de dominio.
 - `ProductoConStock` es tipo interno de Room (JOIN con `movimientos`); `.toDomain()` es el puente.
 
-**Multi-tenancy:** JWT custom claims (`empresa_id` en `app_metadata`) → RLS en Supabase filtra por empresa. El código Kotlin **NO filtra manualmente** por `empresa_id`.
+**Multi-tenancy:** RLS en Supabase vía `get_empresa_id()`, que obtiene la empresa desde la membresía en `public.usuarios` (`id = auth.uid()`). El claim `app_metadata.empresa_id` del JWT **no** se usa en RLS. La seguridad depende solo de RLS; filtrar por `empresa_id` en Room está permitido (Room contiene datos de una sola empresa). Ver constitución, principio III.
 
 **Roles:** Enum `Rol` (`ADMIN`, `OPERADOR`) — control de acceso solo en UI/Android, no en RLS.
 - `rol` persiste en `AuthSessionEntity` (leído de `usuarios` en login).
@@ -241,9 +241,9 @@ SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :id
 
 ---
 
-## 🧪 TESTS (55 totales)
+## 🧪 TESTS
 
-54 unitarios + 1 instrumentado. Stack: JUnit4 + mockk + kotlinx-coroutines-test. Sin Jacoco configurado.
+65 unitarios (al 20/11/2026, incluidos los 6 de `constitucion/`) + instrumentados (`ExampleInstrumentedTest`, kit de carga `loadtest/`). Stack: JUnit4 + mockk + kotlinx-coroutines-test. Sin Jacoco configurado. SQL: `supabase/tests/` (aislamiento entre empresas, inmutabilidad de movimientos).
 
 | Archivo | Tests |
 |---|---|
@@ -258,7 +258,6 @@ SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :id
 | `MovimientoRepositoryTest.kt` | 4 — usuario_id seteado desde la sesión (entrada/salida/ajuste), null sin sesión |
 | Placeholders | 2 |
 
-⚠️ `ProductoAtributosFormTest.kt` referencia `contarConNombre` (no existe en `ProductoDao`) — falla también en `develop`, es bug preexistente no relacionado a features activas.
 
 ---
 
@@ -284,6 +283,16 @@ Textos UI:   español neutro LatAm (público objetivo: Chile) — tuteo tú/uste
              sin voseo ("tenés", "podés", "vos") ni modismos rioplatenses
              ("acá" → usar "aquí", "dale", "che", "boludo", etc.)
 ```
+
+---
+
+---
+
+## 📜 CONSTITUCIÓN Y AMBIENTES
+
+- **Constitución:** `.specify/memory/constitution.md` — prevalece sobre este archivo si hay conflicto. Principios NO NEGOCIABLES: stock derivado, movimientos inmutables (trigger en Postgres), aislamiento entre empresas.
+- **Sandbox → Producción (NO NEGOCIABLE):** todo cambio de base o Edge Function va primero a `storeflow-sandbox` (`ihmseolpajzqnddldffc`), se prueba ahí (`supabase/tests/` + app `gradlew.bat installSandbox`) y recién después se promueve sin editar a Producción (`quvkxpjstzssivsaqimu`) con `scripts/promover-migracion.sh`.
+- **Hooks:** `git config core.hooksPath .githooks` (commits semánticos + tests antes del push).
 
 ---
 
@@ -315,7 +324,7 @@ Textos UI:   español neutro LatAm (público objetivo: Chile) — tuteo tú/uste
 1. **No asumir** nada que no esté en este archivo, en el código, o en los contratos pegados.
 2. **Un archivo por sesión** — si el scope crece, parar y preguntar.
 3. **Respetar nombres** — español para variables, inglés para commits.
-4. **No filtrar por empresa_id** en código Kotlin — RLS lo hace.
+4. **La seguridad entre empresas es solo RLS** — ninguna consulta remota se considera segura por filtrar `empresa_id` en el cliente.
 5. **Stock siempre por query** — nunca campo mutable en `ProductoEntity`.
 6. **No crear capa UseCase** — no introducir abstracción nueva sin pedirlo el usuario.
 7. **Si hay duda sobre un contrato** — preguntar antes de asumir.
