@@ -1,0 +1,13 @@
+#!/bin/sh
+# Constitución StoreFlow — convención de commits semánticos en inglés.
+# Activar una vez por clon:  git config core.hooksPath .githooks
+primera_linea=$(head -n 1 "$1")
+patron='^(feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert|merge)(\([^)]+\))?!?: .+'
+if echo "$primera_linea" | grep -Eq "$patron" || echo "$primera_linea" | grep -Eq '^(Merge|Revert) '; then
+  exit 0
+fi
+echo "✖ commit-msg: el mensaje no sigue el formato semántico." >&2
+echo "  Recibido: $primera_linea" >&2
+echo "  Esperado: <tipo>(<alcance opcional>): <descripción en inglés>" >&2
+echo "  Tipos: feat fix refactor docs test chore perf build ci style revert merge" >&2
+exit 1
