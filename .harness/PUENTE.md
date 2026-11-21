@@ -17,10 +17,10 @@
 
 ## 🗄️ PROYECTO SUPABASE COMPARTIDO
 
-**Proyecto:** `quvkxpjstzssivsaqimu` (organización nueva; migrado desde `eygbgykglovbivthyqfb`
+**Proyecto:** `quvkxpjstzssivsaqimu` (organización nueva; migrado desde el proyecto anterior, ya eliminado,
 el 2026-08-08, ver `.harness/MIGRACION_SUPABASE.md`). Mismo proyecto para ambos repos,
-mismas credenciales de usuario final. ⚠️ **`eygbgykglovbivthyqfb` es el proyecto viejo,
-abandonado desde la migración — no usarlo.** El 22/08 se detectó que `stockflow-web`
+mismas credenciales de usuario final. ⚠️ **El proyecto viejo ya no existe;
+el único proyecto válido es `quvkxpjstzssivsaqimu`.** El 22/08 se detectó que `stockflow-web`
 (`.env.local` local y posiblemente las env vars de producción en Vercel) seguía
 apuntando al proyecto viejo, dos semanas después de la migración — verificar Vercel
 si no se hizo ya.

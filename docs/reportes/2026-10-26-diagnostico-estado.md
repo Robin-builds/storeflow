@@ -52,7 +52,7 @@
 
 ## 3. Drift documental
 
-### Referencias al proyecto Supabase viejo (`eygbgykglovbivthyqfb`)
+### Referencias al proyecto Supabase viejo (eliminado)
 - `.harness/CLAUDE.md:208` todavía dice que la tabla `lotes` vive en el proyecto viejo. Es la **única referencia operativa** al proyecto viejo [V].
 - Las demás menciones (`MIGRACION_SUPABASE.md`, `PUENTE.md`, el SQL de migración) son históricas y están bien [V].
 - Código (`SupabaseClient.kt`) y `.mcp.json` están limpios [V]. Las env vars de Vercel apuntan al proyecto vigente según `ESTADO.md` del 26/10 [D].

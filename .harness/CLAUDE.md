@@ -205,7 +205,7 @@ SELECT COALESCE(SUM(cantidad), 0) FROM movimientos WHERE producto_id = :id
 
 - **SyncWorker** — push de `sync_queue` a Supabase REST; auto-refresca token expirado; hasta 3 reintentos; batch especial para `producto_atributos`.
 - **PullWorker** — GET de 9 tablas → DTOs (`ignoreUnknownKeys=true`) → `upsertAll`. Falla individual no bloquea otras tablas. Se dispara tras login exitoso.
-- **Supabase tabla `lotes`** — RLS `ALL` con `USING/WITH CHECK (empresa_id = get_empresa_id())`, FKs CASCADE, índices `idx_lotes_producto`/`idx_lotes_empresa`. Proyecto: `eygbgykglovbivthyqfb` / "StockFlow".
+- **Supabase tabla `lotes`** — RLS `ALL` con `USING/WITH CHECK (empresa_id = get_empresa_id())`, FKs CASCADE, índices `idx_lotes_producto`/`idx_lotes_empresa`. Proyecto: `quvkxpjstzssivsaqimu`.
 
 ---
 
