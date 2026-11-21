@@ -5,6 +5,7 @@ import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.BodegaEntity
+import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.data.sync.toSyncDelete
 import cl.storeflow.warehouse.data.sync.toSyncInsert
 import cl.storeflow.warehouse.data.sync.toSyncUpdate
@@ -26,7 +27,8 @@ class BodegaRepository @Inject constructor(
     private val authSessionDao: AuthSessionDao,
     private val syncDao: SyncDao,
     private val productoDao: ProductoDao,
-    private val planRepository: PlanRepository
+    private val planRepository: PlanRepository,
+    private val syncTrigger: SyncTrigger
 ) {
 
     // flatMapLatest: cuando bodega_id cambia en sesión, esActiva se recalcula en todos los items
@@ -60,6 +62,7 @@ class BodegaRepository @Inject constructor(
             )
             bodegaDao.insertar(bodega)
             syncDao.encolar(bodega.toSyncInsert())
+            syncTrigger.trigger()
             Timber.d("BODEGA: creada id=${bodega.id}, nombre=${bodega.nombre}")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -107,6 +110,7 @@ class BodegaRepository @Inject constructor(
 
             bodegaDao.eliminar(bodega)
             syncDao.encolar(bodega.toSyncDelete())
+            syncTrigger.trigger()
             Timber.d("BODEGA: eliminada id=$id")
             Result.success(Unit)
         } catch (e: Exception) {

@@ -17,6 +17,9 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -182,6 +185,9 @@ class GestorSesion @Inject constructor(
     }
 
     suspend fun tieneTrabajoSinSincronizar(): Boolean = syncDao.contarTrabajoSinSincronizar() > 0
+
+    fun observarTrabajoSinSincronizar(): Flow<Boolean> =
+        syncDao.observarTrabajoSinSincronizar().map { it > 0 }.distinctUntilChanged()
 
     /** Con trabajo en el dispositivo, solo su mismo usuario puede retomar la sesión. */
     suspend fun puedeIngresar(userId: String): Boolean {

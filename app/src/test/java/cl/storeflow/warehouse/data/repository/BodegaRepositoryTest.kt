@@ -6,10 +6,14 @@ import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.BodegaEntity
+import cl.storeflow.warehouse.data.sync.SyncTrigger
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -29,6 +33,7 @@ class BodegaRepositoryTest {
     private lateinit var syncDao: SyncDao
     private lateinit var productoDao: ProductoDao
     private lateinit var planRepository: PlanRepository
+    private lateinit var syncTrigger: SyncTrigger
     private lateinit var repo: BodegaRepository
 
     private val sessionFlow = MutableStateFlow<AuthSessionEntity?>(null)
@@ -55,7 +60,33 @@ class BodegaRepositoryTest {
         every { authSessionDao.observarSesion() } returns sessionFlow
         every { planRepository.observarBodegasSoloLectura() } returns flowOf(emptySet())
         coEvery { planRepository.bodegasEnSoloLectura() } returns emptySet()
-        repo = BodegaRepository(bodegaDao, authSessionDao, syncDao, productoDao, planRepository)
+        syncTrigger = mockk()
+        every { syncTrigger.trigger() } just Runs
+        repo = BodegaRepository(bodegaDao, authSessionDao, syncDao, productoDao, planRepository, syncTrigger)
+    }
+
+    @Test
+    fun `DEF-3 - crear una bodega dispara la sincronizacion`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { bodegaDao.insertar(any()) } just Runs
+        coEvery { syncDao.encolar(any()) } just Runs
+
+        assertTrue(repo.crear("Sur", null).isSuccess)
+
+        verify(exactly = 1) { syncTrigger.trigger() }
+    }
+
+    @Test
+    fun `DEF-3 - eliminar una bodega dispara la sincronizacion`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { bodegaDao.obtenerPorId("bod-2") } returns entidadOtra
+        coEvery { productoDao.contarPorBodega("bod-2") } returns 0
+        coEvery { bodegaDao.eliminar(any()) } just Runs
+        coEvery { syncDao.encolar(any()) } just Runs
+
+        assertTrue(repo.eliminar("bod-2").isSuccess)
+
+        verify(exactly = 1) { syncTrigger.trigger() }
     }
 
     @Test

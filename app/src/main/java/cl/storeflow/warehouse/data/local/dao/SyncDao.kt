@@ -40,4 +40,7 @@ interface SyncDao {
     // Pendientes y retenidos: lo que no se puede borrar al cerrar o perder la sesión (FR-030).
     @Query("SELECT COUNT(*) FROM sync_queue")
     suspend fun contarTrabajoSinSincronizar(): Int
+
+    @Query("SELECT COUNT(*) FROM sync_queue")
+    fun observarTrabajoSinSincronizar(): Flow<Int>
 }

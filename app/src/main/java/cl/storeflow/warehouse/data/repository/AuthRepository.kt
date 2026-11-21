@@ -8,6 +8,7 @@ import cl.storeflow.warehouse.data.remote.supabaseClient
 import cl.storeflow.warehouse.data.sync.GestorSesion
 import cl.storeflow.warehouse.data.sync.PullTrigger
 import cl.storeflow.warehouse.data.sync.ResultadoToken
+import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.domain.model.Rol
 import cl.storeflow.warehouse.domain.model.SesionUsuario
 import io.github.jan.supabase.gotrue.gotrue
@@ -39,7 +40,8 @@ class AuthRepository @Inject constructor(
     private val authSessionDao: AuthSessionDao,
     private val gestorSesion: GestorSesion,
     private val pullTrigger: PullTrigger,
-    private val planRepository: PlanRepository
+    private val planRepository: PlanRepository,
+    private val syncTrigger: SyncTrigger
 ) {
 
     private companion object {
@@ -51,19 +53,8 @@ class AuthRepository @Inject constructor(
 
     fun observarSesion(): Flow<AuthSessionEntity?> = authSessionDao.observarSesion()
 
-    private fun esErrorDeConexion(e: Throwable): Boolean {
-        val causa = e.cause
-        return e is java.net.UnknownHostException ||
-            causa is java.net.UnknownHostException ||
-            e.message?.contains("Unable to resolve host") == true
-    }
-
-    private fun mensajeError(e: Throwable, generico: String): String {
-        if (esErrorDeConexion(e)) {
-            return "Sin conexión a internet. Verifica tu WiFi o datos móviles e intenta nuevamente."
-        }
-        return generico
-    }
+    fun observarTrabajoSinSincronizar(): Flow<Boolean> =
+        gestorSesion.observarTrabajoSinSincronizar()
 
     suspend fun login(correo: String, contrasena: String): Result<SesionUsuario> {
         return try {
@@ -152,6 +143,8 @@ class AuthRepository @Inject constructor(
                 )
             )
             Timber.d("AUTH: sesion guardada en Room OK")
+            // Retoma la cola que quedó esperando un nuevo ingreso tras una sesión inválida (SC-016).
+            syncTrigger.trigger()
             pullTrigger.trigger()
 
             Result.success(
@@ -166,7 +159,7 @@ class AuthRepository @Inject constructor(
             )
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en login — ${e.javaClass.simpleName}: ${e.message}")
-            Result.failure(Exception(mensajeError(e, "Error: ${e.message}")))
+            Result.failure(Exception(mensajeAuthSeguro(e, "No se pudo iniciar sesión. Intenta nuevamente.")))
         }
     }
 
@@ -270,6 +263,9 @@ class AuthRepository @Inject constructor(
 
             planRepository.validar(session.accessToken)
 
+            // Sin esto la Bodega Principal no llega a Room hasta el próximo login (DEF-1).
+            pullTrigger.trigger()
+
             Timber.d("AUTH: registro completo OK")
             Result.success(
                 SesionUsuario(
@@ -286,7 +282,7 @@ class AuthRepository @Inject constructor(
             val mensaje = when {
                 e.message?.contains("Invalid login credentials") == true ->
                     "Contraseña incorrecta. Si ya tienes cuenta, inicia sesión."
-                else -> mensajeError(e, "Error al registrar: ${e.message}")
+                else -> mensajeAuthSeguro(e, "No se pudo completar el registro. Intenta nuevamente.")
             }
             Result.failure(Exception(mensaje))
         }
@@ -330,7 +326,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en registrarUsuarioEnEmpresa")
-            Result.failure(Exception("Error de conexión: ${e.message}"))
+            Result.failure(Exception(mensajeAuthSeguro(e, "No se pudo completar la operación. Intenta nuevamente.")))
         } finally {
             httpClient.close()
         }
@@ -367,7 +363,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en resetearPasswordUsuario")
-            Result.failure(Exception("Error de conexión: ${e.message}"))
+            Result.failure(Exception(mensajeAuthSeguro(e, "No se pudo completar la operación. Intenta nuevamente.")))
         } finally {
             httpClient.close()
         }
@@ -443,7 +439,7 @@ class AuthRepository @Inject constructor(
             Timber.e(e, "AUTH: error cambiando password")
             val mensaje = if (e.message?.contains("Invalid login credentials") == true)
                 "Contraseña actual incorrecta"
-            else mensajeError(e, "Error al cambiar contraseña: ${e.message}")
+            else mensajeAuthSeguro(e, "No se pudo cambiar la contraseña. Intenta nuevamente.")
             Result.failure(Exception(mensaje))
         }
     }
