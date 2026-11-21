@@ -23,7 +23,7 @@ private val json = Json { ignoreUnknownKeys = true }
 class PullWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val authSessionDao: AuthSessionDao,
+    private val gestorSesion: GestorSesion,
     private val empresaDao: EmpresaDao,
     private val bodegaDao: BodegaDao,
     private val proveedorDao: ProveedorDao,
@@ -38,9 +38,17 @@ class PullWorker @AssistedInject constructor(
     private val httpClient = HttpClient(Android) { expectSuccess = false }
 
     override suspend fun doWork(): Result {
-        val sesion = authSessionDao.obtenerSesion() ?: run {
-            Timber.d("PULL: sin sesión activa, abortando")
-            return Result.success()
+        val sesion = when (val resultado = gestorSesion.obtenerToken()) {
+            is ResultadoToken.Vigente -> resultado.sesion
+            is ResultadoToken.SinRed -> {
+                httpClient.close()
+                return Result.retry()
+            }
+            is ResultadoToken.SesionInvalida, ResultadoToken.SinSesion -> {
+                Timber.d("PULL: sin sesión válida, abortando")
+                httpClient.close()
+                return Result.success()
+            }
         }
         Timber.d("PULL: iniciando — bodega_id=${sesion.bodega_id} empresa_id=${sesion.empresa_id}")
 

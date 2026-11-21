@@ -143,6 +143,16 @@ begin
     exception
         when undefined_function or insufficient_privilege then null;
     end;
+
+    -- P4: una cuenta autenticada sin fila en usuarios no puede insertarse en B
+    begin
+        insert into public.usuarios (id, empresa_id, nombre, email, rol)
+        values ('c0000000-0000-4000-8000-0000000000c1', 'b0000000-0000-4000-8000-00000000000b',
+                'intruso', 'c@test.invalid', 'ADMIN');
+        raise exception 'AISLAMIENTO VIOLADO: una cuenta sin empresa se insertó en usuarios de B';
+    exception
+        when insufficient_privilege then null;
+    end;
 end $$;
 
 select 'OK aislamiento_empresas' as resultado;

@@ -40,12 +40,12 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 **Purpose**: Ramas y soporte de pruebas
 
-- [ ] T001 Crear la rama `feat/planes-entitlements` en este repo, partiendo de la rama que contiene los commits de la constitución, y, con autorización del dueño, commitear `specs/002-planes-entitlements/` antes de T109, que la necesita en un clon limpio
-- [ ] T002 Crear la rama `feat/planes-entitlements` en `<web>/`, sin incluir la carpeta sin seguimiento `<web>/StoreFlow/`
+- [X] T001 Crear la rama `feat/planes-entitlements` en este repo, partiendo de la rama que contiene los commits de la constitución, y, con autorización del dueño, commitear `specs/002-planes-entitlements/` antes de T109, que la necesita en un clon limpio
+- [X] T002 Crear la rama `feat/planes-entitlements` en `<web>/`, sin incluir la carpeta sin seguimiento `<web>/StoreFlow/`
 - [ ] T003 Instalar `psql` y definir `STOREFLOW_SANDBOX_DB_URL` y `STOREFLOW_PROD_DB_URL` como variables de entorno locales, sin guardarlas en el repo. Las requieren `.githooks/pre-push` y `scripts/promover-migracion.sh`
-- [ ] T004 [P] Crear los fixtures en `supabase/tests/helpers/planes_fixtures.sql`: crear empresa con N bodegas y M usuarios, y vencer un trial moviendo `trial_inicio` y `trial_fin` juntos para respetar su check. Va en subcarpeta para que el glob de `pre-push` no lo ejecute como test, y se incluye con `\ir`
-- [ ] T005 [P] Crear `scripts/test-planes-concurrencia.sh`, que abre conexiones `psql` simultáneas contra `STOREFLOW_SANDBOX_DB_URL`, limpia sus datos al terminar y sale con código distinto de 0 si falla
-- [ ] T006 Ejecutar `scripts/test-planes-concurrencia.sh` desde `.githooks/pre-push`, dentro del bloque que corre los tests SQL cuando el push toca `supabase/`
+- [X] T004 [P] Crear los fixtures en `supabase/tests/helpers/planes_fixtures.sql`: crear empresa con N bodegas y M usuarios, y vencer un trial moviendo `trial_inicio` y `trial_fin` juntos para respetar su check. Va en subcarpeta para que el glob de `pre-push` no lo ejecute como test, y se incluye con `\ir`
+- [X] T005 [P] Crear `scripts/test-planes-concurrencia.sh`, que abre conexiones `psql` simultáneas contra `STOREFLOW_SANDBOX_DB_URL`, limpia sus datos al terminar y sale con código distinto de 0 si falla
+- [X] T006 Ejecutar `scripts/test-planes-concurrencia.sh` desde `.githooks/pre-push`, dentro del bloque que corre los tests SQL cuando el push toca `supabase/`
 
 ---
 
@@ -57,44 +57,44 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 ### P2 y P3: la cola no pierde trabajo
 
-- [ ] T007 [P] Escribir `<test>/data/sync/ClasificadorRechazoTest.kt` con la tabla de `contracts/codigos-rechazo.md`: 2xx, cada `SFP01`–`SFP06`, `23503`, `23505` de PK en un `INSERT`, red, 408, 429, 5xx, 401 y otro 4xx, separando `movimientos` y `lotes` del resto
-- [ ] T008 Implementar el clasificador puro en `<app>/data/sync/ClasificadorRechazo.kt`, que clasifica por el campo `code` y no por status
-- [ ] T009 [P] Escribir `<test>/data/sync/ResolverRetencionTest.kt` con las reglas de `contracts/sync-cola.md`, incluido `DELETE` de bodega con un ítem anterior de `productos` retenido o pendiente, y que un `UPDATE` retenido de un producto **no** retenga sus movimientos (FR-028)
-- [ ] T010 Implementar el resolvedor puro en `<app>/data/sync/ResolverRetencion.kt`
+- [X] T007 [P] Escribir `<test>/data/sync/ClasificadorRechazoTest.kt` con la tabla de `contracts/codigos-rechazo.md`: 2xx, cada `SFP01`–`SFP06`, `23503`, `23505` de PK en un `INSERT`, red, 408, 429, 5xx, 401 y otro 4xx, separando `movimientos` y `lotes` del resto
+- [X] T008 Implementar el clasificador puro en `<app>/data/sync/ClasificadorRechazo.kt`, que clasifica por el campo `code` y no por status
+- [X] T009 [P] Escribir `<test>/data/sync/ResolverRetencionTest.kt` con las reglas de `contracts/sync-cola.md`, incluido `DELETE` de bodega con un ítem anterior de `productos` retenido o pendiente, y que un `UPDATE` retenido de un producto **no** retenga sus movimientos (FR-028)
+- [X] T010 Implementar el resolvedor puro en `<app>/data/sync/ResolverRetencion.kt`
 
 ### Evaluador de plan
 
-- [ ] T011 [P] Escribir `<test>/domain/model/EvaluadorPlanTest.kt` para FR-024: última validación + 7 días − 1 s conserva el plan, + 7 días aplica `degradacion_free`, atrasar el reloj no extiende, un desfase fijo no altera la cuenta (R11), y una bodega fuera de `bodegas_activas`, incluida una creada offline, queda en solo lectura (R22)
-- [ ] T012 Implementar `<app>/domain/model/EvaluadorPlan.kt` como clase pura con reloj inyectado, sin dependencias de Android
+- [X] T011 [P] Escribir `<test>/domain/model/EvaluadorPlanTest.kt` para FR-024: última validación + 7 días − 1 s conserva el plan, + 7 días aplica `degradacion_free`, atrasar el reloj no extiende, un desfase fijo no altera la cuenta (R11), y una bodega fuera de `bodegas_activas`, incluida una creada offline, queda en solo lectura (R22)
+- [X] T012 Implementar `<app>/domain/model/EvaluadorPlan.kt` como clase pura con reloj inyectado, sin dependencias de Android
 
 ### Esquema Room
 
-- [ ] T013 Agregar a `<app>/data/local/entity/SyncEntity.kt` `rechazo_codigo: String?` (`SFP01`–`SFP06` u otro código de error permanente) y `rechazado_at: Date?`, ambos nulos por defecto
-- [ ] T014 [P] Crear `<app>/data/local/entity/PlanCacheEntity.kt` (tabla `plan_cache`) con `empresa_id` TEXT como PK, **no** `id = 1`, y los campos de `data-model.md`, incluidos `puede_crear_bodega`, `puede_crear_usuario`, `historial_desde`, `degradacion_free` y `dispositivo_id`. **Sin columnas de valores de límites** (FR-011)
-- [ ] T015 [P] Crear `<app>/data/local/entity/AvisoPlanEntity.kt` (tabla `avisos_plan`) con `id` TEXT PK generado como UUID (Principio V), `empresa_id`, `momento`, `cerrado`, `cierre_pendiente` e índice único (`empresa_id`, `momento`)
-- [ ] T016 Agregar a `<app>/data/local/dao/SyncDao.kt` consultas de ítems activos, retenidos, marcar rechazo y limpiar rechazos. `observarPendientes` debe excluir los retenidos, con un contador aparte
-- [ ] T017 Crear `<app>/data/local/dao/PlanCacheDao.kt`
-- [ ] T018 Crear `<app>/data/local/dao/AvisoPlanDao.kt`
-- [ ] T019 En `<app>/data/local/AppDatabase.kt`, registrar las entidades y DAOs, subir a la siguiente versión libre y agregar su `Migration`. Si la deuda D3 ya tomó la v10, usar la v11
-- [ ] T020 En `<app>/di/DatabaseModule.kt`, registrar la migración y proveer los DAOs nuevos, **sin cambiar** `PRAGMA foreign_keys = OFF` (R13)
-- [ ] T021 Compilar para exportar el esquema a `app/schemas/cl.storeflow.warehouse.data.local.AppDatabase/` y correr `app/src/test/java/cl/storeflow/warehouse/constitucion/EsquemaInvariantesTest.kt`
+- [X] T013 Agregar a `<app>/data/local/entity/SyncEntity.kt` `rechazo_codigo: String?` (`SFP01`–`SFP06` u otro código de error permanente) y `rechazado_at: Date?`, ambos nulos por defecto
+- [X] T014 [P] Crear `<app>/data/local/entity/PlanCacheEntity.kt` (tabla `plan_cache`) con `empresa_id` TEXT como PK, **no** `id = 1`, y los campos de `data-model.md`, incluidos `puede_crear_bodega`, `puede_crear_usuario`, `historial_desde`, `degradacion_free` y `dispositivo_id`. **Sin columnas de valores de límites** (FR-011)
+- [X] T015 [P] Crear `<app>/data/local/entity/AvisoPlanEntity.kt` (tabla `avisos_plan`) con `id` TEXT PK generado como UUID (Principio V), `empresa_id`, `momento`, `cerrado`, `cierre_pendiente` e índice único (`empresa_id`, `momento`)
+- [X] T016 Agregar a `<app>/data/local/dao/SyncDao.kt` consultas de ítems activos, retenidos, marcar rechazo y limpiar rechazos. `observarPendientes` debe excluir los retenidos, con un contador aparte
+- [X] T017 Crear `<app>/data/local/dao/PlanCacheDao.kt`
+- [X] T018 Crear `<app>/data/local/dao/AvisoPlanDao.kt`
+- [X] T019 En `<app>/data/local/AppDatabase.kt`, registrar las entidades y DAOs, subir a la siguiente versión libre y agregar su `Migration`. Si la deuda D3 ya tomó la v10, usar la v11
+- [X] T020 En `<app>/di/DatabaseModule.kt`, registrar la migración y proveer los DAOs nuevos, **sin cambiar** `PRAGMA foreign_keys = OFF` (R13)
+- [X] T021 Compilar para exportar el esquema a `app/schemas/cl.storeflow.warehouse.data.local.AppDatabase/` y correr `app/src/test/java/cl/storeflow/warehouse/constitucion/EsquemaInvariantesTest.kt`
 
 ### P1: la sesión vencida sin red no borra datos
 
-- [ ] T022 [P] Escribir `<test>/data/repository/SesionRefreshTest.kt`: un error de red o timeout **no** se clasifica como sesión inválida; un refresh token rechazado por Auth sí. Con trabajo pendiente o retenido nunca se borra la base, y solo el mismo `user_id` puede retomar la sesión, incluidos `logout()`, `login` y `registrar()` (FR-030)
-- [ ] T023 Crear `<app>/data/sync/GestorSesion.kt`, singleton con `Mutex` y única vía de refresh, con Room como fuente e `importSession(session, autoRefresh = false)` (R17). Configurar `alwaysAutoRefresh = false` y `autoLoadFromStorage = false` en `<app>/data/remote/SupabaseClient.kt`. Usarlo en `checkSession()` de `<app>/data/repository/AuthRepository.kt`, en `<app>/data/sync/SyncWorker.kt` y en `<app>/data/sync/PullWorker.kt`. `clearAllTables()` corre solo ante sesión inválida confirmada **y** sin trabajo pendiente ni retenido. Ante error de red, devolver la sesión guardada. Al arrancar, importar la sesión de Room al cliente Auth aunque el token siga vigente
+- [X] T022 [P] Escribir `<test>/data/repository/SesionRefreshTest.kt`: un error de red o timeout **no** se clasifica como sesión inválida; un refresh token rechazado por Auth sí. Con trabajo pendiente o retenido nunca se borra la base, y solo el mismo `user_id` puede retomar la sesión, incluidos `logout()`, `login` y `registrar()` (FR-030)
+- [X] T023 Crear `<app>/data/sync/GestorSesion.kt`, singleton con `Mutex` y única vía de refresh, con Room como fuente e `importSession(session, autoRefresh = false)` (R17). Configurar `alwaysAutoRefresh = false` y `autoLoadFromStorage = false` en `<app>/data/remote/SupabaseClient.kt`. Usarlo en `checkSession()` de `<app>/data/repository/AuthRepository.kt`, en `<app>/data/sync/SyncWorker.kt` y en `<app>/data/sync/PullWorker.kt`. `clearAllTables()` corre solo ante sesión inválida confirmada **y** sin trabajo pendiente ni retenido. Ante error de red, devolver la sesión guardada. Al arrancar, importar la sesión de Room al cliente Auth aunque el token siga vigente
 
 ### Procesamiento de la cola
 
-- [ ] T024 Escribir `<test>/data/sync/ProcesadorColaTest.kt`: un ítem `SFP*` sigue retenido tras más de 3 ejecuciones, un error transitorio no se descarta, un retenido no provoca `retry` un `DELETE` de bodega no se envía si su traslado está retenido, un movimiento con `23503` no se descarta y se reenvía tras su padre, `23505` cuenta como éxito, y otro 4xx en `movimientos` o `lotes` queda retenido
-- [ ] T025 Implementar `<app>/data/sync/ProcesadorCola.kt` usando `ClasificadorRechazo` y `ResolverRetencion`
-- [ ] T026 Integrar `ProcesadorCola` en `<app>/data/sync/SyncWorker.kt`, eliminando el descarte por `MAX_REINTENTOS` para errores transitorios, por plan y para todo error de `movimientos` y `lotes`
+- [X] T024 Escribir `<test>/data/sync/ProcesadorColaTest.kt`: un ítem `SFP*` sigue retenido tras más de 3 ejecuciones, un error transitorio no se descarta, un retenido no provoca `retry` un `DELETE` de bodega no se envía si su traslado está retenido, un movimiento con `23503` no se descarta y se reenvía tras su padre, `23505` cuenta como éxito, y otro 4xx en `movimientos` o `lotes` queda retenido
+- [X] T025 Implementar `<app>/data/sync/ProcesadorCola.kt` usando `ClasificadorRechazo` y `ResolverRetencion`
+- [X] T026 Integrar `ProcesadorCola` en `<app>/data/sync/SyncWorker.kt`, eliminando el descarte por `MAX_REINTENTOS` para errores transitorios, por plan y para todo error de `movimientos` y `lotes`
 
 ### P4: cerrar el ingreso a empresas ajenas
 
-- [ ] T027 Ampliar `supabase/tests/aislamiento_empresas.sql`: una cuenta autenticada sin fila en `usuarios` no puede insertarse en la empresa B. Crear `supabase/tests/bodega_sin_cascada.sql` para SC-017: eliminar una bodega con productos falla con `SFP06`, sin productos pasa, y eliminar una empresa sigue funcionando
-- [ ] T028 Crear `supabase/migrations/<ts>_cerrar_insert_usuarios.sql` (M2), que elimina la política `usuario_insert_propio` y agrega el trigger `BEFORE DELETE` en `bodegas` que rechaza con `SFP06` si tiene productos, eximiendo acciones FK con `pg_trigger_depth() > 1` (FR-031, R18)
-- [ ] T029 Aplicar M2 en Sandbox y correr `supabase/tests/*.sql`, confirmando que `registrar_empresa` y la Edge Function `supabase/functions/registrar-usuario-empresa/index.ts` siguen funcionando
+- [X] T027 Ampliar `supabase/tests/aislamiento_empresas.sql`: una cuenta autenticada sin fila en `usuarios` no puede insertarse en la empresa B. Crear `supabase/tests/bodega_sin_cascada.sql` para SC-017: eliminar una bodega con productos falla con `SFP06`, sin productos pasa, y eliminar una empresa sigue funcionando
+- [X] T028 Crear `supabase/migrations/<ts>_cerrar_insert_usuarios.sql` (M2), que elimina la política `usuario_insert_propio` y agrega el trigger `BEFORE DELETE` en `bodegas` que rechaza con `SFP06` si tiene productos, eximiendo acciones FK con `pg_trigger_depth() > 1` (FR-031, R18)
+- [X] T029 Aplicar M2 en Sandbox y correr `supabase/tests/*.sql`, confirmando que `registrar_empresa` y la Edge Function `supabase/functions/registrar-usuario-empresa/index.ts` siguen funcionando
 - [ ] T030 Solo con confirmación explícita del dueño, promover M2 a Producción por separado con `scripts/promover-migracion.sh`, para cerrar P3 y P4 sin esperar el resto de la feature
 
 **Checkpoint**: La app no pierde trabajo offline y el agujero de aislamiento está cerrado en Sandbox.

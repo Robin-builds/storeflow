@@ -14,7 +14,11 @@ val supabaseClient = createSupabaseClient(
     supabaseUrl = SUPABASE_URL,
     supabaseKey = SUPABASE_ANON_KEY
 ) {
-    install(GoTrue)
+    // GestorSesion es la única vía de refresh, con Room como fuente (R17).
+    install(GoTrue) {
+        alwaysAutoRefresh = false
+        autoLoadFromStorage = false
+    }
     install(Postgrest)
     install(Realtime)
 }

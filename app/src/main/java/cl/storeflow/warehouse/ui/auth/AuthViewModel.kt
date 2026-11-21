@@ -69,7 +69,8 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
-            _uiState.value = AuthUiState.SesionCerrada
+                .onSuccess { _uiState.value = AuthUiState.SesionCerrada }
+                .onFailure { _uiState.value = AuthUiState.Error(it.message ?: "Error desconocido") }
         }
     }
 

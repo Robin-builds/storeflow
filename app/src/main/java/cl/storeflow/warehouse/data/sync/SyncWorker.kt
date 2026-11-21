@@ -5,13 +5,10 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import cl.storeflow.warehouse.data.local.dao.AtributoTemplateDao
-import cl.storeflow.warehouse.data.local.dao.AuthSessionDao
 import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.LoteDao
 import cl.storeflow.warehouse.data.local.dao.MovimientoDao
 import cl.storeflow.warehouse.data.local.dao.ProductoDao
-import cl.storeflow.warehouse.data.local.dao.SyncDao
-import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.OperacionSync
 import cl.storeflow.warehouse.data.local.entity.SyncEntity
 import cl.storeflow.warehouse.data.remote.SUPABASE_ANON_KEY
@@ -23,18 +20,18 @@ import io.ktor.client.engine.android.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import timber.log.Timber
-import java.util.Date
 
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
-    private val syncDao: SyncDao,
-    private val authSessionDao: AuthSessionDao,
+    private val gestorSesion: GestorSesion,
+    private val procesadorCola: ProcesadorCola,
     private val productoDao: ProductoDao,
     private val movimientoDao: MovimientoDao,
     private val bodegaDao: BodegaDao,
@@ -46,85 +43,37 @@ class SyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            val sesion = authSessionDao.obtenerSesion() ?: run {
-                Timber.d("SYNC: sin sesión activa, abortando")
-                return Result.failure()
-            }
-
-            val accessToken = if (sesion.expires_at.before(Date())) {
-                Timber.d("SYNC: token expirado, refrescando")
-                refreshToken(sesion) ?: run {
-                    Timber.e("SYNC: no se pudo refrescar el token")
+            val accessToken = when (val resultado = gestorSesion.obtenerToken()) {
+                is ResultadoToken.Vigente -> resultado.sesion.access_token
+                is ResultadoToken.SinRed -> {
+                    Timber.d("SYNC: sin red para refrescar el token")
                     return Result.retry()
                 }
-            } else {
-                sesion.access_token
-            }
-
-            val cola = syncDao.obtenerCola()
-            Timber.d("SYNC: ${cola.size} items en cola")
-            if (cola.isEmpty()) return Result.success()
-
-            var hayErrores = false
-            for (item in cola) {
-                val exito = pushItem(item, accessToken)
-                when {
-                    exito -> {
-                        Timber.d("SYNC: OK — ${item.entidad_tipo}/${item.operacion} id=${item.entidad_id}")
-                        marcarSincronizado(item)
-                        syncDao.eliminar(item)
-                    }
-                    item.reintentos >= MAX_REINTENTOS -> {
-                        Timber.e("SYNC: descartado tras $MAX_REINTENTOS reintentos — id=${item.id}")
-                        syncDao.eliminar(item)
-                    }
-                    else -> {
-                        Timber.w("SYNC: fallo, reintento ${item.reintentos + 1} — id=${item.id}")
-                        syncDao.incrementarReintentos(item.id)
-                        hayErrores = true
-                    }
+                is ResultadoToken.SesionInvalida -> {
+                    // La cola se conserva hasta que el mismo usuario vuelva a ingresar (FR-030).
+                    Timber.w("SYNC: sesión inválida, se espera un nuevo ingreso")
+                    return Result.success()
+                }
+                ResultadoToken.SinSesion -> {
+                    Timber.d("SYNC: sin sesión activa, abortando")
+                    return Result.failure()
                 }
             }
 
-            if (hayErrores) Result.retry() else Result.success()
+            val resultado = procesadorCola.procesar(
+                enviar = { item -> pushItem(item, accessToken) },
+                alSincronizar = { item ->
+                    Timber.d("SYNC: OK — ${item.entidad_tipo}/${item.operacion} id=${item.entidad_id}")
+                    marcarSincronizado(item)
+                }
+            )
+            if (resultado.hayQueReintentar) Result.retry() else Result.success()
         } finally {
             httpClient.close()
         }
     }
 
-    private suspend fun refreshToken(sesion: AuthSessionEntity): String? {
-        return try {
-            val response = httpClient.post("$SUPABASE_URL/auth/v1/token?grant_type=refresh_token") {
-                headers {
-                    append("apikey", SUPABASE_ANON_KEY)
-                    append("Content-Type", "application/json")
-                }
-                setBody("""{"refresh_token":"${sesion.refresh_token}"}""")
-            }
-            if (!response.status.isSuccess()) {
-                Timber.e("SYNC: refresh HTTP ${response.status.value}")
-                return null
-            }
-            val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            val newAccess = json["access_token"]?.jsonPrimitive?.content ?: return null
-            val newRefresh = json["refresh_token"]?.jsonPrimitive?.content ?: sesion.refresh_token
-            val expiresIn = json["expires_in"]?.jsonPrimitive?.content?.toLongOrNull() ?: 3600L
-            authSessionDao.guardarSesion(
-                sesion.copy(
-                    access_token = newAccess,
-                    refresh_token = newRefresh,
-                    expires_at = Date(System.currentTimeMillis() + expiresIn * 1000)
-                )
-            )
-            Timber.d("SYNC: token refrescado OK")
-            newAccess
-        } catch (e: Exception) {
-            Timber.e(e, "SYNC: excepción en refreshToken")
-            null
-        }
-    }
-
-    private suspend fun pushItem(item: SyncEntity, accessToken: String): Boolean {
+    private suspend fun pushItem(item: SyncEntity, accessToken: String): RespuestaPush {
         if (item.entidad_tipo == "producto_atributos")
             return pushProductoAtributosBatch(item, accessToken)
         return try {
@@ -149,17 +98,16 @@ class SyncWorker @AssistedInject constructor(
                     setBody(item.payload)
                 }
             }
-            if (!response.status.isSuccess()) {
-                Timber.e("SYNC: HTTP ${response.status.value} — ${response.bodyAsText()}")
-            }
-            response.status.isSuccess()
+            aRespuestaPush(response)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Timber.e(e, "SYNC: excepción en pushItem id=${item.id}")
-            false
+            RespuestaPush(status = null)
         }
     }
 
-    private suspend fun pushProductoAtributosBatch(item: SyncEntity, accessToken: String): Boolean {
+    private suspend fun pushProductoAtributosBatch(item: SyncEntity, accessToken: String): RespuestaPush {
         return try {
             val deleteResponse = httpClient.delete(
                 "$SUPABASE_URL/rest/v1/producto_atributos?producto_id=eq.${item.entidad_id}"
@@ -169,11 +117,8 @@ class SyncWorker @AssistedInject constructor(
                     append("Authorization", "Bearer $accessToken")
                 }
             }
-            if (!deleteResponse.status.isSuccess()) {
-                Timber.e("SYNC: HTTP ${deleteResponse.status.value} al borrar atributos producto=${item.entidad_id}")
-                return false
-            }
-            if (item.payload == "[]") return true
+            if (!deleteResponse.status.isSuccess()) return aRespuestaPush(deleteResponse)
+            if (item.payload == "[]") return RespuestaPush(deleteResponse.status.value)
             val insertResponse = httpClient.post("$SUPABASE_URL/rest/v1/producto_atributos") {
                 headers {
                     append("apikey", SUPABASE_ANON_KEY)
@@ -183,13 +128,27 @@ class SyncWorker @AssistedInject constructor(
                 }
                 setBody(item.payload)
             }
-            if (!insertResponse.status.isSuccess())
-                Timber.e("SYNC: HTTP ${insertResponse.status.value} al insertar atributos producto=${item.entidad_id}")
-            insertResponse.status.isSuccess()
+            aRespuestaPush(insertResponse)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Timber.e(e, "SYNC: excepción en pushProductoAtributosBatch producto=${item.entidad_id}")
-            false
+            RespuestaPush(status = null)
         }
+    }
+
+    private suspend fun aRespuestaPush(response: HttpResponse): RespuestaPush {
+        val status = response.status.value
+        if (response.status.isSuccess()) return RespuestaPush(status)
+        val cuerpo = response.bodyAsText()
+        Timber.e("SYNC: HTTP $status — $cuerpo")
+        val json = try {
+            Json.parseToJsonElement(cuerpo) as? JsonObject
+        } catch (e: IllegalArgumentException) {
+            null
+        }
+        fun texto(campo: String) = (json?.get(campo) as? JsonPrimitive)?.takeIf { it.isString }?.content
+        return RespuestaPush(status, texto("code"), texto("message"))
     }
 
     private suspend fun marcarSincronizado(item: SyncEntity) {
@@ -206,6 +165,5 @@ class SyncWorker @AssistedInject constructor(
 
     companion object {
         const val WORK_NAME = "storeflow_sync"
-        private const val MAX_REINTENTOS = 3
     }
 }
