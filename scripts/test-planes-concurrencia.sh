@@ -112,6 +112,8 @@ else
        select md5('${prefijo}' || i)::uuid, 1 from generate_series(1, $((99 - previos))) i;" >/dev/null
   empresas=$(sql "insert into public.empresas (nombre)
                   select '${prefijo} fundador ' || i from generate_series(1, 10) i returning id;")
+  # En Windows, psql termina las líneas con CRLF y el CR quedaría pegado a cada id.
+  empresas=$(printf '%s' "$empresas" | tr -d '\r')
 
   i=1
   for empresa_pago in $empresas; do
