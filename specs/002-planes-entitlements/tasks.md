@@ -42,7 +42,7 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 - [X] T001 Crear la rama `feat/planes-entitlements` en este repo, partiendo de la rama que contiene los commits de la constitución, y, con autorización del dueño, commitear `specs/002-planes-entitlements/` antes de T109, que la necesita en un clon limpio
 - [X] T002 Crear la rama `feat/planes-entitlements` en `<web>/`, sin incluir la carpeta sin seguimiento `<web>/StoreFlow/`
-- [ ] T003 Instalar `psql` y definir `STOREFLOW_SANDBOX_DB_URL` y `STOREFLOW_PROD_DB_URL` como variables de entorno locales, sin guardarlas en el repo. Las requieren `.githooks/pre-push` y `scripts/promover-migracion.sh`
+- [x] T003 Instalar `psql` y definir `STOREFLOW_SANDBOX_DB_URL` y `STOREFLOW_PROD_DB_URL` como variables de entorno locales, sin guardarlas en el repo. Las requieren `.githooks/pre-push` y `scripts/promover-migracion.sh`
 - [X] T004 [P] Crear los fixtures en `supabase/tests/helpers/planes_fixtures.sql`: crear empresa con N bodegas y M usuarios, y vencer un trial moviendo `trial_inicio` y `trial_fin` juntos para respetar su check. Va en subcarpeta para que el glob de `pre-push` no lo ejecute como test, y se incluye con `\ir`
 - [X] T005 [P] Crear `scripts/test-planes-concurrencia.sh`, que abre conexiones `psql` simultáneas contra `STOREFLOW_SANDBOX_DB_URL`, limpia sus datos al terminar y sale con código distinto de 0 si falla
 - [X] T006 Ejecutar `scripts/test-planes-concurrencia.sh` desde `.githooks/pre-push`, dentro del bloque que corre los tests SQL cuando el push toca `supabase/`
@@ -228,7 +228,7 @@ description: "Lista de tareas de Planes & Entitlements v1"
 - [X] T096 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) el reemplazo de `private.plan_efectivo` y del helper de vencimiento: Fundador vigente con `perdido_at` nulo y `ahora < pagado_hasta + 7 días`
 - [X] T097 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) `private.registrar_pago` siguiendo los 5 pasos de `contracts/operador.md`
 - [X] T098 [US4] Agregar a `supabase/migrations/<ts>_planes_fundador.sql` (M5) `private.registrar_baja`, `private.pasar_a_free` y `private.marcar_tester`, con `EXECUTE` revocado a `public`, `anon` y `authenticated`
-- [ ] T099 [US4] Aplicar M5 en Sandbox y correr `supabase/tests/*.sql` y `scripts/test-planes-concurrencia.sh`
+- [x] T099 [US4] Aplicar M5 en Sandbox y correr `supabase/tests/*.sql` y `scripts/test-planes-concurrencia.sh`
 
 **Checkpoint**: US4 funciona sin cambios en la app, porque la RPC ya entrega Premium como plan efectivo.
 

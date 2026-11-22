@@ -35,6 +35,18 @@ raiz=$(git rev-parse --show-toplevel)
 
 sql() { psql "$1" -v ON_ERROR_STOP=1 -X -q -At -c "$2"; }
 
+# Migración que debe estar en Producción para correr cada test.
+# Los tests planes_* se validan juntos al terminar la serie (M6).
+# Un test que no figure aquí corre siempre.
+migracion_requerida() {
+  case "$1" in
+    bodega_sin_cascada.sql|usuarios_insert_cross_tenant.sql) echo 20261121182742 ;;
+    aislamiento_empresas.sql|movimientos_inmutables.sql) echo 20261121191038 ;;
+    planes_*.sql) echo 20261121231615 ;;
+    *) echo "" ;;
+  esac
+}
+
 echo "▶ Migración $version ($nombre)"
 
 # 1. Debe existir en Sandbox
@@ -82,8 +94,17 @@ SQL
 echo "✔ aplicada y registrada en Producción"
 
 # 6. Tests en Producción (cada test termina en ROLLBACK: no deja datos)
+# Solo corren los que tienen su migración aplicada.
+aplicadas=$(sql "$STOREFLOW_PROD_DB_URL" "select string_agg(version, ',') from supabase_migrations.schema_migrations" | tr -d '\r')
+omitidos=0
 for t in "$raiz"/supabase/tests/*.sql; do
+  requerida=$(migracion_requerida "$(basename "$t")")
+  if [ -n "$requerida" ] && [[ ",$aplicadas," != *",$requerida,"* ]]; then
+    echo "⚠ Producción: $(basename "$t") omitido, requiere $requerida"
+    omitidos=$((omitidos + 1))
+    continue
+  fi
   psql "$STOREFLOW_PROD_DB_URL" -v ON_ERROR_STOP=1 -X -q -f "$t" >/dev/null
   echo "✔ Producción: $(basename "$t")"
 done
-echo "✔ $base promovida."
+echo "✔ $base promovida ($omitidos tests omitidos hasta aplicar su migración)."
