@@ -53,8 +53,7 @@ sealed interface ResultadoValidacion {
     data class Actualizado(
         val empresaId: String,
         val rol: String,
-        val bloqueado: Boolean,
-        val planCambio: Boolean
+        val bloqueado: Boolean
     ) : ResultadoValidacion
     data object SinPlan : ResultadoValidacion
     data object SinConexion : ResultadoValidacion
@@ -296,6 +295,8 @@ class PlanRepository @Inject constructor(
             return ResultadoValidacion.Error("Fecha inválida en la respuesta de plan")
         }
         planCacheDao.guardar(nueva)
+        // Aquí y no en SyncWorker: quien guarde primero el plan nuevo es el único que ve el cambio.
+        if (previa != null && cambioElPlan(previa, nueva)) syncDao.limpiarRechazos()
         _retenidosEmpresa.value = dto.retenidos.map {
             RetenidoUsuario(it.usuario_id, it.cantidad, it.actualizado_at)
         }
@@ -304,8 +305,7 @@ class PlanRepository @Inject constructor(
         return ResultadoValidacion.Actualizado(
             empresaId = dto.empresa_id,
             rol = dto.rol,
-            bloqueado = dto.bloqueado,
-            planCambio = previa != null && cambioElPlan(previa, nueva)
+            bloqueado = dto.bloqueado
         )
     }
 

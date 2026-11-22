@@ -5,6 +5,7 @@ import cl.storeflow.warehouse.data.local.dao.AvisoPlanDao
 import cl.storeflow.warehouse.data.local.entity.AvisoPlanEntity
 import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.PlanCacheDao
+import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.PlanCacheEntity
 import cl.storeflow.warehouse.data.remote.CapacidadesDto
@@ -16,10 +17,12 @@ import cl.storeflow.warehouse.data.remote.RespuestaEntitlement
 import cl.storeflow.warehouse.data.remote.clasificarRespuestaEntitlement
 import cl.storeflow.warehouse.data.sync.GestorSesion
 import cl.storeflow.warehouse.data.sync.ResultadoToken
+import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.domain.model.RelojPlan
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -44,6 +47,8 @@ class PlanRepositoryTest {
     private val gestorSesion = mockk<GestorSesion>()
     private val clientePlan = mockk<ClientePlan>()
     private val avisoPlanDao = mockk<AvisoPlanDao>(relaxed = true)
+    private val syncDao = mockk<SyncDao>(relaxed = true)
+    private val syncTrigger = mockk<SyncTrigger>(relaxed = true)
     private val reloj = object : RelojPlan {
         override fun ahoraMs() = AHORA
         override fun elapsedMs() = 5_000L
@@ -119,7 +124,7 @@ class PlanRepositoryTest {
         every { authSessionDao.observarSesion() } returns flowOf(sesion)
         repo = PlanRepository(
             planCacheDao, authSessionDao, bodegaDao, gestorSesion, clientePlan, reloj,
-            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), avisoPlanDao
+            syncDao, mockk(relaxed = true), syncTrigger, avisoPlanDao
         )
     }
 
@@ -218,18 +223,46 @@ class PlanRepositoryTest {
     }
 
     @Test
-    fun `informa cuando el plan cambio respecto de la cache`() = runTest {
+    fun `libera los retenidos cuando el plan cambio respecto de la cache`() = runTest {
         coEvery { planCacheDao.obtener("empresa-1") } returns cache(plan = "FREE", estado = "FREE")
         coEvery { clientePlan.obtenerEntitlement(any()) } returns RespuestaEntitlement.Ok(dto)
 
-        assertTrue((repo.validar("token") as ResultadoValidacion.Actualizado).planCambio)
+        repo.validar("token")
+
+        coVerify(exactly = 1) { syncDao.limpiarRechazos(any()) }
     }
 
     @Test
-    fun `la primera validacion no cuenta como cambio de plan`() = runTest {
+    fun `la primera validacion no libera retenidos`() = runTest {
         coEvery { clientePlan.obtenerEntitlement(any()) } returns RespuestaEntitlement.Ok(dto)
 
-        assertFalse((repo.validar("token") as ResultadoValidacion.Actualizado).planCambio)
+        repo.validar("token")
+
+        coVerify(exactly = 0) { syncDao.limpiarRechazos(any()) }
+    }
+
+    @Test
+    fun `sin cambio de plan no libera retenidos`() = runTest {
+        coEvery { planCacheDao.obtener("empresa-1") } returns cache()
+        coEvery { clientePlan.obtenerEntitlement(any()) } returns RespuestaEntitlement.Ok(dto)
+
+        repo.validar("token")
+
+        coVerify(exactly = 0) { syncDao.limpiarRechazos(any()) }
+    }
+
+    @Test
+    fun `al recuperar el acceso libera los retenidos antes de sincronizar`() = runTest {
+        coEvery { planCacheDao.obtener("empresa-1") } returns cache().copy(bloqueado = true)
+        coEvery { clientePlan.obtenerEntitlement(any()) } returns RespuestaEntitlement.Ok(dto)
+
+        repo.validar("token")
+
+        coVerifyOrder {
+            planCacheDao.guardar(any())
+            syncDao.limpiarRechazos(any())
+            syncTrigger.trigger()
+        }
     }
 
     @Test

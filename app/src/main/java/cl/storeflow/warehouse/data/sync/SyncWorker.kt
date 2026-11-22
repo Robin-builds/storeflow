@@ -9,7 +9,6 @@ import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.LoteDao
 import cl.storeflow.warehouse.data.local.dao.MovimientoDao
 import cl.storeflow.warehouse.data.local.dao.ProductoDao
-import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.OperacionSync
 import cl.storeflow.warehouse.data.local.entity.SyncEntity
 import cl.storeflow.warehouse.data.remote.SUPABASE_ANON_KEY
@@ -36,7 +35,6 @@ class SyncWorker @AssistedInject constructor(
     private val gestorSesion: GestorSesion,
     private val procesadorCola: ProcesadorCola,
     private val planRepository: PlanRepository,
-    private val syncDao: SyncDao,
     private val productoDao: ProductoDao,
     private val movimientoDao: MovimientoDao,
     private val bodegaDao: BodegaDao,
@@ -68,9 +66,6 @@ class SyncWorker @AssistedInject constructor(
             // Antes de mirar la cola: un cambio de plan debe llegar aunque no haya nada que enviar.
             // Si falla por red se continúa, porque el servidor sigue aplicando el límite.
             val validacion = planRepository.validarActual()
-            if (validacion is ResultadoValidacion.Actualizado && validacion.planCambio) {
-                syncDao.limpiarRechazos()
-            }
 
             val bloqueado = (validacion as? ResultadoValidacion.Actualizado)?.bloqueado
                 ?: planRepository.estaBloqueado()
