@@ -17,6 +17,7 @@ import cl.storeflow.warehouse.data.remote.EntitlementDto
 import cl.storeflow.warehouse.data.remote.RespuestaEntitlement
 import cl.storeflow.warehouse.data.sync.GestorSesion
 import cl.storeflow.warehouse.data.sync.PullTrigger
+import cl.storeflow.warehouse.data.sync.ResolverRetencion
 import cl.storeflow.warehouse.data.sync.ResultadoToken
 import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.domain.model.DegradacionFree
@@ -97,7 +98,14 @@ class PlanRepository @Inject constructor(
     suspend fun validar(accessToken: String): ResultadoValidacion =
         procesar(clientePlan.obtenerEntitlement(accessToken), accessToken)
 
-    fun observarRetenidosPropios(): Flow<List<RetenidoPorTipo>> = syncDao.observarRetenidosPorTipo()
+    fun observarRetenidosPropios(): Flow<List<RetenidoPorTipo>> = syncDao.observarCola().map { cola ->
+        val retenidos = ResolverRetencion.retenidos(cola)
+        cola.filter { it.id in retenidos }
+            .groupingBy { it.entidad_tipo }
+            .eachCount()
+            .toSortedMap()
+            .map { (tipo, cantidad) -> RetenidoPorTipo(tipo, cantidad) }
+    }
 
     fun observarBloqueado(): Flow<Boolean> =
         observarPlan().map { it?.bloqueado ?: false }.distinctUntilChanged()
@@ -144,10 +152,16 @@ class PlanRepository @Inject constructor(
             }
             ?: emptyList()
 
-        return MomentosAviso.vigente(
+        val vigente = MomentosAviso.vigente(
             emitidos = avisos.map { it.momento } + calculados,
             cerrados = avisos.filter { it.cerrado }.map { it.momento }
         )
+        return when (cache.estado) {
+            ESTADO_TRIAL -> vigente
+            // Un aviso guardado de antes del vencimiento ya no sería cierto en Free.
+            PLAN_FREE -> vigente?.takeIf { it == MomentosAviso.TERMINO || it == MomentosAviso.MAS_2 }
+            else -> null
+        }
     }
 
     /** Cierra el aviso y los anteriores. Sin señal, queda pendiente de confirmar. */
@@ -202,7 +216,7 @@ class PlanRepository @Inject constructor(
         val sesion = authSessionDao.obtenerSesion() ?: return
         val cache = planCacheDao.obtener(sesion.empresa_id) ?: return
         if (cache.plan_efectivo == SIN_PLAN) return
-        val cantidad = syncDao.contarRetenidos()
+        val cantidad = ResolverRetencion.retenidos(syncDao.obtenerCola()).size
         if (cantidad == ultimoRetenidoInformado) return
         if (clientePlan.reportarRetenidos(accessToken, cache.dispositivo_id, cantidad)) {
             ultimoRetenidoInformado = cantidad

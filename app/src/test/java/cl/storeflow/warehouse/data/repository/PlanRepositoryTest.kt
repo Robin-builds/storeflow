@@ -5,9 +5,12 @@ import cl.storeflow.warehouse.data.local.dao.AvisoPlanDao
 import cl.storeflow.warehouse.data.local.entity.AvisoPlanEntity
 import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.PlanCacheDao
+import cl.storeflow.warehouse.data.local.dao.RetenidoPorTipo
 import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
+import cl.storeflow.warehouse.data.local.entity.OperacionSync
 import cl.storeflow.warehouse.data.local.entity.PlanCacheEntity
+import cl.storeflow.warehouse.data.local.entity.SyncEntity
 import cl.storeflow.warehouse.data.remote.CapacidadesDto
 import cl.storeflow.warehouse.data.remote.ClientePlan
 import cl.storeflow.warehouse.data.remote.DegradacionDto
@@ -371,6 +374,70 @@ class PlanRepositoryTest {
         prepararAvisos(cache(plan = "STANDARD", estado = "PAGADO", trialFin = AHORA - 1_000))
 
         assertNull(repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - una cuenta pagada no muestra avisos ya guardados`() = runTest {
+        prepararAvisos(
+            cache(plan = "PREMIUM", estado = "PAGADO", trialFin = AHORA - 1_000),
+            aviso("DIA_0"), aviso("TERMINO"), aviso("MAS_2")
+        )
+
+        assertNull(repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - una cuenta de pruebas no muestra avisos ya guardados`() = runTest {
+        prepararAvisos(cache(plan = "PREMIUM", estado = "TESTER"), aviso("MENOS_7"))
+
+        assertNull(repo.observarAvisoActual().first())
+    }
+
+    @Test
+    fun `FR-017 - en Free no reaparece un aviso previo al vencimiento`() = runTest {
+        prepararAvisos(
+            cache(plan = "FREE", estado = "FREE", trialFin = AHORA - 1_000),
+            aviso("DIA_0"), aviso("MENOS_1")
+        )
+
+        assertNull(repo.observarAvisoActual().first())
+    }
+
+    private fun itemCola(id: String, tabla: String, payload: String, rechazo: String? = null) = SyncEntity(
+        id = id, entidad_tipo = tabla, entidad_id = id, operacion = OperacionSync.INSERT,
+        payload = payload, rechazo_codigo = rechazo
+    )
+
+    private val colaRetenida = listOf(
+        itemCola("b9", "bodegas", "{}", "SFP01"),
+        itemCola("p9", "productos", """{"bodega_id":"b9"}"""),
+        itemCola("m1", "movimientos", """{"producto_id":"p9"}"""),
+        itemCola("m2", "movimientos", """{"producto_id":"p9"}""")
+    )
+
+    @Test
+    fun `FR-023 - el resumen propio incluye a los dependientes del retenido`() = runTest {
+        every { syncDao.observarCola() } returns flowOf(colaRetenida)
+
+        assertEquals(
+            listOf(
+                RetenidoPorTipo("bodegas", 1),
+                RetenidoPorTipo("movimientos", 2),
+                RetenidoPorTipo("productos", 1)
+            ),
+            repo.observarRetenidosPropios().first()
+        )
+    }
+
+    @Test
+    fun `FR-023 - informa al servidor la cantidad con dependientes`() = runTest {
+        coEvery { planCacheDao.obtener("empresa-1") } returns cache()
+        coEvery { syncDao.obtenerCola() } returns colaRetenida
+        coEvery { clientePlan.reportarRetenidos(any(), any(), any()) } returns true
+
+        repo.informarRetenidos("token")
+
+        coVerify(exactly = 1) { clientePlan.reportarRetenidos("token", "dispositivo-1", 4) }
     }
 
     @Test

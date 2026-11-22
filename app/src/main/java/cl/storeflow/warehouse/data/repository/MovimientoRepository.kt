@@ -45,8 +45,13 @@ class MovimientoRepository @Inject constructor(
     fun observarProducto(productoId: String): Flow<Producto?> =
         productoDao.observarProductoConStock(productoId).map { it?.toDomain() }
 
-    fun observarMovimientos(productoId: String): Flow<List<MovimientoEntity>> =
-        movimientoDao.observarPorProducto(productoId)
+    // Solo limita lo visible: el stock se calcula con todos los movimientos (FR-021).
+    fun observarMovimientos(productoId: String): Flow<List<MovimientoEntity>> = combine(
+        movimientoDao.observarPorProducto(productoId),
+        planRepository.observarHistorialDesde()
+    ) { movimientos, desde ->
+        if (desde == null) movimientos else movimientos.filter { it.created_at.time >= desde }
+    }
 
     fun observarMovimientosDeEmpresa(empresaId: String): Flow<List<MovimientoConProducto>> =
         movimientoDao.observarPorEmpresa(empresaId)

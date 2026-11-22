@@ -119,6 +119,29 @@ class ResolverRetencionTest {
     }
 
     @Test
+    fun `retenidos incluye al rechazado y a sus dependientes`() {
+        val b = bodega()
+        val p = producto()
+        val m1 = movimiento("m1")
+        val m2 = movimiento("m2")
+        assertEquals(setOf(b.id, p.id, m1.id, m2.id), ResolverRetencion.retenidos(listOf(b, p, m1, m2)))
+    }
+
+    @Test
+    fun `retenidos no cuenta trabajo pendiente sin rechazo`() {
+        val p = producto(bodega = "b2", operacion = OperacionSync.UPDATE)
+        val d = item("i-d", "bodegas", "b1", OperacionSync.DELETE)
+        assertTrue(ResolverRetencion.retenidos(listOf(p, d)).isEmpty())
+    }
+
+    @Test
+    fun `retenidos cuenta el DELETE de bodega detenido por un producto retenido`() {
+        val p = producto(bodega = "b2", operacion = OperacionSync.UPDATE, rechazo = "SFP04")
+        val d = item("i-d", "bodegas", "b1", OperacionSync.DELETE)
+        assertEquals(setOf(p.id, d.id), ResolverRetencion.retenidos(listOf(p, d)))
+    }
+
+    @Test
     fun `un payload invalido no rompe la resolucion`() {
         val roto = item("i-x", "movimientos", "m9", payload = "no-json")
         assertTrue(ResolverRetencion.resolver(listOf(bodega(rechazo = null), roto)).isEmpty())

@@ -7,6 +7,7 @@ import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
+import cl.storeflow.warehouse.data.local.entity.TipoMovimiento
 import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.domain.model.LoteConStock
 import io.mockk.Runs
@@ -16,6 +17,8 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -72,6 +75,30 @@ class MovimientoRepositoryTest {
         repo = MovimientoRepository(
             movimientoDao, productoDao, syncDao, syncTrigger, loteRepository, authSessionDao, planRepository
         )
+    }
+
+    private fun movimientoEn(id: String, fecha: Long) = MovimientoEntity(
+        id = id, producto_id = "prod-1", tipo = TipoMovimiento.ENTRADA, cantidad = 1, created_at = Date(fecha)
+    )
+
+    @Test
+    fun `FR-021 - los movimientos de un producto respetan el limite de historial`() = runTest {
+        val antiguo = movimientoEn("antiguo", 999L)
+        val justo = movimientoEn("justo", 1_000L)
+        val reciente = movimientoEn("reciente", 2_000L)
+        every { movimientoDao.observarPorProducto("prod-1") } returns flowOf(listOf(reciente, justo, antiguo))
+        every { planRepository.observarHistorialDesde() } returns flowOf(1_000L)
+
+        assertEquals(listOf(reciente, justo), repo.observarMovimientos("prod-1").first())
+    }
+
+    @Test
+    fun `FR-021 - sin limite de historial se ven todos los movimientos`() = runTest {
+        val movimientos = listOf(movimientoEn("reciente", 2_000L), movimientoEn("antiguo", 1L))
+        every { movimientoDao.observarPorProducto("prod-1") } returns flowOf(movimientos)
+        every { planRepository.observarHistorialDesde() } returns flowOf(null)
+
+        assertEquals(movimientos, repo.observarMovimientos("prod-1").first())
     }
 
     @Test

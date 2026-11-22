@@ -17,6 +17,9 @@ interface SyncDao {
     @Query("SELECT * FROM sync_queue ORDER BY created_at ASC")
     suspend fun obtenerCola(): List<SyncEntity>
 
+    @Query("SELECT * FROM sync_queue ORDER BY created_at ASC")
+    fun observarCola(): Flow<List<SyncEntity>>
+
     @Query("UPDATE sync_queue SET reintentos = reintentos + 1, updated_at = :ahora WHERE id = :id")
     suspend fun incrementarReintentos(id: String, ahora: Long = System.currentTimeMillis())
 
@@ -38,12 +41,6 @@ interface SyncDao {
 
     @Query("SELECT COUNT(*) FROM sync_queue WHERE rechazo_codigo IS NOT NULL")
     fun observarRetenidos(): Flow<Int>
-
-    @Query("SELECT COUNT(*) FROM sync_queue WHERE rechazo_codigo IS NOT NULL")
-    suspend fun contarRetenidos(): Int
-
-    @Query("SELECT entidad_tipo, COUNT(*) AS cantidad FROM sync_queue WHERE rechazo_codigo IS NOT NULL GROUP BY entidad_tipo ORDER BY entidad_tipo")
-    fun observarRetenidosPorTipo(): Flow<List<RetenidoPorTipo>>
 
     // Pendientes y retenidos: lo que no se puede borrar al cerrar o perder la sesión (FR-030).
     @Query("SELECT COUNT(*) FROM sync_queue")

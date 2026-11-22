@@ -15,6 +15,30 @@ object ResolverRetencion {
 
     fun resolver(cola: List<SyncEntity>): Set<String> {
         val ordenada = cola.sortedBy { it.created_at }
+        val retenidos = conDependientes(ordenada).toMutableSet()
+        ordenada.forEachIndexed { indice, item ->
+            if (esDeleteBodega(item) && ordenada.take(indice).any { it.entidad_tipo == "productos" }) {
+                retenidos += item.id
+            }
+        }
+        return retenidos
+    }
+
+    /** Lo que el plan mantiene sin enviar. Un DELETE que solo espera su turno no cuenta (FR-023). */
+    fun retenidos(cola: List<SyncEntity>): Set<String> {
+        val ordenada = cola.sortedBy { it.created_at }
+        val base = conDependientes(ordenada)
+        val deletesDetenidos = ordenada.filterIndexed { indice, item ->
+            esDeleteBodega(item) &&
+                ordenada.take(indice).any { it.entidad_tipo == "productos" && it.id in base }
+        }
+        return base + deletesDetenidos.map { it.id }
+    }
+
+    private fun esDeleteBodega(item: SyncEntity) =
+        item.entidad_tipo == "bodegas" && item.operacion == OperacionSync.DELETE
+
+    private fun conDependientes(ordenada: List<SyncEntity>): Set<String> {
         val retenidos = ordenada.filter { it.rechazo_codigo != null }.mapTo(mutableSetOf()) { it.id }
         val insertsRetenidos = ordenada
             .filter { it.id in retenidos && it.operacion == OperacionSync.INSERT }
@@ -33,13 +57,6 @@ object ResolverRetencion {
                 cambio = true
             }
         } while (cambio)
-
-        ordenada.forEachIndexed { indice, item ->
-            val esDeleteBodega = item.entidad_tipo == "bodegas" && item.operacion == OperacionSync.DELETE
-            if (esDeleteBodega && ordenada.take(indice).any { it.entidad_tipo == "productos" }) {
-                retenidos += item.id
-            }
-        }
         return retenidos
     }
 
