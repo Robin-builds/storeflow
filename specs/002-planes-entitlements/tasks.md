@@ -95,7 +95,7 @@ description: "Lista de tareas de Planes & Entitlements v1"
 - [X] T027 Ampliar `supabase/tests/aislamiento_empresas.sql`: una cuenta autenticada sin fila en `usuarios` no puede insertarse en la empresa B. Crear `supabase/tests/bodega_sin_cascada.sql` para SC-017: eliminar una bodega con productos falla con `SFP06`, sin productos pasa, y eliminar una empresa sigue funcionando
 - [X] T028 Crear `supabase/migrations/<ts>_cerrar_insert_usuarios.sql` (M2), que elimina la política `usuario_insert_propio` y agrega el trigger `BEFORE DELETE` en `bodegas` que rechaza con `SFP06` si tiene productos, eximiendo acciones FK con `pg_trigger_depth() > 1` (FR-031, R18)
 - [X] T029 Aplicar M2 en Sandbox y correr `supabase/tests/*.sql`, confirmando que `registrar_empresa` y la Edge Function `supabase/functions/registrar-usuario-empresa/index.ts` siguen funcionando
-- [ ] T030 Solo con confirmación explícita del dueño, promover M2 a Producción por separado con `scripts/promover-migracion.sh`, para cerrar P3 y P4 sin esperar el resto de la feature
+- [X] T030 Solo con confirmación explícita del dueño, promover M2 a Producción por separado con `scripts/promover-migracion.sh`, para cerrar P3 y P4 sin esperar el resto de la feature
 
 **Checkpoint**: La app no pierde trabajo offline y el agujero de aislamiento está cerrado en Sandbox.
 
@@ -276,9 +276,8 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 **Purpose**: Llevar la feature a Producción. **Cada tarea requiere una solicitud explícita del dueño.**
 
-- [ ] T114 Publicar la app en Play y actualizar los dispositivos de prueba. Versión en `app/build.gradle.kts`
-- [ ] T115 Desplegar la versión compatible de `<web>/`
-- [ ] T116 Verificar que el historial de migraciones de Sandbox y Producción sea idéntico antes de promover (`scripts/promover-migracion.sh`)
+- [X] T115 Desplegar la versión compatible de `<web>/`
+- [X] T116 Verificar que el historial de migraciones de Sandbox y Producción sea idéntico antes de promover (`scripts/promover-migracion.sh`)
 - [ ] T117 Con confirmación explícita, promover las migraciones **en el orden M2 (si no se promovió antes), M1, M3, M4, M5, M6** a Producción con `scripts/promover-migracion.sh` y desplegar `supabase/functions/registrar-usuario-empresa/index.ts`. M1 inicia el trial de 30 días de las 11 empresas
 - [ ] T118 Verificar en Producción, según la sección 4 de `specs/002-planes-entitlements/quickstart.md` y solo con `SELECT`: 11 suscripciones en trial, 0 con marca de tester, conteos de negocio sin cambios, y un request normal que sigue funcionando con el pre-request activo
 
