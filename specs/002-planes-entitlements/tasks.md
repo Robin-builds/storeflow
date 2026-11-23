@@ -265,7 +265,8 @@ description: "Lista de tareas de Planes & Entitlements v1"
 - [X] T108 [P] Crear `<test>/constitucion/AntiSteeringApkTest.kt`: falla ante dependencia o permiso de billing, y ante precios o términos de compra en strings (FR-027)
 - [X] T109 [P] Crear `<test>/constitucion/TrazabilidadSpecTest.kt`: lee `specs/002-planes-entitlements/spec.md` y falla si algún FR no está en la tabla de trazabilidad
 - [x] T110 Correr `gradlew testDebugUnitTest`, `supabase/tests/*.sql` contra Sandbox, `scripts/test-planes-concurrencia.sh` y el build de `<web>/`, y reportar cualquier fallo con su salida
-- [ ] T111 Validar con el build `sandbox` los escenarios 1 a 14, 16 y 17 de `specs/002-planes-entitlements/quickstart.md` en dispositivo físico, con confirmación del dueño (puerta 3)
+- [x] T111 Validar con el build `sandbox` los escenarios 1 a 14, 16 y 17 de `specs/002-planes-entitlements/quickstart.md` en dispositivo físico, con confirmación del dueño (puerta 3)
+  - **Excepción aceptada por el dueño (2026-11-22):** el escenario 11 (gracia offline y atraso de reloj) no se ejecutó en dispositivo, porque requiere cambiar la fecha del teléfono.
 - [X] T112 Probar el upgrade real desde Room v9 con datos, sin reinstalar, según el escenario 15 de `specs/002-planes-entitlements/quickstart.md` (puerta 4)
 - [X] T113 [P] Actualizar `.harness/ESTADO.md` y `.harness/TASKS.md`, y registrar en `.specify/memory/constitution.md` lo que corresponda solo si el dueño lo pide
 
