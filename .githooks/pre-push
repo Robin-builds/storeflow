@@ -38,6 +38,11 @@ if echo "$cambiados" | grep -q '^supabase/'; then
         exit 1
       fi
     done
+    echo "▶ pre-push: pruebas de concurrencia contra Sandbox…"
+    if ! sh scripts/test-planes-concurrencia.sh; then
+      echo "✖ pre-push: las pruebas de concurrencia fallaron. Push cancelado." >&2
+      exit 1
+    fi
     echo "✔ tests SQL en verde contra Sandbox"
   elif [ "$SANDBOX_OK" = "1" ]; then
     echo "⚠ pre-push: cambios en supabase/ validados manualmente en Sandbox (SANDBOX_OK=1)."

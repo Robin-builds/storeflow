@@ -17,7 +17,12 @@ import javax.inject.Inject
 
 sealed class MovimientosUiState {
     object Cargando : MovimientosUiState()
-    data class Listo(val producto: Producto, val movimientos: List<MovimientoEntity>) : MovimientosUiState()
+    data class Listo(
+        val producto: Producto,
+        val movimientos: List<MovimientoEntity>,
+        val soloLectura: Boolean = false,
+        val incluyeLotes: Boolean = true
+    ) : MovimientosUiState()
     data class Error(val mensaje: String) : MovimientosUiState()
 }
 
@@ -46,10 +51,12 @@ class MovimientoViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 repository.observarProducto(productoId),
-                repository.observarMovimientos(productoId)
-            ) { producto, movimientos ->
+                repository.observarMovimientos(productoId),
+                repository.observarSoloLectura(productoId),
+                repository.observarIncluyeLotes()
+            ) { producto, movimientos, soloLectura, incluyeLotes ->
                 if (producto == null) MovimientosUiState.Error("Producto no encontrado")
-                else MovimientosUiState.Listo(producto, movimientos)
+                else MovimientosUiState.Listo(producto, movimientos, soloLectura, incluyeLotes)
             }.collect { _uiState.value = it }
         }
     }

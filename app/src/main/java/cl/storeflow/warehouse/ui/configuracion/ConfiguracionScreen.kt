@@ -6,14 +6,17 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.*
@@ -56,12 +59,14 @@ fun ConfiguracionScreen(
     onVolver: () -> Unit,
     onLogout: () -> Unit,
     onIrAReportarError: () -> Unit,
+    onIrAPlan: () -> Unit,
     viewModel: ConfiguracionViewModel = hiltViewModel(),
     ayudaViewModel: AyudaViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val mostrarTooltips by ayudaViewModel.mostrarTooltips.collectAsState()
+    val hayTrabajoSinSincronizar by viewModel.hayTrabajoSinSincronizar.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var mostrarDialogCambiarPassword by remember { mutableStateOf(false) }
 
@@ -95,12 +100,24 @@ fun ConfiguracionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // Con la fila de plan, el botón de cerrar sesión no cabe en pantallas chicas.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // --- Cuenta ---
             SeccionLabel("Cuenta")
             Card(modifier = Modifier.fillMaxWidth()) {
+                ConfigFilaItem(
+                    icon = Icons.Filled.WorkspacePremium,
+                    titulo = "Mi plan",
+                    subtitulo = "Consulta tu plan y su estado",
+                    onClick = onIrAPlan
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
                 ConfigFilaItem(
                     icon = Icons.Filled.Lock,
                     titulo = "Cambiar contraseña",
@@ -246,31 +263,40 @@ fun ConfiguracionScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // --- Cerrar sesión ---
-            Card(
-                onClick = onLogout,
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.error
+            // --- Cerrar sesión (FR-030: no se ofrece con trabajo sin sincronizar) ---
+            if (hayTrabajoSinSincronizar) {
+                Text(
+                    text = "Tienes trabajo sin sincronizar. Conéctate y espera a que se envíe para poder cerrar sesión.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            } else {
+                Card(
+                    onClick = onLogout,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = "Cerrar sesión",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "Cerrar sesión",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                    }
                 }
             }
 

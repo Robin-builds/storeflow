@@ -5,6 +5,7 @@ import cl.storeflow.warehouse.data.local.dao.BodegaDao
 import cl.storeflow.warehouse.data.local.dao.ProductoDao
 import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.BodegaEntity
+import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.data.sync.toSyncDelete
 import cl.storeflow.warehouse.data.sync.toSyncInsert
 import cl.storeflow.warehouse.data.sync.toSyncUpdate
@@ -12,9 +13,10 @@ import cl.storeflow.warehouse.domain.model.Bodega
 import java.util.Date
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,7 +26,9 @@ class BodegaRepository @Inject constructor(
     private val bodegaDao: BodegaDao,
     private val authSessionDao: AuthSessionDao,
     private val syncDao: SyncDao,
-    private val productoDao: ProductoDao
+    private val productoDao: ProductoDao,
+    private val planRepository: PlanRepository,
+    private val syncTrigger: SyncTrigger
 ) {
 
     // flatMapLatest: cuando bodega_id cambia en sesión, esActiva se recalcula en todos los items
@@ -32,13 +36,19 @@ class BodegaRepository @Inject constructor(
     fun observarBodegas(): Flow<List<Bodega>> = authSessionDao.observarSesion()
         .flatMapLatest { sesion ->
             if (sesion == null) flowOf(emptyList())
-            else bodegaDao.observarPorEmpresa(sesion.empresa_id)
-                .map { entities -> entities.map { it.toDomain(sesion.bodega_id) } }
+            else combine(
+                bodegaDao.observarPorEmpresa(sesion.empresa_id),
+                planRepository.observarBodegasSoloLectura()
+            ) { entities, soloLectura ->
+                entities.map { it.toDomain(sesion.bodega_id, it.id in soloLectura) }
+            }
         }
 
     suspend fun obtenerBodegaActiva(): Bodega? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
-        return bodegaDao.obtenerPorId(sesion.bodega_id)?.toDomain(sesion.bodega_id)
+        val soloLectura = planRepository.bodegasEnSoloLectura()
+        return bodegaDao.obtenerPorId(sesion.bodega_id)
+            ?.let { it.toDomain(sesion.bodega_id, it.id in soloLectura) }
     }
 
     suspend fun crear(nombre: String, ubicacion: String?): Result<Unit> {
@@ -52,6 +62,7 @@ class BodegaRepository @Inject constructor(
             )
             bodegaDao.insertar(bodega)
             syncDao.encolar(bodega.toSyncInsert())
+            syncTrigger.trigger()
             Timber.d("BODEGA: creada id=${bodega.id}, nombre=${bodega.nombre}")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -67,10 +78,25 @@ class BodegaRepository @Inject constructor(
             val bodega = bodegaDao.obtenerPorId(id)
                 ?: return Result.failure(Exception("Bodega no encontrada"))
 
+            val soloLectura = planRepository.bodegasEnSoloLectura()
+            if (id in soloLectura) {
+                return Result.failure(Exception(PlanRepository.MENSAJE_SOLO_LECTURA))
+            }
+            if (soloLectura.isNotEmpty()) {
+                val editables = bodegaDao.observarPorEmpresa(sesion.empresa_id).first()
+                    .count { it.id !in soloLectura }
+                if (editables <= 1) {
+                    return Result.failure(Exception("No se puede eliminar la única bodega editable"))
+                }
+            }
+
             val cantidad = productoDao.contarPorBodega(id)
             if (cantidad > 0) {
                 val destino = bodegaDao.obtenerMasAntiguaExcluyendo(sesion.empresa_id, id)
                     ?: return Result.failure(Exception("No hay bodega de destino disponible"))
+                if (destino.id in soloLectura) {
+                    return Result.failure(Exception("La bodega de destino está en solo lectura con el plan actual"))
+                }
                 val productos = productoDao.obtenerListaPorBodega(id)
                 val ahora = Date()
                 productoDao.transferirABodega(id, destino.id)
@@ -84,6 +110,7 @@ class BodegaRepository @Inject constructor(
 
             bodegaDao.eliminar(bodega)
             syncDao.encolar(bodega.toSyncDelete())
+            syncTrigger.trigger()
             Timber.d("BODEGA: eliminada id=$id")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -104,10 +131,11 @@ class BodegaRepository @Inject constructor(
     }
 }
 
-private fun BodegaEntity.toDomain(bodegaActivaId: String): Bodega = Bodega(
+private fun BodegaEntity.toDomain(bodegaActivaId: String, soloLectura: Boolean): Bodega = Bodega(
     id = id,
     nombre = nombre,
     ubicacion = ubicacion,
     empresaId = empresa_id,
-    esActiva = id == bodegaActivaId
+    esActiva = id == bodegaActivaId,
+    soloLectura = soloLectura
 )

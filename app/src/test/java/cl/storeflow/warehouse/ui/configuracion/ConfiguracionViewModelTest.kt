@@ -3,19 +3,25 @@ package cl.storeflow.warehouse.ui.configuracion
 import cl.storeflow.warehouse.MainDispatcherRule
 import cl.storeflow.warehouse.data.repository.AuthRepository
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ConfiguracionViewModelTest {
 
     @get:Rule
@@ -23,11 +29,33 @@ class ConfiguracionViewModelTest {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var viewModel: ConfiguracionViewModel
+    private val trabajo = MutableStateFlow(false)
 
     @Before
     fun setUp() {
         authRepository = mockk()
+        every { authRepository.observarTrabajoSinSincronizar() } returns trabajo
         viewModel = ConfiguracionViewModel(authRepository)
+    }
+
+    @Test
+    fun `FR-030 - con trabajo sin sincronizar no se ofrece cerrar sesion`() = runTest {
+        val job = launch { viewModel.hayTrabajoSinSincronizar.collect {} }
+
+        trabajo.value = true
+        advanceUntilIdle()
+        assertTrue(viewModel.hayTrabajoSinSincronizar.value)
+
+        trabajo.value = false
+        advanceUntilIdle()
+        assertFalse(viewModel.hayTrabajoSinSincronizar.value)
+
+        job.cancel()
+    }
+
+    @Test
+    fun `FR-030 - mientras no se conoce el estado no se ofrece cerrar sesion`() {
+        assertTrue(viewModel.hayTrabajoSinSincronizar.value)
     }
 
     @Test

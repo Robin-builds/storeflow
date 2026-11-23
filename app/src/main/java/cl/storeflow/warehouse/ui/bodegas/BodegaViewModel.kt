@@ -3,6 +3,7 @@
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.repository.BodegaRepository
+import cl.storeflow.warehouse.data.repository.PlanRepository
 import cl.storeflow.warehouse.data.repository.UsuarioRepository
 import cl.storeflow.warehouse.domain.model.Bodega
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +30,8 @@ sealed class BodegasUiState {
 @HiltViewModel
 class BodegaViewModel @Inject constructor(
     private val bodegaRepository: BodegaRepository,
-    private val usuarioRepository: UsuarioRepository
+    private val usuarioRepository: UsuarioRepository,
+    private val planRepository: PlanRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BodegasUiState>(BodegasUiState.Cargando)
@@ -67,6 +69,10 @@ class BodegaViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            if (!planRepository.puedeCrearBodega()) {
+                _mensaje.emit(PlanRepository.MENSAJE_SIN_PERMISO_BODEGA)
+                return@launch
+            }
             bodegaRepository.crear(nombre, ubicacion)
                 .onFailure { _mensaje.emit("Error al crear bodega: ${it.message}") }
         }
@@ -80,6 +86,10 @@ class BodegaViewModel @Inject constructor(
         }
         if (estado.activa?.id == id) {
             viewModelScope.launch { _mensaje.emit("No se puede eliminar la bodega activa") }
+            return
+        }
+        if (estado.bodegas.firstOrNull { it.id == id }?.soloLectura == true) {
+            viewModelScope.launch { _mensaje.emit("Esta bodega está en solo lectura con el plan actual") }
             return
         }
         if (estado.bodegas.size <= 1) {

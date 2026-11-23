@@ -5,7 +5,8 @@ data class Bodega(
     val nombre: String,
     val ubicacion: String?,
     val empresaId: String,
-    val esActiva: Boolean = false
+    val esActiva: Boolean = false,
+    val soloLectura: Boolean = false
 ) {
     fun descripcion(): String = ubicacion?.let { "$nombre — $it" } ?: nombre
 }

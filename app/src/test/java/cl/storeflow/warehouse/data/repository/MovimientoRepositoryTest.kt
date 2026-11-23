@@ -7,13 +7,18 @@ import cl.storeflow.warehouse.data.local.dao.SyncDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.local.entity.MovimientoEntity
 import cl.storeflow.warehouse.data.local.entity.ProductoEntity
+import cl.storeflow.warehouse.data.local.entity.TipoMovimiento
 import cl.storeflow.warehouse.data.sync.SyncTrigger
+import cl.storeflow.warehouse.domain.model.LoteConStock
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -30,6 +35,7 @@ class MovimientoRepositoryTest {
     private lateinit var syncTrigger: SyncTrigger
     private lateinit var loteRepository: LoteRepository
     private lateinit var authSessionDao: AuthSessionDao
+    private lateinit var planRepository: PlanRepository
     private lateinit var repo: MovimientoRepository
 
     private val testSession = AuthSessionEntity(
@@ -62,7 +68,101 @@ class MovimientoRepositoryTest {
         coEvery { syncDao.encolar(any()) } just Runs
         every { syncTrigger.trigger() } just Runs
 
-        repo = MovimientoRepository(movimientoDao, productoDao, syncDao, syncTrigger, loteRepository, authSessionDao)
+        planRepository = mockk()
+        coEvery { planRepository.bodegasEnSoloLectura() } returns emptySet()
+        coEvery { planRepository.incluyeLotes() } returns true
+
+        repo = MovimientoRepository(
+            movimientoDao, productoDao, syncDao, syncTrigger, loteRepository, authSessionDao, planRepository
+        )
+    }
+
+    private fun movimientoEn(id: String, fecha: Long) = MovimientoEntity(
+        id = id, producto_id = "prod-1", tipo = TipoMovimiento.ENTRADA, cantidad = 1, created_at = Date(fecha)
+    )
+
+    @Test
+    fun `FR-021 - los movimientos de un producto respetan el limite de historial`() = runTest {
+        val antiguo = movimientoEn("antiguo", 999L)
+        val justo = movimientoEn("justo", 1_000L)
+        val reciente = movimientoEn("reciente", 2_000L)
+        every { movimientoDao.observarPorProducto("prod-1") } returns flowOf(listOf(reciente, justo, antiguo))
+        every { planRepository.observarHistorialDesde() } returns flowOf(1_000L)
+
+        assertEquals(listOf(reciente, justo), repo.observarMovimientos("prod-1").first())
+    }
+
+    @Test
+    fun `FR-021 - sin limite de historial se ven todos los movimientos`() = runTest {
+        val movimientos = listOf(movimientoEn("reciente", 2_000L), movimientoEn("antiguo", 1L))
+        every { movimientoDao.observarPorProducto("prod-1") } returns flowOf(movimientos)
+        every { planRepository.observarHistorialDesde() } returns flowOf(null)
+
+        assertEquals(movimientos, repo.observarMovimientos("prod-1").first())
+    }
+
+    @Test
+    fun `FR-025 - sin lotes, la entrada de un perecedero se registra sin lote`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.incluyeLotes() } returns false
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero.copy(es_perecedero = true)
+        val slot = slot<MovimientoEntity>()
+        coEvery { movimientoDao.insertar(capture(slot)) } just Runs
+
+        val resultado = repo.registrarEntrada("prod-1", 10, "compra", Date(), "L-1")
+
+        assertTrue(resultado.isSuccess)
+        assertNull(slot.captured.lote_id)
+        assertEquals(10, slot.captured.cantidad)
+        coVerify(exactly = 0) { loteRepository.crear(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `FR-025 - sin lotes, la salida descuenta de los lotes existentes y el resto sin lote`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.incluyeLotes() } returns false
+        coEvery { productoDao.calcularStock("prod-1") } returns 10
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero.copy(es_perecedero = true)
+        coEvery { loteRepository.obtenerConStockFefo("prod-1") } returns listOf(
+            LoteConStock(
+                id = "lote-1", producto_id = "prod-1", empresa_id = "emp-1", numero_lote = null,
+                fecha_caducidad = Date(), stock_actual = 4, synced = true, synced_at = null,
+                created_at = Date(), updated_at = Date()
+            )
+        )
+        val insertados = mutableListOf<MovimientoEntity>()
+        coEvery { movimientoDao.insertar(capture(insertados)) } just Runs
+
+        val resultado = repo.registrarSalida("prod-1", 6, "venta")
+
+        assertTrue(resultado.isSuccess)
+        assertEquals(listOf("lote-1", null), insertados.map { it.lote_id })
+        assertEquals(listOf(-4, -2), insertados.map { it.cantidad })
+    }
+
+    @Test
+    fun `no registra entrada, salida ni ajuste en una bodega en solo lectura`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-1")
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero
+        coEvery { productoDao.calcularStock("prod-1") } returns 100
+
+        assertTrue(repo.registrarEntrada("prod-1", 10, "compra").isFailure)
+        assertTrue(repo.registrarSalida("prod-1", 5, "venta").isFailure)
+        assertTrue(repo.registrarAjuste("prod-1", 60, "conteo").isFailure)
+
+        coVerify(exactly = 0) { movimientoDao.insertar(any()) }
+        coVerify(exactly = 0) { syncDao.encolar(any()) }
+    }
+
+    @Test
+    fun `registra normalmente si la bodega del producto sigue activa`() = runTest {
+        coEvery { authSessionDao.obtenerSesion() } returns testSession
+        coEvery { planRepository.bodegasEnSoloLectura() } returns setOf("bod-2")
+        coEvery { productoDao.obtenerPorId("prod-1") } returns productoNoPerecedero
+
+        assertTrue(repo.registrarEntrada("prod-1", 10, "compra").isSuccess)
+        coVerify(exactly = 1) { movimientoDao.insertar(any()) }
     }
 
     @Test

@@ -14,7 +14,10 @@ data class SyncEntity(
     val payload: String,
     val reintentos: Int = 0,
     val created_at: Date = Date(),
-    val updated_at: Date = Date()
+    val updated_at: Date = Date(),
+    // SFP01–SFP06 u otro código de error permanente. No nulo = ítem retenido.
+    val rechazo_codigo: String? = null,
+    val rechazado_at: Date? = null
 )
 
 enum class OperacionSync { INSERT, UPDATE, DELETE }

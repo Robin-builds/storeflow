@@ -7,9 +7,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +30,10 @@ class ConfiguracionViewModel @Inject constructor(
 
     private val _mensaje = MutableSharedFlow<String>()
     val mensaje: SharedFlow<String> = _mensaje.asSharedFlow()
+
+    // Parte en true: no se ofrece cerrar sesión hasta confirmar que no hay trabajo (FR-030).
+    val hayTrabajoSinSincronizar: StateFlow<Boolean> = authRepository.observarTrabajoSinSincronizar()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
     fun cambiarPassword(actual: String, nueva: String) {
         viewModelScope.launch {

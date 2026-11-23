@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,6 +27,17 @@ class AuthViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    // El bloqueo nunca borra datos locales: solo cubre la app hasta recuperar el acceso (FR-029).
+    val bloqueadoPorPlan: StateFlow<Boolean> = authRepository.observarBloqueado()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val hayTrabajoSinSincronizar: StateFlow<Boolean> = authRepository.observarTrabajoSinSincronizar()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    fun revalidarPlan() {
+        viewModelScope.launch { authRepository.revalidarPlan() }
+    }
 
     init {
         verificarSesion()
@@ -69,7 +82,8 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
-            _uiState.value = AuthUiState.SesionCerrada
+                .onSuccess { _uiState.value = AuthUiState.SesionCerrada }
+                .onFailure { _uiState.value = AuthUiState.Error(it.message ?: "Error desconocido") }
         }
     }
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.storeflow.warehouse.data.local.dao.AuthSessionDao
 import cl.storeflow.warehouse.data.repository.MovimientoRepository
+import cl.storeflow.warehouse.data.repository.PlanRepository
 import cl.storeflow.warehouse.domain.model.MovimientoConProducto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HistorialMovimientosViewModel @Inject constructor(
     authSessionDao: AuthSessionDao,
-    movimientoRepository: MovimientoRepository
+    movimientoRepository: MovimientoRepository,
+    planRepository: PlanRepository
 ) : ViewModel() {
 
     private val empresaIdFlow = authSessionDao.observarSesion()
@@ -38,9 +40,11 @@ class HistorialMovimientosViewModel @Inject constructor(
     private val _busqueda = MutableStateFlow("")
     val busqueda: StateFlow<String> = _busqueda.asStateFlow()
 
+    // Solo limita lo visible: las consultas de stock no cambian (FR-021).
     val movimientosFiltrados: StateFlow<List<MovimientoConProducto>> = combine(
-        todosLosMovimientos, _busqueda
-    ) { lista, query ->
+        todosLosMovimientos, _busqueda, planRepository.observarHistorialDesde()
+    ) { todos, query, desde ->
+        val lista = if (desde == null) todos else todos.filter { it.created_at.time >= desde }
         if (query.isBlank()) lista
         else lista.filter {
             it.producto_nombre.contains(query, ignoreCase = true) ||

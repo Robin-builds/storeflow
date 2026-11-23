@@ -20,9 +20,11 @@ import cl.storeflow.warehouse.data.local.entity.*
         AuthSessionEntity::class,
         AtributoTemplateEntity::class,
         ProductoAtributoEntity::class,
-        LoteEntity::class
+        LoteEntity::class,
+        PlanCacheEntity::class,
+        AvisoPlanEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(DateConverters::class)
@@ -38,6 +40,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun atributoTemplateDao(): AtributoTemplateDao
     abstract fun productoAtributoDao(): ProductoAtributoDao
     abstract fun loteDao(): LoteDao
+    abstract fun planCacheDao(): PlanCacheDao
+    abstract fun avisoPlanDao(): AvisoPlanDao
 
     companion object {
         const val NOMBRE_DB = "storeflow.db"
@@ -142,6 +146,45 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE movimientos ADD COLUMN usuario_id TEXT REFERENCES usuarios(id) ON DELETE SET NULL")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_movimientos_usuario_id ON movimientos (usuario_id)")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sync_queue ADD COLUMN rechazo_codigo TEXT")
+                db.execSQL("ALTER TABLE sync_queue ADD COLUMN rechazado_at INTEGER")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS plan_cache (
+                        empresa_id TEXT NOT NULL PRIMARY KEY,
+                        plan_efectivo TEXT NOT NULL,
+                        estado TEXT NOT NULL,
+                        bloqueado INTEGER NOT NULL,
+                        puede_crear_bodega INTEGER NOT NULL,
+                        puede_crear_usuario INTEGER NOT NULL,
+                        historial_desde INTEGER,
+                        lotes INTEGER NOT NULL,
+                        degradacion_free TEXT,
+                        bodegas_solo_lectura TEXT NOT NULL,
+                        dispositivo_id TEXT NOT NULL,
+                        trial_fin INTEGER,
+                        vencimiento INTEGER,
+                        validado_en_servidor INTEGER NOT NULL,
+                        reloj_en_validacion INTEGER NOT NULL,
+                        mayor_reloj_observado INTEGER NOT NULL,
+                        elapsed_en_validacion INTEGER NOT NULL,
+                        boot_count INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS avisos_plan (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        empresa_id TEXT NOT NULL,
+                        momento TEXT NOT NULL,
+                        cerrado INTEGER NOT NULL,
+                        cierre_pendiente INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_avisos_plan_empresa_id_momento ON avisos_plan (empresa_id, momento)")
             }
         }
 

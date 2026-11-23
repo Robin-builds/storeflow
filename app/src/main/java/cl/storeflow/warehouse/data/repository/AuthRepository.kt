@@ -1,12 +1,14 @@
 ﻿package cl.storeflow.warehouse.data.repository
 
-import cl.storeflow.warehouse.data.local.AppDatabase
 import cl.storeflow.warehouse.data.local.dao.AuthSessionDao
 import cl.storeflow.warehouse.data.local.entity.AuthSessionEntity
 import cl.storeflow.warehouse.data.remote.SUPABASE_ANON_KEY
 import cl.storeflow.warehouse.data.remote.SUPABASE_URL
 import cl.storeflow.warehouse.data.remote.supabaseClient
+import cl.storeflow.warehouse.data.sync.GestorSesion
 import cl.storeflow.warehouse.data.sync.PullTrigger
+import cl.storeflow.warehouse.data.sync.ResultadoToken
+import cl.storeflow.warehouse.data.sync.SyncTrigger
 import cl.storeflow.warehouse.domain.model.Rol
 import cl.storeflow.warehouse.domain.model.SesionUsuario
 import io.github.jan.supabase.gotrue.gotrue
@@ -18,6 +20,7 @@ import io.ktor.client.engine.android.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -35,24 +38,28 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val authSessionDao: AuthSessionDao,
-    private val db: AppDatabase,
-    private val pullTrigger: PullTrigger
+    private val gestorSesion: GestorSesion,
+    private val pullTrigger: PullTrigger,
+    private val planRepository: PlanRepository,
+    private val syncTrigger: SyncTrigger
 ) {
+
+    private companion object {
+        const val MENSAJE_OTRA_CUENTA =
+            "Este dispositivo tiene trabajo sin sincronizar de otra cuenta. Ingresa con esa cuenta para enviarlo."
+        const val MENSAJE_LOGOUT_BLOQUEADO =
+            "Tienes trabajo sin sincronizar. Conéctate y espera a que se envíe antes de cerrar sesión."
+    }
 
     fun observarSesion(): Flow<AuthSessionEntity?> = authSessionDao.observarSesion()
 
-    private fun esErrorDeConexion(e: Throwable): Boolean {
-        val causa = e.cause
-        return e is java.net.UnknownHostException ||
-            causa is java.net.UnknownHostException ||
-            e.message?.contains("Unable to resolve host") == true
-    }
+    fun observarTrabajoSinSincronizar(): Flow<Boolean> =
+        gestorSesion.observarTrabajoSinSincronizar()
 
-    private fun mensajeError(e: Throwable, generico: String): String {
-        if (esErrorDeConexion(e)) {
-            return "Sin conexión a internet. Verifica tu WiFi o datos móviles e intenta nuevamente."
-        }
-        return generico
+    fun observarBloqueado(): Flow<Boolean> = planRepository.observarBloqueado()
+
+    suspend fun revalidarPlan() {
+        planRepository.validarActual()
     }
 
     suspend fun login(correo: String, contrasena: String): Result<SesionUsuario> {
@@ -70,6 +77,42 @@ class AuthRepository @Inject constructor(
 
             val user = supabaseClient.gotrue.retrieveUserForCurrentSession(updateSession = true)
             Timber.d("AUTH: user.id=${user.id}")
+
+            if (!gestorSesion.puedeIngresar(user.id)) {
+                supabaseClient.gotrue.clearSession()
+                return Result.failure(Exception(MENSAJE_OTRA_CUENTA))
+            }
+
+            // Antes de leer usuarios: un excedente no puede leer datos de la empresa (R20).
+            // Un fallo de red no impide el ingreso.
+            val validacion = planRepository.validar(session.accessToken)
+            if (validacion is ResultadoValidacion.Actualizado && validacion.bloqueado) {
+                val expira = session.expiresAt.toEpochMilliseconds()
+                authSessionDao.guardarSesion(
+                    AuthSessionEntity(
+                        access_token = session.accessToken,
+                        refresh_token = session.refreshToken,
+                        user_id = user.id,
+                        empresa_id = validacion.empresaId,
+                        bodega_id = "",
+                        rol = validacion.rol,
+                        expires_at = Date(expira),
+                        correo = correo.trim()
+                    )
+                )
+                // Sus movimientos dentro de la ventana todavía se pueden enviar (FR-029).
+                syncTrigger.trigger()
+                return Result.success(
+                    SesionUsuario(
+                        user_id = user.id,
+                        empresa_id = validacion.empresaId,
+                        access_token = session.accessToken,
+                        refresh_token = session.refreshToken,
+                        expires_at = expira,
+                        rol = Rol.fromString(validacion.rol)
+                    )
+                )
+            }
 
             Timber.d("AUTH: consultando tabla usuarios...")
             val filas = supabaseClient.postgrest["usuarios"]
@@ -108,6 +151,8 @@ class AuthRepository @Inject constructor(
                 )
             )
             Timber.d("AUTH: sesion guardada en Room OK")
+            // Retoma la cola que quedó esperando un nuevo ingreso tras una sesión inválida (SC-016).
+            syncTrigger.trigger()
             pullTrigger.trigger()
 
             Result.success(
@@ -122,7 +167,7 @@ class AuthRepository @Inject constructor(
             )
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en login — ${e.javaClass.simpleName}: ${e.message}")
-            Result.failure(Exception(mensajeError(e, "Error: ${e.message}")))
+            Result.failure(Exception(mensajeAuthSeguro(e, "No se pudo iniciar sesión. Intenta nuevamente.")))
         }
     }
 
@@ -134,6 +179,11 @@ class AuthRepository @Inject constructor(
     ): Result<SesionUsuario> {
         return try {
             Timber.d("AUTH: iniciando registro para $correo, empresa=$nombre_empresa")
+
+            // Antes de signUp: una cuenta nueva no debe crearse si no podrá usar este dispositivo.
+            if (!gestorSesion.puedeRegistrar(correo)) {
+                return Result.failure(Exception(MENSAJE_OTRA_CUENTA))
+            }
 
             // 1. Crear usuario en Auth — si ya existe, podría ser un usuario huérfano
             var esRecuperacion = false
@@ -164,6 +214,11 @@ class AuthRepository @Inject constructor(
                 ?: return Result.failure(Exception("Error al iniciar sesión"))
             val user = supabaseClient.gotrue.retrieveUserForCurrentSession(updateSession = true)
             Timber.d("AUTH: user.id=${user.id}")
+
+            if (!gestorSesion.puedeIngresar(user.id)) {
+                supabaseClient.gotrue.clearSession()
+                return Result.failure(Exception(MENSAJE_OTRA_CUENTA))
+            }
 
             // 3. Si es recuperación, verificar si ya tiene perfil completo
             if (esRecuperacion) {
@@ -214,6 +269,11 @@ class AuthRepository @Inject constructor(
                 )
             )
 
+            planRepository.validar(session.accessToken)
+
+            // Sin esto la Bodega Principal no llega a Room hasta el próximo login (DEF-1).
+            pullTrigger.trigger()
+
             Timber.d("AUTH: registro completo OK")
             Result.success(
                 SesionUsuario(
@@ -230,7 +290,7 @@ class AuthRepository @Inject constructor(
             val mensaje = when {
                 e.message?.contains("Invalid login credentials") == true ->
                     "Contraseña incorrecta. Si ya tienes cuenta, inicia sesión."
-                else -> mensajeError(e, "Error al registrar: ${e.message}")
+                else -> mensajeAuthSeguro(e, "No se pudo completar el registro. Intenta nuevamente.")
             }
             Result.failure(Exception(mensaje))
         }
@@ -274,7 +334,7 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en registrarUsuarioEnEmpresa")
-            Result.failure(Exception("Error de conexión: ${e.message}"))
+            Result.failure(Exception(mensajeAuthSeguro(e, "No se pudo completar la operación. Intenta nuevamente.")))
         } finally {
             httpClient.close()
         }
@@ -311,44 +371,48 @@ class AuthRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Timber.e(e, "AUTH: error en resetearPasswordUsuario")
-            Result.failure(Exception("Error de conexión: ${e.message}"))
+            Result.failure(Exception(mensajeAuthSeguro(e, "No se pudo completar la operación. Intenta nuevamente.")))
         } finally {
             httpClient.close()
         }
     }
 
-    suspend fun logout() {
+    suspend fun logout(): Result<Unit> {
+        // Se revisa antes de revocar la sesión en el servidor (FR-030).
+        if (gestorSesion.tieneTrabajoSinSincronizar()) {
+            return Result.failure(Exception(MENSAJE_LOGOUT_BLOQUEADO))
+        }
         try {
             supabaseClient.gotrue.logout()
-        } finally {
-            withContext(Dispatchers.IO) { db.clearAllTables() }
-        }
-    }
-
-    suspend fun checkSession(): AuthSessionEntity? {
-        val sesion = authSessionDao.obtenerSesion() ?: return null
-        if (sesion.expires_at.after(Date())) return sesion
-
-        Timber.d("AUTH: token expirado, intentando refresh silencioso")
-        return try {
-            supabaseClient.gotrue.refreshCurrentSession()
-            val nueva = supabaseClient.gotrue.currentSessionOrNull()
-                ?: throw Exception("sesión nula tras refresh")
-            val actualizada = sesion.copy(
-                access_token = nueva.accessToken,
-                refresh_token = nueva.refreshToken,
-                expires_at = Date(nueva.expiresAt.toEpochMilliseconds()),
-                updated_at = Date()
-            )
-            withContext(Dispatchers.IO) { authSessionDao.guardarSesion(actualizada) }
-            Timber.d("AUTH: refresh OK — nueva expiración: ${actualizada.expires_at}")
-            actualizada
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            Timber.e(e, "AUTH: refresh fallido, forzando re-login")
-            withContext(Dispatchers.IO) { db.clearAllTables() }
-            null
+            Timber.w(e, "AUTH: logout remoto falló, se limpia la sesión local")
+        }
+        return if (gestorSesion.limpiarSiNoHayTrabajo()) {
+            Result.success(Unit)
+        } else {
+            Result.failure(Exception(MENSAJE_LOGOUT_BLOQUEADO))
         }
     }
+
+    suspend fun checkSession(): AuthSessionEntity? =
+        when (val resultado = gestorSesion.obtenerToken()) {
+            is ResultadoToken.Vigente -> {
+                gestorSesion.importarAlCliente(resultado.sesion)
+                resultado.sesion
+            }
+            is ResultadoToken.SinRed -> {
+                Timber.d("AUTH: sin red, se mantiene la sesión guardada")
+                gestorSesion.importarAlCliente(resultado.sesion)
+                resultado.sesion
+            }
+            is ResultadoToken.SesionInvalida -> {
+                Timber.w("AUTH: sesión inválida, datos conservados=${resultado.datosConservados}")
+                null
+            }
+            ResultadoToken.SinSesion -> null
+        }
 
     suspend fun obtenerRolActual(): Rol? {
         val sesion = authSessionDao.obtenerSesion() ?: return null
@@ -383,7 +447,7 @@ class AuthRepository @Inject constructor(
             Timber.e(e, "AUTH: error cambiando password")
             val mensaje = if (e.message?.contains("Invalid login credentials") == true)
                 "Contraseña actual incorrecta"
-            else mensajeError(e, "Error al cambiar contraseña: ${e.message}")
+            else mensajeAuthSeguro(e, "No se pudo cambiar la contraseña. Intenta nuevamente.")
             Result.failure(Exception(mensaje))
         }
     }

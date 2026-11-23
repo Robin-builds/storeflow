@@ -64,6 +64,7 @@ fun ProductosListScreen(
     val seleccionados by viewModel.seleccionados.collectAsState()
     val modoSeleccion by viewModel.modoSeleccion.collectAsState()
     val bodegas by viewModel.bodegas.collectAsState()
+    val soloLectura by viewModel.bodegaEnSoloLectura.collectAsState()
     val primario = StoreFlowTheme.coloresExtendidos.paleta.primario
 
     val context = LocalContext.current
@@ -84,7 +85,7 @@ fun ProductosListScreen(
         }
     }
 
-    val bodegasDestino = remember(bodegas) { bodegas.filter { !it.esActiva } }
+    val bodegasDestino = remember(bodegas) { bodegas.filter { !it.esActiva && !it.soloLectura } }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -120,7 +121,7 @@ fun ProductosListScreen(
             }
         },
         floatingActionButton = {
-            if (!modoSeleccion) {
+            if (!modoSeleccion && !soloLectura) {
                 FloatingActionButton(
                     onClick = { mostrarFormCrear = true },
                     containerColor = primario,
@@ -137,6 +138,14 @@ fun ProductosListScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
         Column(modifier = Modifier.fillMaxSize()) {
+            if (soloLectura) {
+                Text(
+                    text = "Esta bodega está en solo lectura con el plan actual. Puedes consultar su stock e historial.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -222,7 +231,9 @@ fun ProductosListScreen(
                     if (productosFiltrados.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                text = if (busqueda.isBlank())
+                                text = if (busqueda.isBlank() && soloLectura)
+                                    "No hay productos en esta bodega."
+                                else if (busqueda.isBlank())
                                     "No hay productos. Toca + para crear uno."
                                 else
                                     "Sin resultados para \"$busqueda\"",
@@ -245,6 +256,7 @@ fun ProductosListScreen(
                                     producto = producto,
                                     seleccionado = producto.id in seleccionados,
                                     modoSeleccion = modoSeleccion,
+                                    soloLectura = soloLectura,
                                     onEditar = { viewModel.seleccionarParaEditar(producto.id) },
                                     onVerMovimientos = { onVerMovimientos(producto.id) },
                                     onLongPress = { viewModel.toggleSeleccion(producto.id) },
@@ -421,6 +433,7 @@ private fun ProductoItem(
     producto: Producto,
     seleccionado: Boolean,
     modoSeleccion: Boolean,
+    soloLectura: Boolean,
     onEditar: () -> Unit,
     onVerMovimientos: () -> Unit,
     onLongPress: () -> Unit,
@@ -457,6 +470,7 @@ private fun ProductoItem(
                     .weight(1f)
                     .height(IntrinsicSize.Min)
                     .then(if (!modoSeleccion) Modifier.combinedClickable(
+                        enabled = !soloLectura,
                         onClick = onEditar,
                         onLongClick = onLongPress
                     ) else Modifier),
