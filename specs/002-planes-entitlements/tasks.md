@@ -278,8 +278,8 @@ description: "Lista de tareas de Planes & Entitlements v1"
 
 - [X] T115 Desplegar la versión compatible de `<web>/`
 - [X] T116 Verificar que el historial de migraciones de Sandbox y Producción sea idéntico antes de promover (`scripts/promover-migracion.sh`)
-- [ ] T117 Con confirmación explícita, promover las migraciones **en el orden M2 (si no se promovió antes), M1, M3, M4, M5, M6** a Producción con `scripts/promover-migracion.sh` y desplegar `supabase/functions/registrar-usuario-empresa/index.ts`. M1 inicia el trial de 30 días de las 11 empresas
-- [ ] T118 Verificar en Producción, según la sección 4 de `specs/002-planes-entitlements/quickstart.md` y solo con `SELECT`: 11 suscripciones en trial, 0 con marca de tester, conteos de negocio sin cambios, y un request normal que sigue funcionando con el pre-request activo
+- [X] T117 Con confirmación explícita, promover las migraciones **en el orden M2 (si no se promovió antes), M1, M3, M4, M5, M6** a Producción con `scripts/promover-migracion.sh` y desplegar `supabase/functions/registrar-usuario-empresa/index.ts`. M1 inicia el trial de 30 días de las 11 empresas
+- [X] T118 Verificar en Producción, según la sección 4 de `specs/002-planes-entitlements/quickstart.md` y solo con `SELECT`: 11 suscripciones en trial, 0 con marca de tester, conteos de negocio sin cambios, y un request normal que sigue funcionando con el pre-request activo
 
 ---
 
